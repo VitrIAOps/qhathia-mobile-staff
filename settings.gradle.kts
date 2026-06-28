@@ -24,3 +24,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "QhathiaStaff"
 include(":app")
+include(":core:common")
+include(":core:network")
+include(":core:domain")
+include(":core:data")
+include(":core:ui")
+include(":core:testing")
+include(":features:auth")

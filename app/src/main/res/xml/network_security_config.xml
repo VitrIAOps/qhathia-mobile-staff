@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Production backend is served over plain HTTP on a fixed IP (no HTTPS/domain yet).
+  Cleartext is allowed ONLY for that host; everything else stays HTTPS-only.
+  Remove this exception once the API is reachable over HTTPS.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">87.99.156.164</domain>
+    </domain-config>
+</network-security-config>

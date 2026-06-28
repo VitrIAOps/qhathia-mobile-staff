@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_brand">Qhathia</string>
+    <string name="login_email_placeholder">Correo electrónico</string>
+    <string name="login_password_placeholder">Contraseña</string>
+    <string name="login_submit">Iniciar sesión</string>
+
+    <string name="login_email_icon_cd">Ícono de correo</string>
+    <string name="login_password_icon_cd">Ícono de contraseña</string>
+
+    <string name="login_error_invalid_email">Ingresa un correo válido</string>
+    <string name="login_error_empty_password">Ingresa tu contraseña</string>
+    <string name="login_error_invalid_credentials">Correo o contraseña incorrectos</string>
+    <string name="login_error_validation">Revisa los datos ingresados</string>
+    <string name="login_error_network">Sin conexión. Inténtalo de nuevo</string>
+    <string name="login_error_unknown">Algo salió mal. Inténtalo de nuevo</string>
+</resources>
