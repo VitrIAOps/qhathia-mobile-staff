@@ -7,13 +7,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.qhathia.mobile.staff.feature.auth.navigation.LOGIN_ROUTE
 import com.qhathia.mobile.staff.feature.auth.navigation.authGraph
-import com.qhathia.mobile.staff.ui.home.HomePlaceholderScreen
 
-const val HOME_ROUTE = "home"
+/** Route for the post-login app shell (bottom navigation + top-level destinations). */
+const val MAIN_ROUTE = "main"
 
 /**
- * App navigation graph. Starts at login or home depending on [startAuthenticated]; a successful
- * login replaces login with home so back does not return to the login screen.
+ * App navigation graph. Starts at login or the main shell depending on [startAuthenticated]; a
+ * successful login replaces login with the shell so back does not return to the login screen.
  */
 @Composable
 fun QhathiaNavHost(
@@ -22,17 +22,17 @@ fun QhathiaNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = if (startAuthenticated) HOME_ROUTE else LOGIN_ROUTE,
+        startDestination = if (startAuthenticated) MAIN_ROUTE else LOGIN_ROUTE,
     ) {
         authGraph(
             onNavigateToHome = {
-                navController.navigate(HOME_ROUTE) {
+                navController.navigate(MAIN_ROUTE) {
                     popUpTo(LOGIN_ROUTE) { inclusive = true }
                 }
             },
         )
-        composable(route = HOME_ROUTE) {
-            HomePlaceholderScreen()
+        composable(route = MAIN_ROUTE) {
+            MainShell()
         }
     }
 }

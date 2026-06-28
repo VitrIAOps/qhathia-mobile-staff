@@ -13,5 +13,5 @@ object Dimens {
     val FieldHeight = 48.dp // >= 48dp touch target; DS visual box is 40dp, padded to target
     val FieldRadius = 8.dp
     val ButtonHeight = 48.dp
-    val ButtonRadius = 8.dp
+    val ButtonRadius = 12.dp
 }
