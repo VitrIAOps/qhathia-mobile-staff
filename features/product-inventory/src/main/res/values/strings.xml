@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="inventory_title">Inventario</string>
+    <string name="inventory_back_cd">Volver</string>
+    <string name="inventory_notifications_cd">Notificaciones</string>
+
+    <string name="inventory_search_placeholder">Buscar</string>
+    <string name="inventory_search_icon_cd">Buscar</string>
+
+    <string name="inventory_category_all">Todas</string>
+
+    <string name="inventory_product_count">%1$d productos</string>
+    <string name="inventory_filter">Filtrar</string>
+    <string name="inventory_filter_cd">Filtrar por disponibilidad</string>
+
+    <!-- Availability sub-filter options -->
+    <string name="inventory_availability_all">Todas</string>
+    <string name="inventory_availability_available">Disponibles</string>
+    <string name="inventory_availability_low_stock">Stock bajo</string>
+    <string name="inventory_availability_consult">Consultar disponibilidad</string>
+
+    <!-- Mocked stock indicator (interim until backend exposes a stock quantity) -->
+    <string name="inventory_stock_format">%1$d stock</string>
+    <string name="inventory_price_format">S/ %1$.2f</string>
+
+    <string name="inventory_register_cd">Registrar producto</string>
+    <string name="inventory_product_image_cd">Imagen del producto</string>
+
+    <string name="inventory_empty">No hay productos para mostrar</string>
+    <string name="inventory_error">No se pudieron cargar los productos</string>
+    <string name="inventory_retry">Reintentar</string>
+</resources>

@@ -24,6 +24,7 @@ serialization = "1.10.0"
 navigation = "2.9.0"
 immutableCollections = "0.3.8"
 materialIconsExtended = "1.7.8"
+coil = "3.1.0"
 
 # Storage
 datastore = "1.1.2"
@@ -57,6 +58,10 @@ androidx-compose-material-icons-extended = { group = "androidx.compose.material"
 
 # Navigation
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
+
+# Image loading (Coil 3) — coil-network-okhttp registers the http(s) image fetcher.
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }

@@ -1,6 +1,9 @@
 package com.qhathia.mobile.staff.core.testing
 
 import com.qhathia.mobile.staff.core.domain.model.AuthTokens
+import com.qhathia.mobile.staff.core.domain.model.Availability
+import com.qhathia.mobile.staff.core.domain.model.Category
+import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.domain.model.Session
 import com.qhathia.mobile.staff.core.domain.model.Store
 import com.qhathia.mobile.staff.core.domain.model.User
@@ -34,4 +37,19 @@ object TestFixtures {
         user: User = user(),
         activeStore: Store? = store(),
     ) = Session(tokens, user, activeStore)
+
+    fun product(
+        id: String = "product-1",
+        categoryId: String? = "category-1",
+        categoryName: String? = "Electrónica",
+        name: String = "Taladro Percutor Bosch GSB 13 RE",
+        price: Double = 189.0,
+        availability: Availability = Availability.AVAILABLE,
+        primaryImageUrl: String? = null,
+    ) = Product(id, categoryId, categoryName, name, price, availability, primaryImageUrl)
+
+    fun category(
+        id: String = "category-1",
+        name: String = "Electrónica",
+    ) = Category(id, name)
 }

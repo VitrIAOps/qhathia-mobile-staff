@@ -17,6 +17,19 @@ internal object QhathiaPalette {
     val Surface = Color(0xFFFFFFFF)
     val OnPrimary = Color(0xFFFFFFFF)
 
+    // Screen background behind cards (DS primitive-neutral-50).
+    val ScreenBackground = Color(0xFFF8F8F8)
+
+    // Brand accent (DS primitive-orange-500) — registration FAB and the active bottom-nav item.
+    val BrandAccent = Color(0xFFFF4500)
+    val OnBrandAccent = Color(0xFFFFFFFF)
+
+    // DS primitive-blue-500 — inactive bottom-nav items.
+    val NavInactive = Color(0xFF1C4466)
+
+    // Segmented-control track behind the category tabs (DS neutral).
+    val SegmentTrack = Color(0xFFEDEDF2)
+
     // Dark-mode surfaces (DS does not define a dark palette yet; derived for parity).
     val DarkSurface = Color(0xFF0E1721)
     val DarkTextPrimary = Color(0xFFE8EDF2)
