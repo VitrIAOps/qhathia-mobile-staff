@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="register_title">Registro de producto</string>
+    <string name="register_back_cd">Volver</string>
+    <string name="register_notifications_cd">Notificaciones</string>
+
+    <string name="register_photos_title">Fotos del producto</string>
+    <string name="register_photos_subtitle">La primera foto será la principal.</string>
+
+    <string name="register_name_label">Nombre</string>
+    <string name="register_name_placeholder">Ej: Taladro inalámbrico</string>
+    <string name="register_price_label">Precio</string>
+    <string name="register_price_placeholder">S/ 0.00</string>
+    <string name="register_price_prefix">S/</string>
+    <string name="register_quantity_label">Cantidad</string>
+    <string name="register_quantity_placeholder">0</string>
+    <string name="register_description_label">Descripción</string>
+    <string name="register_description_placeholder">Ej: Describe materiales, usos y características</string>
+    <string name="register_description_ai">Generar con IA</string>
+
+    <string name="register_category_label">Categoría</string>
+    <string name="register_tags_label">Tags</string>
+    <string name="register_tags_placeholder">Ej: Importado, Reacondicionado, Premium …</string>
+
+    <string name="register_images_label">Fotos</string>
+    <string name="register_add_image">Agregar</string>
+    <string name="register_add_image_cd">Agregar foto</string>
+    <string name="register_remove_image_cd">Quitar foto</string>
+    <string name="register_photo_source_title">Agregar foto</string>
+    <string name="register_photo_source_camera">Tomar foto</string>
+    <string name="register_photo_source_gallery">Elegir de la galería</string>
+
+    <string name="register_submit">Agregar</string>
+    <string name="register_cancel">Cancelar</string>
+    <string name="register_retry">Reintentar</string>
+    <string name="register_catalog_error">No se pudieron cargar las categorías</string>
+
+    <string name="register_error_name">El nombre es muy largo</string>
+    <string name="register_error_price">Ingresa un precio válido mayor a cero</string>
+    <string name="register_error_quantity">Ingresa una cantidad válida (0 o más)</string>
+    <string name="register_error_image_format">Solo se permiten imágenes JPG o PNG</string>
+    <string name="register_error_image">No se pudo procesar la imagen</string>
+    <string name="register_error_network">Sin conexión. Inténtalo de nuevo</string>
+    <string name="register_error_validation">Revisa los datos ingresados</string>
+    <string name="register_error_unknown">Algo salió mal. Inténtalo de nuevo</string>
+
+    <string name="register_discard_title">¿Descartar cambios?</string>
+    <string name="register_discard_message">Si sales ahora, se borrarán todos los cambios no guardados.</string>
+    <string name="register_discard_confirm">Descartar</string>
+    <string name="register_discard_dismiss">Seguir editando</string>
+</resources>

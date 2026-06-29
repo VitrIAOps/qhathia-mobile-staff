@@ -3,7 +3,9 @@ package com.qhathia.mobile.staff.core.testing
 import com.qhathia.mobile.staff.core.domain.model.AuthTokens
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
+import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import com.qhathia.mobile.staff.core.domain.model.Session
 import com.qhathia.mobile.staff.core.domain.model.Store
 import com.qhathia.mobile.staff.core.domain.model.User
@@ -52,4 +54,19 @@ object TestFixtures {
         id: String = "category-1",
         name: String = "Electrónica",
     ) = Category(id, name)
+
+    fun selectedImage(
+        uri: String = "content://images/1",
+        mimeType: String = "image/jpeg",
+    ) = SelectedImage(uri, mimeType)
+
+    fun newProduct(
+        name: String = "Lámpara de Pared Vintage",
+        price: Double = 189.0,
+        quantity: Int = 10,
+        description: String? = "Estilo vintage",
+        categoryId: String = "category-1",
+        tags: List<String> = listOf("vintage"),
+        images: List<SelectedImage> = listOf(selectedImage()),
+    ) = NewProduct(name, price, quantity, description, categoryId, tags, images)
 }

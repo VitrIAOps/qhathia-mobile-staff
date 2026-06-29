@@ -1,9 +1,21 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
+
+// R2 credentials are read from local.properties (git-ignored) so secrets stay out of source
+// control. Missing keys default to empty so CI builds still compile. See android-development-guide.md.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun localProp(key: String): String =
+    (localProperties.getProperty(key) ?: "").replace("\\", "\\\\").replace("\"", "\\\"")
 
 android {
     namespace = "com.qhathia.mobile.staff"
@@ -22,6 +34,14 @@ android {
         // API base URL — production VPS (plain HTTP, no domain yet). Isolated here so a future
         // HTTPS domain is a one-line change. See network-security-config for the cleartext allow.
         buildConfigField("String", "BASE_URL", "\"http://87.99.156.164\"")
+
+        // Cloudflare R2 object storage — values from local.properties (see localProp above).
+        buildConfigField("String", "R2_ENDPOINT", "\"${localProp("R2_ENDPOINT")}\"")
+        buildConfigField("String", "R2_BUCKET", "\"${localProp("R2_BUCKET")}\"")
+        buildConfigField("String", "R2_REGION", "\"${localProp("R2_REGION").ifEmpty { "auto" }}\"")
+        buildConfigField("String", "R2_ACCESS_KEY_ID", "\"${localProp("R2_ACCESS_KEY_ID")}\"")
+        buildConfigField("String", "R2_SECRET_ACCESS_KEY", "\"${localProp("R2_SECRET_ACCESS_KEY")}\"")
+        buildConfigField("String", "R2_PUBLIC_BASE_URL", "\"${localProp("R2_PUBLIC_BASE_URL")}\"")
     }
 
     buildTypes {
@@ -51,6 +71,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":features:auth"))
     implementation(project(":features:product-inventory"))
+    implementation(project(":features:product-register"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

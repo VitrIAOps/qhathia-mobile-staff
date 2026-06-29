@@ -11,11 +11,13 @@ import com.qhathia.mobile.staff.core.data.local.SessionCipher
 import com.qhathia.mobile.staff.core.data.local.SessionStorage
 import com.qhathia.mobile.staff.core.data.repository.AuthRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.CategoryRepositoryImpl
+import com.qhathia.mobile.staff.core.data.repository.MediaStorageRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.ProductRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.SessionAuthTokenProvider
 import com.qhathia.mobile.staff.core.data.repository.SessionRepositoryImpl
 import com.qhathia.mobile.staff.core.domain.repository.AuthRepository
 import com.qhathia.mobile.staff.core.domain.repository.CategoryRepository
+import com.qhathia.mobile.staff.core.domain.repository.MediaStorageRepository
 import com.qhathia.mobile.staff.core.domain.repository.ProductRepository
 import com.qhathia.mobile.staff.core.domain.repository.SessionRepository
 import com.qhathia.mobile.staff.core.network.AuthTokenProvider
@@ -46,6 +48,10 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindCategoryRepository(impl: CategoryRepositoryImpl): CategoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMediaStorageRepository(impl: MediaStorageRepositoryImpl): MediaStorageRepository
 
     @Binds
     @Singleton

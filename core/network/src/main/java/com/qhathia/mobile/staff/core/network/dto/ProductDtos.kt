@@ -19,3 +19,41 @@ data class ProductDto(
     val position: Int = 0,
     val primaryImageUrl: String? = null,
 )
+
+/** Body of `POST /api/v1/products`. `availability` defaults to `AVAILABLE` per the API contract. */
+@Serializable
+data class CreateProductRequestDto(
+    val name: String,
+    val description: String? = null,
+    val price: Double,
+    val availability: String = "AVAILABLE",
+    val allowDiscountInquiry: Boolean = false,
+    val categoryId: String? = null,
+    val tags: List<String> = emptyList(),
+    val position: Int = 0,
+)
+
+/** Response of `POST /api/v1/products`. Only `id` is consumed; extra fields are ignored by Json. */
+@Serializable
+data class ProductResponseDto(
+    val id: String,
+)
+
+/** Body of `POST /api/v1/products/{id}/media`. */
+@Serializable
+data class CreateMediaRequestDto(
+    val url: String,
+    val mediaType: String = "IMAGE",
+    val position: Int = 0,
+    val primary: Boolean = false,
+)
+
+/** Response of `POST /api/v1/products/{id}/media`. */
+@Serializable
+data class MediaResponseDto(
+    val id: String,
+    val url: String? = null,
+    val mediaType: String? = null,
+    val position: Int = 0,
+    val primary: Boolean = false,
+)

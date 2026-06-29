@@ -29,4 +29,7 @@
     <string name="inventory_empty">No hay productos para mostrar</string>
     <string name="inventory_error">No se pudieron cargar los productos</string>
     <string name="inventory_retry">Reintentar</string>
+
+    <string name="inventory_register_success">Producto registrado correctamente</string>
+    <string name="inventory_register_plan_limit">Alcanzaste el límite de productos de tu plan</string>
 </resources>

@@ -28,8 +28,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.qhathia.mobile.staff.R
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_KEY
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_PLAN_LIMIT
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_SUCCESS
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_ROUTE
 import com.qhathia.mobile.staff.feature.productinventory.navigation.inventoryGraph
+import com.qhathia.mobile.staff.feature.productregister.navigation.PRODUCT_REGISTER_ROUTE
+import com.qhathia.mobile.staff.feature.productregister.navigation.productRegisterGraph
 import com.qhathia.mobile.staff.ui.home.HomePlaceholderScreen
 import com.qhathia.mobile.staff.ui.home.PlaceholderScreen
 
@@ -64,8 +69,14 @@ fun MainShell() {
     val currentDestination by navController.currentBackStackEntryAsState()
     val currentRoute = currentDestination?.destination
 
+    // Hide the bottom navigation on non-top-level destinations (e.g. product registration).
+    val showBottomBar = topLevelDestinations.any { destination ->
+        currentRoute?.hierarchy?.any { it.route == destination.route } == true
+    }
+
     Scaffold(
         bottomBar = {
+            if (!showBottomBar) return@Scaffold
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 topLevelDestinations.forEach { destination ->
                     val selected = currentRoute?.hierarchy?.any { it.route == destination.route } == true
@@ -105,7 +116,22 @@ fun MainShell() {
             modifier = Modifier.padding(padding),
         ) {
             composable(HOME_ROUTE) { HomePlaceholderScreen() }
-            inventoryGraph()
+            inventoryGraph(
+                onNavigateToRegister = { navController.navigate(PRODUCT_REGISTER_ROUTE) },
+            )
+            productRegisterGraph(
+                onRegistered = {
+                    navController.previousBackStackEntry?.savedStateHandle
+                        ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_REGISTER_RESULT_SUCCESS)
+                    navController.popBackStack()
+                },
+                onPlanLimit = {
+                    navController.previousBackStackEntry?.savedStateHandle
+                        ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_REGISTER_RESULT_PLAN_LIMIT)
+                    navController.popBackStack()
+                },
+                onCancelled = { navController.popBackStack() },
+            )
             composable(REQUESTS_ROUTE) {
                 PlaceholderScreen(title = stringResource(R.string.nav_requests))
             }

@@ -149,6 +149,22 @@ $sdkPath = $env:ANDROID_HOME -replace '\\', '/'
 
 > **Windows path note:** Gradle's `local.properties` parser requires forward slashes (`/`) in the `sdk.dir` value even on Windows. A value like `sdk.dir=C:\Users\agent\AppData\Local\Android\Sdk` **will fail**; it must be `sdk.dir=C:/Users/agent/AppData/Local/Android/Sdk`. The PowerShell command above handles this conversion automatically.
 
+#### Cloudflare R2 credentials (product image upload)
+
+Product registration uploads images to Cloudflare R2 (S3-compatible). The R2 credentials are read from `local.properties` at build time and surfaced through `BuildConfig` (see `app/build.gradle.kts` → `localProp(...)`), so they are **never committed**. Add these keys to your `local.properties` (all optional — missing keys default to empty and the app still compiles, but uploads will fail until set):
+
+```properties
+# Cloudflare R2 — product image storage (git-ignored)
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+R2_BUCKET=<bucket-name>
+R2_REGION=auto
+R2_ACCESS_KEY_ID=<access-key-id>
+R2_SECRET_ACCESS_KEY=<secret-access-key>
+R2_PUBLIC_BASE_URL=https://<your-public-r2-domain>
+```
+
+> **Security note:** these credentials are bundled into the APK via `BuildConfig`. Keeping them in `local.properties` only keeps them out of source control, not out of the distributed binary. Scope the R2 key to a write-only bucket prefix and plan to migrate to backend-issued presigned URLs (tracked in the `add-product-registration` design).
+
 ---
 
 ### `gradle.properties` (Build Tunables — Committed)

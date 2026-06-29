@@ -1,9 +1,14 @@
 package com.qhathia.mobile.staff.core.data.repository
 
 import com.qhathia.mobile.staff.core.domain.model.Availability
+import com.qhathia.mobile.staff.core.domain.model.RegisterProductError
+import com.qhathia.mobile.staff.core.domain.model.RegisterProductException
 import com.qhathia.mobile.staff.core.network.NetworkResult
+import com.qhathia.mobile.staff.core.network.dto.MediaResponseDto
 import com.qhathia.mobile.staff.core.network.dto.ProductDto
+import com.qhathia.mobile.staff.core.network.dto.ProductResponseDto
 import com.qhathia.mobile.staff.core.network.service.ProductApiService
+import com.qhathia.mobile.staff.core.testing.TestFixtures
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -76,5 +81,52 @@ class ProductRepositoryImplTest {
         val result = repository.getProducts(null, null)
 
         assertEquals(cause, result.exceptionOrNull())
+    }
+
+    @Test
+    fun `given success when createProduct then returns product id`() = runTest {
+        coEvery { api.createProduct(any()) } returns NetworkResult.Success(ProductResponseDto("p1"))
+
+        val result = repository.createProduct(TestFixtures.newProduct())
+
+        assertEquals("p1", result.getOrNull())
+    }
+
+    @Test
+    fun `given http 403 when createProduct then fails with PlanLimitReached`() = runTest {
+        coEvery { api.createProduct(any()) } returns NetworkResult.HttpError(403, "Forbidden")
+
+        val result = repository.createProduct(TestFixtures.newProduct())
+
+        val error = (result.exceptionOrNull() as RegisterProductException).error
+        assertEquals(RegisterProductError.PlanLimitReached, error)
+    }
+
+    @Test
+    fun `given network error when createProduct then fails with Network`() = runTest {
+        coEvery { api.createProduct(any()) } returns NetworkResult.NetworkError(IOException("offline"))
+
+        val result = repository.createProduct(TestFixtures.newProduct())
+
+        val error = (result.exceptionOrNull() as RegisterProductException).error
+        assertEquals(RegisterProductError.Network, error)
+    }
+
+    @Test
+    fun `given success when attachMedia then succeeds`() = runTest {
+        coEvery { api.attachMedia(any(), any()) } returns NetworkResult.Success(MediaResponseDto("m1"))
+
+        val result = repository.attachMedia("p1", "https://cdn/x.jpg", position = 0, primary = true)
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `given success when deactivateProduct then succeeds`() = runTest {
+        coEvery { api.deactivateProduct(any()) } returns NetworkResult.Success(Unit)
+
+        val result = repository.deactivateProduct("p1")
+
+        assertTrue(result.isSuccess)
     }
 }

@@ -29,6 +29,10 @@ object KtorClientFactory {
     private const val CONNECT_TIMEOUT_MS = 15_000L
     private const val SOCKET_TIMEOUT_MS = 30_000L
 
+    // R2 uploads stream binary payloads; allow more headroom than the JSON API calls.
+    private const val R2_REQUEST_TIMEOUT_MS = 60_000L
+    private const val R2_SOCKET_TIMEOUT_MS = 60_000L
+
     /**
      * @param tokenProvider when non-null, installs the bearer [Auth] plugin (token load + refresh).
      *   Pass null for the public client used by login/refresh, avoiding any refresh recursion.
@@ -71,6 +75,20 @@ object KtorClientFactory {
             url(config.baseUrl)
             contentType(ContentType.Application.Json)
             header(HttpHeaders.AcceptLanguage, "es")
+        }
+    }
+
+    /**
+     * Builds the dedicated client for Cloudflare R2 uploads: no bearer Auth plugin (R2 authenticates
+     * with per-request AWS SigV4 headers) and no default base URL (the full object URL is passed per
+     * call). Non-2xx responses throw so [toNetworkResult] maps them to [NetworkResult.HttpError].
+     */
+    fun createR2(): HttpClient = HttpClient(CIO) {
+        expectSuccess = true
+        install(HttpTimeout) {
+            requestTimeoutMillis = R2_REQUEST_TIMEOUT_MS
+            connectTimeoutMillis = CONNECT_TIMEOUT_MS
+            socketTimeoutMillis = R2_SOCKET_TIMEOUT_MS
         }
     }
 }
