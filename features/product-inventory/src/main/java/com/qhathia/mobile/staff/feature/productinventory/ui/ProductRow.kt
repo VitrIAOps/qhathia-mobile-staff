@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,12 +21,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
+import coil3.compose.SubcomposeAsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.feature.productinventory.R
@@ -51,12 +58,25 @@ internal fun ProductRow(
                 .clip(RoundedCornerShape(Dimens.FieldRadius))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
-            AsyncImage(
-                model = product.primaryImageUrl,
-                contentDescription = stringResource(R.string.inventory_product_image_cd),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.size(59.dp),
-            )
+            if (product.primaryImageUrl == null) {
+                // No photo registered yet — a neutral placeholder, not the broken-image error state.
+                ThumbnailStateIcon(Icons.Filled.Image)
+            } else {
+                // SubcomposeAsyncImage renders distinct loading/error thumbnails (a centered, tinted
+                // icon over the surfaceVariant background) instead of a stretched painter, and
+                // crossfades the loaded photo in. Coil caches by URL, so it is fetched once.
+                SubcomposeAsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(product.primaryImageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = stringResource(R.string.inventory_product_image_cd),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    loading = { ThumbnailStateIcon(Icons.Filled.Image) },
+                    error = { ThumbnailStateIcon(Icons.Filled.BrokenImage) },
+                )
+            }
         }
 
         Column(
@@ -93,6 +113,22 @@ internal fun ProductRow(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.tertiary,
+        )
+    }
+}
+
+/** A centered, tinted icon used as the thumbnail's loading / error / no-image state. */
+@Composable
+private fun ThumbnailStateIcon(icon: ImageVector) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp),
         )
     }
 }

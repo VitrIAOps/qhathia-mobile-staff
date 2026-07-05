@@ -53,8 +53,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideProductApiService(@AuthenticatedClient client: HttpClient): ProductApiService =
-        ProductApiService(client)
+    fun provideProductApiService(
+        @AuthenticatedClient client: HttpClient,
+        json: Json,
+    ): ProductApiService = ProductApiService(client, json)
 
     @Provides
     @Singleton

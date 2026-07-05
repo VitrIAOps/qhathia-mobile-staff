@@ -73,10 +73,13 @@ class InventoryViewModel @Inject constructor(
                         visibleProducts = state.loadedProducts.applySearch(event.query),
                     )
                 }
-            // Navigation to product registration is out of scope for this change — the FAB is inert.
-            InventoryUiEvent.RegisterProductClicked -> Unit
+            InventoryUiEvent.RegisterProductClicked ->
+                viewModelScope.launch { _uiEffect.emit(InventoryUiEffect.NavigateToRegister) }
         }
     }
+
+    /** Re-queries products with the active filters — used after a successful product registration. */
+    fun refresh() = loadProducts()
 
     private fun loadProducts() {
         val current = _uiState.value

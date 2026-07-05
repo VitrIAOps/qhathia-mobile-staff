@@ -59,6 +59,9 @@ fun QhathiaTextField(
     errorText: String? = null,
     isPassword: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
@@ -81,14 +84,15 @@ fun QhathiaTextField(
                 .defaultMinSize(minHeight = Dimens.FieldHeight)
                 .background(colors.surface, RoundedCornerShape(Dimens.FieldRadius))
                 .border(1.dp, borderColor, RoundedCornerShape(Dimens.FieldRadius))
-                .padding(horizontal = Dimens.SpaceMd),
-            contentAlignment = Alignment.CenterStart,
+                .padding(horizontal = Dimens.SpaceMd, vertical = if (singleLine) 0.dp else Dimens.SpaceSm),
+            contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart,
         ) {
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 enabled = enabled,
-                singleLine = true,
+                singleLine = singleLine,
+                minLines = minLines,
                 interactionSource = interactionSource,
                 textStyle = LocalTextStyle.current.merge(
                     MaterialTheme.typography.bodyMedium.copy(
@@ -104,7 +108,7 @@ fun QhathiaTextField(
                 visualTransformation = if (isPassword && !passwordVisible) {
                     PasswordVisualTransformation()
                 } else {
-                    VisualTransformation.None
+                    visualTransformation
                 },
                 modifier = Modifier.fillMaxWidth(),
                 decorationBox = { innerTextField ->

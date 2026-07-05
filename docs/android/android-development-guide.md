@@ -149,6 +149,8 @@ $sdkPath = $env:ANDROID_HOME -replace '\\', '/'
 
 > **Windows path note:** Gradle's `local.properties` parser requires forward slashes (`/`) in the `sdk.dir` value even on Windows. A value like `sdk.dir=C:\Users\agent\AppData\Local\Android\Sdk` **will fail**; it must be `sdk.dir=C:/Users/agent/AppData/Local/Android/Sdk`. The PowerShell command above handles this conversion automatically.
 
+> **Product image upload:** the app no longer needs any storage credentials. Product registration sends photos to the backend via `POST /api/v1/products/with-images` (multipart), and the backend uploads them to object storage server-side. No `R2_*` keys in `local.properties`.
+
 ---
 
 ### `gradle.properties` (Build Tunables — Committed)
