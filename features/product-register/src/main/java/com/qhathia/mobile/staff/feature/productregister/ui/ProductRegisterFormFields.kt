@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -87,6 +88,9 @@ internal fun RegisterDescriptionField(
     onValueChange: (String) -> Unit,
     enabled: Boolean,
     onGenerateWithAi: () -> Unit,
+    isOptimizeMode: Boolean,
+    isAiLoading: Boolean,
+    isAiActionEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
@@ -98,7 +102,16 @@ internal fun RegisterDescriptionField(
                 text = stringResource(R.string.register_description_label),
                 modifier = Modifier.weight(1f),
             )
-            GenerateWithAiButton(enabled = enabled, onClick = onGenerateWithAi)
+            GenerateWithAiButton(
+                enabled = isAiActionEnabled,
+                isLoading = isAiLoading,
+                labelRes = if (isOptimizeMode) {
+                    R.string.register_description_ai_optimize
+                } else {
+                    R.string.register_description_ai
+                },
+                onClick = onGenerateWithAi,
+            )
         }
         QhathiaTextField(
             value = value,
@@ -111,10 +124,15 @@ internal fun RegisterDescriptionField(
     }
 }
 
-/** "Generar con IA" pill shown next to the description label. Inert for now — no action wired. */
+/**
+ * "Generar con IA" / "Optimizar con IA" pill shown next to the description label. Shows a small
+ * spinner in place of the icon while an AI request is in flight.
+ */
 @Composable
 private fun GenerateWithAiButton(
     enabled: Boolean,
+    isLoading: Boolean,
+    @androidx.annotation.StringRes labelRes: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -128,15 +146,23 @@ private fun GenerateWithAiButton(
         contentPadding = PaddingValues(horizontal = Dimens.SpaceSm, vertical = 0.dp),
         modifier = modifier.height(Dimens.SpaceLg),
     ) {
-        Icon(
-            imageVector = Icons.Filled.AutoAwesome,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(12.dp),
-        )
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = primary,
+                strokeWidth = 1.5.dp,
+                modifier = Modifier.size(12.dp),
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Filled.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(12.dp),
+            )
+        }
         Spacer(Modifier.width(Dimens.SpaceXs))
         Text(
-            text = stringResource(R.string.register_description_ai),
+            text = stringResource(labelRes),
             style = MaterialTheme.typography.labelMedium,
         )
     }

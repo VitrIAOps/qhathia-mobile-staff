@@ -17,6 +17,7 @@
     <string name="register_description_label">Descripción</string>
     <string name="register_description_placeholder">Ej: Describe materiales, usos y características</string>
     <string name="register_description_ai">Generar con IA</string>
+    <string name="register_description_ai_optimize">Optimizar con IA</string>
 
     <string name="register_category_label">Categoría</string>
     <string name="register_tags_label">Tags</string>
@@ -43,9 +44,15 @@
     <string name="register_error_network">Sin conexión. Inténtalo de nuevo</string>
     <string name="register_error_validation">Revisa los datos ingresados</string>
     <string name="register_error_unknown">Algo salió mal. Inténtalo de nuevo</string>
+    <string name="register_error_ai">No se pudo generar con IA. Inténtalo de nuevo</string>
 
     <string name="register_discard_title">¿Descartar cambios?</string>
     <string name="register_discard_message">Si sales ahora, se borrarán todos los cambios no guardados.</string>
     <string name="register_discard_confirm">Descartar</string>
     <string name="register_discard_dismiss">Seguir editando</string>
+
+    <string name="register_ai_replace_title">¿Reemplazar campos?</string>
+    <string name="register_ai_replace_message">La generación con IA reemplazará la descripción, la categoría y los tags que ya ingresaste.</string>
+    <string name="register_ai_replace_confirm">Reemplazar</string>
+    <string name="register_ai_replace_dismiss">Cancelar</string>
 </resources>

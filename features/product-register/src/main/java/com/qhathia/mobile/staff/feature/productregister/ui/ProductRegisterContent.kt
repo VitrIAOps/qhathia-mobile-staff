@@ -97,6 +97,9 @@ fun ProductRegisterContent(
                         onValueChange = { onEvent(ProductRegisterUiEvent.DescriptionChanged(it)) },
                         enabled = enabled,
                         onGenerateWithAi = { onEvent(ProductRegisterUiEvent.GenerateDescriptionWithAi) },
+                        isOptimizeMode = uiState.isOptimizeMode,
+                        isAiLoading = uiState.isAiLoading,
+                        isAiActionEnabled = uiState.isAiActionEnabled,
                     )
                     LabeledField(label = stringResource(R.string.register_category_label)) {
                         CategorySelector(
@@ -154,6 +157,13 @@ fun ProductRegisterContent(
             DiscardChangesDialog(
                 onConfirm = { onEvent(ProductRegisterUiEvent.ConfirmDiscard) },
                 onDismiss = { onEvent(ProductRegisterUiEvent.DismissDiscard) },
+            )
+        }
+
+        if (uiState.showAiReplaceDialog) {
+            AiReplaceDialog(
+                onConfirm = { onEvent(ProductRegisterUiEvent.ConfirmAiReplace) },
+                onDismiss = { onEvent(ProductRegisterUiEvent.DismissAiReplace) },
             )
         }
     }
@@ -228,6 +238,28 @@ private fun DiscardChangesDialog(
     )
 }
 
+@Composable
+private fun AiReplaceDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.register_ai_replace_title)) },
+        text = { Text(stringResource(R.string.register_ai_replace_message)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.register_ai_replace_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.register_ai_replace_dismiss))
+            }
+        },
+    )
+}
+
 // ---- Previews ----
 
 private fun sampleCategories() = persistentListOf(
@@ -291,6 +323,30 @@ private fun ProductRegisterContentSubmittingPreview() {
     QhathiaTheme {
         ProductRegisterContent(
             uiState = filledState().copy(isSubmitting = true),
+            onEvent = {},
+        )
+    }
+}
+
+@Preview(name = "Register — AI loading", showBackground = true)
+@Preview(name = "Register — AI loading dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun ProductRegisterContentAiLoadingPreview() {
+    QhathiaTheme {
+        ProductRegisterContent(
+            uiState = filledState().copy(description = "", tags = "", isAiLoading = true),
+            onEvent = {},
+        )
+    }
+}
+
+@Preview(name = "Register — AI replace dialog", showBackground = true)
+@Preview(name = "Register — AI replace dialog dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun ProductRegisterContentAiReplaceDialogPreview() {
+    QhathiaTheme {
+        ProductRegisterContent(
+            uiState = filledState().copy(showAiReplaceDialog = true),
             onEvent = {},
         )
     }

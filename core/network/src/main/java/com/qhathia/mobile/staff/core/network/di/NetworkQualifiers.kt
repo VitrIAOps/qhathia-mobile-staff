@@ -11,8 +11,3 @@ annotation class PublicClient
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class AuthenticatedClient
-
-/** HttpClient for Cloudflare R2 uploads — AWS SigV4 signed per request, no bearer plugin. */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class R2Client

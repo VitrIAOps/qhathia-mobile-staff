@@ -1,9 +1,9 @@
 package com.qhathia.mobile.staff.core.domain.model
 
 /**
- * A product the merchant is registering. [quantity] (stock) is captured and validated client-side
- * but is not yet sent to the backend — the products API has no quantity field yet (see
- * `NewProduct.toCreateRequestDto` in `:core:data`). New products default to `AVAILABLE`.
+ * A product the merchant is registering. [quantity] (stock) is sent to the backend as the product's
+ * `stock`; `availability` is not sent explicitly, so the backend derives it from the stock (see
+ * `NewProduct.toCreateRequestDto` in `:core:data`).
  */
 data class NewProduct(
     val name: String,

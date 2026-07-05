@@ -16,17 +16,10 @@ interface ProductRepository {
         availability: Availability?,
     ): Result<List<Product>>
 
-    /** Creates a product and returns its id. Failures carry a `RegisterProductException`. */
-    suspend fun createProduct(product: NewProduct): Result<String>
-
-    /** Attaches an already-uploaded media [url] to a product. */
-    suspend fun attachMedia(
-        productId: String,
-        url: String,
-        position: Int,
-        primary: Boolean,
-    ): Result<Unit>
-
-    /** Soft-deletes a product — used to roll back a partially-registered product. */
-    suspend fun deactivateProduct(productId: String): Result<Unit>
+    /**
+     * Registers a product with its images in a single atomic request and returns the created
+     * product's id. The backend uploads the images and creates product + media transactionally, so
+     * no client-side attach/rollback is needed. Failures carry a `RegisterProductException`.
+     */
+    suspend fun registerProduct(product: NewProduct): Result<String>
 }

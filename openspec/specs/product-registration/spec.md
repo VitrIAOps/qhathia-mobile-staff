@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines how a store owner registers a new product in the Qhathia staff app: the Product Registration screen reached from the inventory FAB, its required fields (name, price in Peruvian soles, quantity, description, category, tags and images), per-field validation, JPG/PNG image selection with on-device compression and upload to Cloudflare R2, the create-product-then-attach-media orchestration with rollback, registration feedback and navigation, plan-limit handling, and the unsaved-changes guard.
+Defines how a store owner registers a new product in the Qhathia staff app: the Product Registration screen reached from the inventory FAB, its required fields (name, price in Peruvian soles, quantity, description, category, tags and images), per-field validation, JPG/PNG image selection with on-device compression, submitting the product and its images in a single atomic `POST /api/v1/products/with-images` request (the backend uploads the images to storage), sending the product quantity as `stock`, registration feedback and navigation, plan-limit handling, the unsaved-changes guard, and AI-assisted drafting/optimization of the description, category and tags from a product image.
 
 ## Requirements
 
@@ -50,7 +50,7 @@ The price field SHALL accept and display amounts in Peruvian soles (PEN) with tw
 
 ### Requirement: Product quantity
 
-The form SHALL provide a product quantity (stock) field. The quantity SHALL NOT be negative; a negative quantity SHALL block registration. Because the products API exposes no quantity field yet, the value SHALL be captured and validated on the client but SHALL NOT be sent to the backend in this change.
+The form SHALL provide a product quantity (stock) field. The quantity SHALL NOT be negative; a negative quantity SHALL block registration. The validated quantity SHALL be sent to the backend as the product's `stock` when the product is registered. The registration request SHALL NOT set `availability` explicitly, so that the backend derives it from the submitted stock per the API's `stock ↔ availability` sync rule.
 
 #### Scenario: Negative quantity blocks registration
 
@@ -62,10 +62,10 @@ The form SHALL provide a product quantity (stock) field. The quantity SHALL NOT 
 - **WHEN** the merchant enters a quantity of zero or greater
 - **THEN** the quantity field is accepted and contributes to enabling submission
 
-#### Scenario: Quantity is not transmitted to the backend
+#### Scenario: Quantity is transmitted as stock
 
 - **WHEN** the product is registered
-- **THEN** the create-product request does not include the quantity field, and registration succeeds without it
+- **THEN** the registration request includes the entered quantity as the product's `stock`, and does not send an explicit `availability` value
 
 ### Requirement: Category selection
 
@@ -116,45 +116,31 @@ The form SHALL let the merchant add one or more images either by capturing a new
 
 ### Requirement: Image compression before upload
 
-Each selected image SHALL be compressed on-device to at most 500 KB while preserving good quality before it is uploaded.
+Each selected image SHALL be compressed on-device to at most 500 KB while preserving good quality before it is submitted to the create-product endpoint, keeping every image and the overall request within the endpoint's per-image and total size limits.
 
 #### Scenario: Large image is compressed
 
 - **WHEN** the merchant selects an image larger than 500 KB
-- **THEN** the app re-encodes it to 500 KB or less before uploading it, keeping acceptable visual quality
+- **THEN** the app re-encodes it to 500 KB or less before submitting it, keeping acceptable visual quality
 
 #### Scenario: Image that cannot be compressed
 
 - **WHEN** a selected image cannot be reduced to 500 KB or less
 - **THEN** registration fails with an explanatory message and the form remains available
 
-### Requirement: Image upload to Cloudflare R2
-
-Selected images SHALL be uploaded to Cloudflare R2 object storage using credentials supplied through the build configuration (sourced from `local.properties`, never committed), and the resulting public URL SHALL be used to register the product media.
-
-#### Scenario: Image uploaded and URL obtained
-
-- **WHEN** an image is uploaded to R2 successfully
-- **THEN** the app obtains the image's public URL for use in the media registration request
-
-#### Scenario: Upload fails
-
-- **WHEN** an image upload to R2 fails
-- **THEN** registration does not complete and the merchant is shown an error, staying on the form
-
 ### Requirement: Product registration orchestration
 
-On submit, the app SHALL create the product via `POST /api/v1/products` and then, for each image, upload it to R2 and attach it via `POST /api/v1/products/{id}/media`, marking the first image as primary. If media upload or attachment fails after the product was created, the app SHALL attempt to roll back the created product so that no product without its required image is left behind.
+On submit, the app SHALL register the product in a single atomic request to `POST /api/v1/products/with-images`, sending the product data (including `stock`, category, tags and price) as the `product` part and each compressed image as an `images` part, with the first image treated as primary. The app SHALL NOT create the product and attach media in separate calls, and SHALL NOT perform a client-side rollback, because the backend creates the product and its media atomically and rolls back entirely if any image upload fails.
 
 #### Scenario: Successful registration
 
-- **WHEN** the product is created and all images are uploaded and attached
-- **THEN** the registration is reported as successful
+- **WHEN** the merchant submits a valid form
+- **THEN** the app sends one multipart request with the product data and all images, and the registration is reported as successful when the backend returns the created product
 
-#### Scenario: Media step fails after product creation
+#### Scenario: Backend rejects the registration atomically
 
-- **WHEN** the product is created but a subsequent image upload or attachment fails
-- **THEN** the app attempts to deactivate the created product and reports the registration as failed
+- **WHEN** the backend fails to create the product or upload any image
+- **THEN** no partial product is created, the app reports the registration as failed, and no client-side rollback call is made
 
 ### Requirement: Registration feedback and navigation
 
@@ -177,11 +163,11 @@ While registration is in progress the screen SHALL show a circular loading indic
 
 ### Requirement: Plan-limit handling
 
-When product creation is rejected because the store's plan product limit has been reached (HTTP 403 on create), the app SHALL NOT keep the merchant on the registration form; instead it SHALL return to the inventory list and surface a distinct plan-exceeded message.
+When product registration is rejected because the store's plan product limit has been reached (HTTP 402 from the create-with-images endpoint), the app SHALL NOT keep the merchant on the registration form; instead it SHALL return to the inventory list and surface a distinct plan-exceeded message.
 
 #### Scenario: Plan limit reached
 
-- **WHEN** product creation is rejected because the plan's product limit is exceeded
+- **WHEN** registration is rejected because the plan's product limit is exceeded
 - **THEN** the app returns to the inventory list and shows a message indicating the plan limit was exceeded
 
 ### Requirement: Unsaved-changes guard
@@ -202,3 +188,102 @@ When the merchant attempts to leave the registration screen (system back or canc
 
 - **WHEN** the merchant backs out with no unsaved changes
 - **THEN** the screen is left without showing the confirmation dialog
+
+### Requirement: AI drafting availability
+
+The Product Registration screen SHALL expose an AI assist action whose availability follows the images: the action SHALL be disabled while no image is loaded and SHALL become enabled once at least one image is present. The action SHALL be disabled while an AI request is already in flight.
+
+#### Scenario: No image loaded
+
+- **WHEN** the registration form has no images
+- **THEN** the AI assist action is disabled
+
+#### Scenario: Image loaded enables the action
+
+- **WHEN** the merchant has loaded at least one image and no AI request is in flight
+- **THEN** the AI assist action is enabled
+
+#### Scenario: Action disabled during a request
+
+- **WHEN** an AI generate or optimize request is in flight
+- **THEN** the AI assist action is disabled until the request completes
+
+### Requirement: Generate vs. optimize button behavior
+
+The AI assist action SHALL present as "Generate with AI" whenever the description, category and tags are not all filled, and SHALL present as "Optimize with AI" only when description, category and tags are all already provided. Triggering the action SHALL run the drafting flow in the generate state and the description-optimization flow in the optimize state.
+
+#### Scenario: Generate label when fields incomplete
+
+- **WHEN** at least one of description, category or tags is empty
+- **THEN** the AI assist action reads "Generate with AI" and triggers the drafting flow
+
+#### Scenario: Optimize label when fields complete
+
+- **WHEN** description, category and tags are all filled
+- **THEN** the AI assist action reads "Optimize with AI" and triggers the description-optimization flow
+
+### Requirement: Draft product fields from image
+
+When the drafting flow runs, the app SHALL send the first loaded image to `POST /api/v1/products/draft-from-image` using the authenticated client, keeping the image within the endpoint's 5 MB limit, and SHALL populate the description, category and tags fields from the response. The returned `categoryId` SHALL be applied only when it matches one of the store's loaded categories; when it matches none, the category selection SHALL be left unchanged/unselected. The returned tags SHALL be applied as the form's tags. A fail-open response (empty description, null category, no tags) SHALL leave the fields untouched.
+
+#### Scenario: Draft populates the form
+
+- **WHEN** the drafting flow returns a description, a recognized `categoryId` and tags
+- **THEN** the description, the matching category selection and the tags fields are filled from the response
+
+#### Scenario: Unrecognized category is not applied
+
+- **WHEN** the drafting response carries a `categoryId` that is not among the store's loaded categories
+- **THEN** no category is selected and the other returned fields are still applied
+
+#### Scenario: Fail-open response changes nothing
+
+- **WHEN** the drafting response is empty (no description, null category, no tags)
+- **THEN** the form fields are left as they were and no error is shown
+
+### Requirement: Replace-confirmation warning
+
+Before the drafting flow overwrites existing input, the app SHALL show a warning dialog whenever the description, tags or category already hold data, stating that those fields will be replaced, and SHALL only proceed with drafting if the merchant confirms. When none of those fields hold data, drafting SHALL proceed without a dialog.
+
+#### Scenario: Warn before overwriting entered data
+
+- **WHEN** the merchant triggers generation while description, tags or category already have values
+- **THEN** a warning dialog explains the fields will be replaced and drafting runs only after the merchant confirms
+
+#### Scenario: Cancel keeps existing data
+
+- **WHEN** the merchant dismisses the replace-confirmation dialog
+- **THEN** drafting does not run and the existing field values are preserved
+
+#### Scenario: No warning when fields are empty
+
+- **WHEN** the merchant triggers generation while description, tags and category are all empty
+- **THEN** drafting proceeds immediately without a warning dialog
+
+### Requirement: Optimize existing description
+
+When the optimize flow runs, the app SHALL send the current description to `POST /api/v1/products/regenerate-description` using the authenticated client and SHALL replace the description field with the returned paraphrase, leaving category, tags and all other fields unchanged. A fail-open response (the endpoint echoes the original description) SHALL simply leave the description effectively unchanged.
+
+#### Scenario: Optimization replaces the description
+
+- **WHEN** the optimize flow returns a paraphrased description
+- **THEN** only the description field is replaced with the returned text and category and tags are unchanged
+
+#### Scenario: Optimization echo leaves description unchanged
+
+- **WHEN** the optimize flow echoes the original description (fail-open)
+- **THEN** the description is unchanged and no error is shown
+
+### Requirement: AI request feedback
+
+While an AI generate or optimize request is in flight the screen SHALL show a loading indication on the AI assist action and prevent re-triggering it. If the AI network call itself fails (no successful response received), the app SHALL surface a transient error message and leave the form fields unchanged.
+
+#### Scenario: Loading during the request
+
+- **WHEN** an AI generate or optimize request is in flight
+- **THEN** the AI assist action shows a loading indication and cannot be re-triggered
+
+#### Scenario: Network failure surfaces an error
+
+- **WHEN** the AI request fails to receive a successful response
+- **THEN** a transient error message is shown and the form fields are left unchanged

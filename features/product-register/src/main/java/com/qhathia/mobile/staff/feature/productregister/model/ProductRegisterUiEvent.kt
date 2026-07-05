@@ -9,6 +9,8 @@ sealed interface ProductRegisterUiEvent {
     data class QuantityChanged(val value: String) : ProductRegisterUiEvent
     data class DescriptionChanged(val value: String) : ProductRegisterUiEvent
     data object GenerateDescriptionWithAi : ProductRegisterUiEvent
+    data object ConfirmAiReplace : ProductRegisterUiEvent
+    data object DismissAiReplace : ProductRegisterUiEvent
     data class TagsChanged(val value: String) : ProductRegisterUiEvent
     data class SelectCategory(val categoryId: String) : ProductRegisterUiEvent
     data class ImagesPicked(val images: List<SelectedImage>) : ProductRegisterUiEvent

@@ -6,10 +6,13 @@ import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.parsePrice
 import com.qhathia.mobile.staff.core.common.validation.parseQuantity
 import com.qhathia.mobile.staff.core.domain.model.NewProduct
+import com.qhathia.mobile.staff.core.domain.model.ProductDraft
 import com.qhathia.mobile.staff.core.domain.model.RegisterProductError
 import com.qhathia.mobile.staff.core.domain.model.RegisterProductException
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
+import com.qhathia.mobile.staff.core.domain.usecase.DraftProductFromImageUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.OptimizeDescriptionUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RegisterProductUseCase
 import com.qhathia.mobile.staff.feature.productregister.R
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEffect
@@ -39,6 +42,8 @@ import javax.inject.Inject
 class ProductRegisterViewModel @Inject constructor(
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val registerProductUseCase: RegisterProductUseCase,
+    private val draftProductFromImageUseCase: DraftProductFromImageUseCase,
+    private val optimizeDescriptionUseCase: OptimizeDescriptionUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductRegisterUiState())
@@ -61,8 +66,13 @@ class ProductRegisterViewModel @Inject constructor(
             is ProductRegisterUiEvent.QuantityChanged -> onQuantityChanged(event.value)
             is ProductRegisterUiEvent.DescriptionChanged ->
                 _uiState.update { it.copy(description = event.value, isDirty = true) }
-            // AI description generation is out of scope for now — the button is present but inert.
-            ProductRegisterUiEvent.GenerateDescriptionWithAi -> Unit
+            ProductRegisterUiEvent.GenerateDescriptionWithAi -> onGenerateWithAi()
+            ProductRegisterUiEvent.ConfirmAiReplace -> {
+                _uiState.update { it.copy(showAiReplaceDialog = false) }
+                draftFromImage()
+            }
+            ProductRegisterUiEvent.DismissAiReplace ->
+                _uiState.update { it.copy(showAiReplaceDialog = false) }
             is ProductRegisterUiEvent.TagsChanged ->
                 _uiState.update { it.copy(tags = event.value, isDirty = true) }
             is ProductRegisterUiEvent.SelectCategory ->
@@ -125,6 +135,67 @@ class ProductRegisterViewModel @Inject constructor(
             _uiState.update { it.copy(showDiscardDialog = true) }
         } else {
             emit(ProductRegisterUiEffect.NavigateBackCancelled)
+        }
+    }
+
+    /**
+     * Routes the AI action: optimize when the description/category/tags are all filled; otherwise
+     * draft from the image, warning first if any of those fields already hold data.
+     */
+    private fun onGenerateWithAi() {
+        val current = _uiState.value
+        if (!current.isAiActionEnabled) return
+        when {
+            current.isOptimizeMode -> optimizeDescription()
+            current.description.isNotBlank() ||
+                current.selectedCategoryId != null ||
+                parseTags(current.tags).isNotEmpty() ->
+                _uiState.update { it.copy(showAiReplaceDialog = true) }
+            else -> draftFromImage()
+        }
+    }
+
+    private fun draftFromImage() {
+        val image = _uiState.value.images.firstOrNull() ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAiLoading = true) }
+            draftProductFromImageUseCase(image)
+                .onSuccess { draft -> applyDraft(draft) }
+                .onFailure { emit(ProductRegisterUiEffect.ShowError(R.string.register_error_ai)) }
+            _uiState.update { it.copy(isAiLoading = false) }
+        }
+    }
+
+    /**
+     * Applies a draft field-by-field so a fail-open (empty) response is a no-op and a partial
+     * response never wipes an existing value with a blank. The suggested category is applied only
+     * when it matches one of the loaded categories.
+     */
+    private fun applyDraft(draft: ProductDraft) {
+        _uiState.update { state ->
+            val categoryMatches = draft.categoryId != null &&
+                state.categories.any { it.id == draft.categoryId }
+            val hasChange = draft.description.isNotBlank() || categoryMatches || draft.tags.isNotEmpty()
+            state.copy(
+                description = if (draft.description.isNotBlank()) draft.description else state.description,
+                selectedCategoryId = if (categoryMatches) draft.categoryId else state.selectedCategoryId,
+                tags = if (draft.tags.isNotEmpty()) draft.tags.joinToString(", ") else state.tags,
+                isDirty = state.isDirty || hasChange,
+            )
+        }
+    }
+
+    private fun optimizeDescription() {
+        val currentDescription = _uiState.value.description
+        if (currentDescription.isBlank()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAiLoading = true) }
+            optimizeDescriptionUseCase(currentDescription)
+                .onSuccess { optimized ->
+                    _uiState.update { it.copy(description = optimized, isDirty = true) }
+                }
+                .onFailure { emit(ProductRegisterUiEffect.ShowError(R.string.register_error_ai)) }
+            _uiState.update { it.copy(isAiLoading = false) }
         }
     }
 

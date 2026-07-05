@@ -30,8 +30,10 @@ data class ProductRegisterUiState(
     val isCategoriesLoading: Boolean = false,
     val isCategoriesError: Boolean = false,
     val isSubmitting: Boolean = false,
+    val isAiLoading: Boolean = false,
     val isDirty: Boolean = false,
     val showDiscardDialog: Boolean = false,
+    val showAiReplaceDialog: Boolean = false,
 ) {
     val isSubmitEnabled: Boolean
         get() = !isSubmitting &&
@@ -41,6 +43,19 @@ data class ProductRegisterUiState(
             selectedCategoryId != null &&
             parseTags(tags).isNotEmpty() &&
             images.isNotEmpty()
+
+    /** The AI assist action is available once an image is present and no request is in flight. */
+    val isAiActionEnabled: Boolean
+        get() = images.isNotEmpty() && !isAiLoading && !isSubmitting
+
+    /**
+     * True when the AI-fillable fields (description, category, tags) are all already provided, so the
+     * action optimizes the existing description instead of drafting from the image.
+     */
+    val isOptimizeMode: Boolean
+        get() = description.isNotBlank() &&
+            selectedCategoryId != null &&
+            parseTags(tags).isNotEmpty()
 }
 
 /** Splits the free-text tag input into trimmed, non-blank tag values. */

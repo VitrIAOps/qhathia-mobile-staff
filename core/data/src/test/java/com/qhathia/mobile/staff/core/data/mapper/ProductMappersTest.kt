@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 class ProductMappersTest {
 
     @Test
-    fun `toCreateRequestDto maps fields but omits quantity`() {
+    fun `toCreateRequestDto maps quantity to stock and sets no availability`() {
         val product = TestFixtures.newProduct(
             name = "Lámpara",
             price = 89.9,
@@ -24,7 +24,7 @@ class ProductMappersTest {
         assertEquals("desc", dto.description)
         assertEquals("c1", dto.categoryId)
         assertEquals(listOf("vintage", "oro"), dto.tags)
-        assertEquals("AVAILABLE", dto.availability)
-        // quantity has no field on the create DTO yet — the value (25) is intentionally not sent.
+        // quantity is sent as stock; availability is not a field on the DTO (backend derives it).
+        assertEquals(25, dto.stock)
     }
 }
