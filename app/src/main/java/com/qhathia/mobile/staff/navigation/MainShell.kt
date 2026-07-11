@@ -35,8 +35,11 @@ import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RO
 import com.qhathia.mobile.staff.feature.productinventory.navigation.inventoryGraph
 import com.qhathia.mobile.staff.feature.productregister.navigation.PRODUCT_REGISTER_ROUTE
 import com.qhathia.mobile.staff.feature.productregister.navigation.productRegisterGraph
+import com.qhathia.mobile.staff.feature.devicelinking.navigation.DEVICE_LINKING_ROUTE
+import com.qhathia.mobile.staff.feature.devicelinking.navigation.deviceLinkingGraph
 import com.qhathia.mobile.staff.ui.home.HomePlaceholderScreen
 import com.qhathia.mobile.staff.ui.home.PlaceholderScreen
+import com.qhathia.mobile.staff.ui.profile.ProfileScreen
 
 private const val HOME_ROUTE = "home"
 private const val REQUESTS_ROUTE = "requests"
@@ -139,8 +142,11 @@ fun MainShell() {
                 PlaceholderScreen(title = stringResource(R.string.nav_devices))
             }
             composable(PROFILE_ROUTE) {
-                PlaceholderScreen(title = stringResource(R.string.nav_profile))
+                ProfileScreen(
+                    onNavigateToLinkDevices = { navController.navigate(DEVICE_LINKING_ROUTE) },
+                )
             }
+            deviceLinkingGraph(onBack = { navController.popBackStack() })
         }
     }
 }

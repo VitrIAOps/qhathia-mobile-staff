@@ -1,0 +1,64 @@
+package com.qhathia.mobile.staff.core.data.repository
+
+import com.qhathia.mobile.staff.core.data.mapper.toDomain
+import com.qhathia.mobile.staff.core.domain.model.Device
+import com.qhathia.mobile.staff.core.domain.model.PairDeviceError
+import com.qhathia.mobile.staff.core.domain.model.PairDeviceException
+import com.qhathia.mobile.staff.core.domain.repository.DeviceRepository
+import com.qhathia.mobile.staff.core.network.NetworkResult
+import com.qhathia.mobile.staff.core.network.dto.PairDeviceRequestDto
+import com.qhathia.mobile.staff.core.network.service.DeviceApiService
+import javax.inject.Inject
+
+/**
+ * Maps transport [NetworkResult]s to domain [Result]s at the data boundary, so the domain and
+ * presentation layers never see Ktor or DTO types. Pairing approves the entered code with default
+ * device metadata (POC); a successful approve maps to `Result.success(Unit)` and any failure carries
+ * a [PairDeviceException] whose [PairDeviceError] is derived from the HTTP status (400 → invalid
+ * code, 409/503 → catalog not ready).
+ */
+class DeviceRepositoryImpl @Inject constructor(
+    private val apiService: DeviceApiService,
+) : DeviceRepository {
+
+    override suspend fun getDevices(): Result<List<Device>> =
+        when (val result = apiService.getDevices()) {
+            is NetworkResult.Success ->
+                Result.success(result.data.map { it.toDomain() })
+            is NetworkResult.HttpError ->
+                Result.failure(IllegalStateException("HTTP ${result.code}: ${result.message}"))
+            is NetworkResult.NetworkError ->
+                Result.failure(result.cause)
+        }
+
+    override suspend fun pairDevice(code: String): Result<Unit> {
+        val body = PairDeviceRequestDto(
+            pairingToken = code.trim(),
+            decision = DECISION_APPROVE,
+            deviceName = DEFAULT_DEVICE_NAME,
+            platform = PLATFORM_ANDROID,
+            appVersion = DEFAULT_APP_VERSION,
+        )
+        return when (val result = apiService.pairDevice(body)) {
+            is NetworkResult.Success ->
+                Result.success(Unit)
+            is NetworkResult.HttpError ->
+                Result.failure(PairDeviceException(result.code.toPairError()))
+            is NetworkResult.NetworkError ->
+                Result.failure(PairDeviceException(PairDeviceError.Network))
+        }
+    }
+
+    private fun Int.toPairError(): PairDeviceError = when (this) {
+        400 -> PairDeviceError.InvalidCode
+        409, 503 -> PairDeviceError.CatalogNotReady
+        else -> PairDeviceError.Unknown("HTTP $this")
+    }
+
+    companion object {
+        private const val DECISION_APPROVE = "APPROVE"
+        private const val PLATFORM_ANDROID = "ANDROID"
+        private const val DEFAULT_DEVICE_NAME = "Tablet"
+        private const val DEFAULT_APP_VERSION = "1.0.0"
+    }
+}

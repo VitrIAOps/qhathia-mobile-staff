@@ -3,6 +3,8 @@ package com.qhathia.mobile.staff.core.testing
 import com.qhathia.mobile.staff.core.domain.model.AuthTokens
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
+import com.qhathia.mobile.staff.core.domain.model.Device
+import com.qhathia.mobile.staff.core.domain.model.DeviceStatus
 import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
@@ -54,6 +56,14 @@ object TestFixtures {
         id: String = "category-1",
         name: String = "Electrónica",
     ) = Category(id, name)
+
+    fun device(
+        id: String = "device-1",
+        serialNumber: String? = "SN-001",
+        status: DeviceStatus = DeviceStatus.ACTIVE,
+        appVersion: String? = "1.0.0",
+        linkedAt: String? = "2026-04-15T18:30:00Z",
+    ) = Device(id, serialNumber, status, appVersion, linkedAt)
 
     fun selectedImage(
         uri: String = "content://images/1",
