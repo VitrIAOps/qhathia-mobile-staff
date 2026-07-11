@@ -1,4 +1,8 @@
 [versions]
+# App version — base (MAJOR.MINOR.PATCH). CI overrides the MINOR via -PappMinor=<run_number>.
+appVersion = "1.0.0"
+appPrerelease = "SNAPSHOT"
+
 agp = "9.2.1"
 coreKtx = "1.18.0"
 junit = "4.13.2"

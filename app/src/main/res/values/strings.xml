@@ -10,4 +10,7 @@
 
     <!-- Placeholder destinations (not yet implemented) -->
     <string name="placeholder_coming_soon">Próximamente</string>
+
+    <!-- Profile -->
+    <string name="profile_link_devices">Vincular terminal</string>
 </resources>

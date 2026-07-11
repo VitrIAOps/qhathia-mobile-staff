@@ -5,6 +5,20 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+// App version — the catalog holds the base (major + prerelease); CI makes the MINOR auto-increment
+// on every push to main by passing -PappMinor=<github.run_number>. Patch stays 0 in this scheme.
+//   versionName = "<major>.<minor>.0-<appPrerelease>"
+//     · CI run 37   -> 1.37.0-SNAPSHOT
+//     · local build -> 1.0.0-SNAPSHOT   (no -PappMinor -> falls back to the catalog's minor)
+//   versionCode = major*1_000_000 + minor   (monotonic; safe even for large minors)
+val appSemVer = libs.versions.appVersion.get()            // appVersion, e.g. "1.0.0"
+val appPrerelease = libs.versions.appPrerelease.get()     // appPrerelease, e.g. "SNAPSHOT"
+val appMajor = appSemVer.substringBefore(".").toInt()
+val appMinor = (project.findProperty("appMinor") as String?)?.toIntOrNull()
+    ?: appSemVer.split(".")[1].toInt()
+val appVersionName = "$appMajor.$appMinor.0-$appPrerelease"
+val appVersionCode = appMajor * 1_000_000 + appMinor
+
 android {
     namespace = "com.qhathia.mobile.staff"
     compileSdk = 36
@@ -14,8 +28,8 @@ android {
         applicationId = "com.qhathia.mobile.staff"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -32,6 +46,19 @@ android {
                 "proguard-rules.pro"
             )
         }
+        // QA / Android Studio profiling build:
+        //  · initWith(release)                 -> inherits release config as the baseline
+        //  · isProfileable = true              -> allows the Android Studio profiler to attach
+        //  · non-debuggable (inherited)        -> clean profiler metrics, close to release behavior
+        //  · signingConfig = debug keystore    -> installable by QA WITHOUT release signing secrets
+        //  · R8/minify left OFF (from release) -> matches release output without keep-rule risk
+        //  · matchingFallbacks += "release"    -> lets library modules resolve when they lack a profile variant
+        create("profile") {
+            initWith(getByName("release"))
+            isProfileable = true
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -40,6 +67,18 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+// Deterministic APK filename per variant; each build type writes to its own outputs/apk/<buildType>/
+// folder, so identical names never collide.
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            (output as? com.android.build.api.variant.impl.VariantOutputImpl)
+                ?.outputFileName
+                ?.set("qhathia-staff-v$appVersionName.apk")
+        }
     }
 }
 
@@ -52,6 +91,7 @@ dependencies {
     implementation(project(":features:auth"))
     implementation(project(":features:product-inventory"))
     implementation(project(":features:product-register"))
+    implementation(project(":features:device-linking"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

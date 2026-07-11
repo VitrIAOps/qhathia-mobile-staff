@@ -5,6 +5,7 @@ import com.qhathia.mobile.staff.core.network.KtorClientFactory
 import com.qhathia.mobile.staff.core.network.NetworkConfig
 import com.qhathia.mobile.staff.core.network.service.AuthApiService
 import com.qhathia.mobile.staff.core.network.service.CategoryApiService
+import com.qhathia.mobile.staff.core.network.service.DeviceApiService
 import com.qhathia.mobile.staff.core.network.service.ProductApiService
 import dagger.Module
 import dagger.Provides
@@ -62,4 +63,9 @@ object NetworkModule {
     @Singleton
     fun provideCategoryApiService(@AuthenticatedClient client: HttpClient): CategoryApiService =
         CategoryApiService(client)
+
+    @Provides
+    @Singleton
+    fun provideDeviceApiService(@AuthenticatedClient client: HttpClient): DeviceApiService =
+        DeviceApiService(client)
 }
