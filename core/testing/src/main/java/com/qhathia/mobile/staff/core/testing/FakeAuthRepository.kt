@@ -14,6 +14,7 @@ class FakeAuthRepository : AuthRepository {
 
     var loginResult: Result<Session> = Result.success(TestFixtures.session())
     var refreshResult: Result<AuthTokens> = Result.success(TestFixtures.tokens())
+    var logoutResult: Result<Unit> = Result.success(Unit)
 
     /** When non-null, [login] suspends until this completes — lets tests observe in-flight state. */
     var loginGate: CompletableDeferred<Unit>? = null
@@ -23,6 +24,10 @@ class FakeAuthRepository : AuthRepository {
     var lastLoginPassword: String? = null
         private set
     var loginCallCount: Int = 0
+        private set
+    var lastLogoutRefreshToken: String? = null
+        private set
+    var logoutCallCount: Int = 0
         private set
 
     override suspend fun login(email: String, password: String): Result<Session> {
@@ -34,4 +39,10 @@ class FakeAuthRepository : AuthRepository {
     }
 
     override suspend fun refresh(refreshToken: String): Result<AuthTokens> = refreshResult
+
+    override suspend fun logout(refreshToken: String): Result<Unit> {
+        logoutCallCount++
+        lastLogoutRefreshToken = refreshToken
+        return logoutResult
+    }
 }

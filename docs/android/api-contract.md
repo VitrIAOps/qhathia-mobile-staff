@@ -9,7 +9,17 @@
 
 ---
 
-## Cambios recientes (Fase 1-13)
+## Cambios recientes (Fase 1-15)
+
+**Fase 15 — 2026-07-25 (change `order-push-notifications-fcm`):**
+- **`POST /api/v1/notifications/tokens`** + **`DELETE /api/v1/notifications/tokens`** (OWNER/SELLER/ADMIN) — los celulares del staff registran su token FCM para recibir push cuando la tablet crea un pedido (`NEW_ORDER`) y cuando otro vendedor lo confirma/rechaza (`ORDER_TAKEN`). Upsert por token; DEVICE → 403. Detalle en sección 9.6.
+- Push **data-only sin PII** (`{event, orderId, storeId, status}`) — la app hace fetch autenticado y arma la notificación local. Fan-out a todos los celulares activos de la tienda, despacho **después del commit** (fail-open total: ningún fallo de push afecta el pedido).
+- **biz V14**: tabla `notification_tokens` (provider-agnóstica) + purga diaria de tokens muertos. Config vía `NOTIFICATIONS_PROVIDER=fcm` + `FCM_CREDENTIALS_JSON_B64`. Default `logging` (comportamiento anterior, sin Firebase).
+
+**Fase 14 — 2026-07-05 (change `kiosk-cart-share-whatsapp`):**
+- **`POST /api/v1/carts/share-pdf`** (DEVICE) — el botón "Compartir por WhatsApp" del carrito. Genera un **PDF cotización** de los productos (foto + descripción + cantidad + **precio unitario, subtotal y TOTAL REFERENCIAL**), lo sube a R2, y lo envía al WhatsApp del cliente vía **Qhatia/Qhathia** (bot de Vitria, Meta Cloud API). NO crea orden. Fail-soft: si el envío falla, `status=FAILED` + `pdfUrl` (el PDF siempre se genera). Detalle en sección 9.5.
+- **auth-api V13**: `stores` gana `whatsapp` (formato peruano `^9\d{8}$`) + `address`. Editables por el OWNER en `PUT /stores/{id}`, expuestos en `GET /stores/{id}`. El PDF usa el `whatsapp` para el link "hablar con la tienda".
+- **Qhatia**: bot centralizado de Vitria (un solo número Meta para todas las tiendas). Config vía `QHATIA_PROVIDER=meta` + `META_*` env vars. Default `stub` (no envía, solo genera el PDF).
 
 **Fase 13 — 2026-06-29 (change `kiosk-cart-order`):**
 - **`POST /api/v1/orders` rediseñado** para carrito del kiosko: ahora soporta **N items con cantidad** (1-20 items, 1-99 qty cada uno) + **datos del cliente** (`customerName` + `customerPhone` peruano `^9\d{8}$` requeridos) + **subtotal/total server-side** con snapshot del precio al momento de crear (no recalculado después). **BREAKING** vs el shape legacy single-product — nadie usaba el viejo en producción.
@@ -2238,6 +2248,134 @@ curl -X POST http://87.99.156.164/api/v1/orders/550e8400-e29b-41d4-a716-44665544
 curl http://87.99.156.164/api/v1/orders/550e8400-e29b-41d4-a716-446655440000/history \
   -H "Authorization: Bearer eyJ..."
 ```
+
+---
+
+## 9.5. BizAPI — Compartir carrito por WhatsApp (Qhatia, Fase 14)
+
+### POST /api/v1/carts/share-pdf
+
+**Descripción:** El botón verde "Compartir por WhatsApp" del carrito del kiosko. Genera un **PDF cotización** con los productos del carrito (foto + descripción + cantidad + **precio unitario, subtotal y total referencial**) + datos de la tienda (nombre + UBICACIÓN/stand) + CTA al comerciante, lo sube a R2 (`Cotizacion-Qhathia.pdf`), y lo envía al **WhatsApp del cliente** a través de **Qhatia/Qhathia** (el bot de Vitria, Meta Cloud API). **NO crea orden** (eso es "Realizar pedido"). Los precios son **referenciales** — el precio final se confirma en la tienda.
+
+**Autenticación:** JWT requerido (rol: `DEVICE` — la tablet).
+**URL producción:** `http://87.99.156.164/api/v1/carts/share-pdf`
+
+**Headers:** `Authorization: Bearer <deviceAccessToken>` · `Content-Type: application/json`
+
+**Request Body:**
+```json
+{
+  "customerName":  "Juan Perez",
+  "customerPhone": "987654321",
+  "items": [
+    { "productId": "uuid-1", "quantity": 2 },
+    { "productId": "uuid-2", "quantity": 1 }
+  ]
+}
+```
+
+Validaciones (mismas que `POST /orders`):
+- `customerName` `@NotBlank` max 200
+- `customerPhone` `^9\d{8}$` (peruano móvil)
+- `items` 1 a 20, `quantity` 1 a 99, sin `productId` duplicados
+- Cada producto: del store del DEVICE, `active`, `availability=AVAILABLE`
+
+**Response 201:**
+```json
+{
+  "status": "SENT",
+  "messageId": "wamid.HBgLNTE5...",
+  "pdfUrl": "https://pub-<hash>.r2.dev/carts/<uuid>.pdf",
+  "error": null
+}
+```
+
+**El campo `status`:**
+
+| Valor | Significado |
+|---|---|
+| `SENT` | Meta aceptó el mensaje. El cliente recibe el PDF en su WhatsApp. `messageId` presente. |
+| `STUB` | Provider stub (dev/test). El PDF se generó y subió pero NO se envió por WhatsApp. |
+| `FAILED` | El envío falló (número no registrado en test mode, template no aprobado, etc.). **El PDF SÍ se generó** — el front puede usar `pdfUrl` como fallback. |
+
+**Fail-soft:** el `pdfUrl` SIEMPRE está presente en un 201 (el PDF se genera y sube antes de intentar el envío). Solo si la generación/subida del PDF falla el endpoint devuelve **503 `PDF_GENERATION_FAILED`**.
+
+**Contenido del PDF (formato cotización):**
+- Encabezado: marca **Qhathia**, "COTIZACIÓN SIN COMPROMISO" + fecha; franja con **TIENDA** (nombre), **UBICACIÓN** (el campo `location`/stand de la tienda, ej. "AZ-104"; la `address` de calle como línea secundaria) y **PARA** (nombre del cliente).
+- Tabla de ítems (miniatura + nombre + descripción + **P. Unit + Cant + Subtotal**), con **TOTAL REFERENCIAL** y disclaimer "el precio final se confirma en la tienda".
+- Bloque de cierre con botón clickeable **"Escríbeles por WhatsApp"**. Paginación con "Página X de Y".
+
+**Errores:**
+- `400 BAD_REQUEST` — producto duplicado, inactivo, o no AVAILABLE.
+- `404 RESOURCE_NOT_FOUND` — algún `productId` no es del store del DEVICE.
+- `422 VALIDATION_ERROR` — customer/items inválidos.
+- `503 PDF_GENERATION_FAILED` — no se pudo generar/subir el PDF.
+- `403 FORBIDDEN` — rol distinto a DEVICE.
+- `401` — sin JWT.
+
+**Notas para el front:**
+- El botón "Escríbeles por WhatsApp" del PDF abre `wa.me/51<whatsapp>` con un **texto pre-cargado que incluye el link del propio PDF** (wa.me no adjunta archivos, solo texto → así la tienda recibe la cotización al abrir el chat).
+- El WhatsApp del comerciante se toma del campo `whatsapp` de la tienda (o `phone` como fallback). La **UBICACIÓN/stand** sale del campo `location`. El comerciante los carga en `PUT /api/v1/stores/{id}` (auth-api).
+- En **test mode de Meta** (sin business verification), solo se puede enviar a números **pre-registrados como test recipient** (máx 5). Con `customerPhone` no registrado → `status=FAILED` (el PDF igual queda en `pdfUrl`).
+- ⚠️ Este endpoint es **DEVICE** (tablet emparejada). Con token OWNER/SELLER/ADMIN → **403**. `POST /orders` es otra cosa (registra pedido, NO envía WhatsApp).
+
+**curl:**
+```bash
+curl -X POST http://87.99.156.164/api/v1/carts/share-pdf \
+  -H "Authorization: Bearer <deviceToken>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerName":"Juan Perez",
+    "customerPhone":"987654321",
+    "items":[{"productId":"<uuid>","quantity":2}]
+  }'
+```
+
+**Store contact (auth-api):** el `PUT /api/v1/stores/{storeId}` (OWNER/ADMIN) acepta `whatsapp` (formato `^9\d{8}$`), `address` (dirección de calle) y `location` (**stand/ubicación dentro del C.C.**, ej. "AZ-104" — campo pre-existente reusado). Todos opcionales, expuestos en `GET /stores/{storeId}`. El comerciante los carga en su panel para que aparezcan en el PDF (UBICACIÓN = `location`).
+
+---
+
+## 9.6. BizAPI — Push notifications al staff (FCM, Fase 15)
+
+Aviso en tiempo real a los **celulares del staff** (app Android `com.qhathia.mobile.staff`) cuando la **tablet** del kiosko crea un pedido. Dos roles de dispositivo: la tablet (DEVICE) crea pedidos; los celulares (OWNER/SELLER) los confirman/rechazan y son los que reciben el push.
+
+### POST /api/v1/notifications/tokens
+
+**Descripción:** registra/refresca el token FCM del celular. **Upsert por token**: re-registrar re-apunta la tienda/usuario al JWT vigente (cubre `switch-store`). La app lo llama en cada arranque, en `onNewToken()` y tras cambiar de tienda.
+
+**Autenticación:** JWT (rol `OWNER`/`SELLER`/`ADMIN`). **DEVICE → 403** (la tablet no recibe pushes).
+**URL producción:** `http://87.99.156.164/api/v1/notifications/tokens`
+
+**Request Body:**
+```json
+{ "token": "<fcm-token>", "platform": "ANDROID", "deviceLabel": "Pixel 7" }
+```
+Validaciones: `token` `@NotBlank` max 512; `platform` opcional (default ANDROID); `deviceLabel` opcional max 120. El `storeId`/`userId` salen SIEMPRE del JWT — nunca del body.
+
+**Response:** `204 No Content`.
+
+### DELETE /api/v1/notifications/tokens
+
+**Descripción:** da de baja el token (logout / opt-out). Idempotente.
+**Request Body:** `{ "token": "<fcm-token>" }` → **Response:** `204`.
+
+### Comportamiento del push
+
+| Evento | Cuándo | Payload (data-only) |
+|---|---|---|
+| `NEW_ORDER` | La tablet crea un pedido (`POST /orders` → PENDING) | `{event, orderId, storeId, status:"PENDING"}` |
+| `ORDER_TAKEN` | Un vendedor confirma/rechaza | `{event, orderId, storeId, status:"CONFIRMED"\|"REJECTED"}` |
+
+- **Fan-out por tienda**: el push va a TODOS los tokens activos del `storeId` del pedido.
+- **Sin PII por diseño**: solo IDs — Google nunca ve nombres, productos ni montos. La app hace `GET /orders/{id}` autenticado y arma la notificación local.
+- **Post-commit + fail-open**: el push se despacha después del commit de la transacción (rollback → no hay push) y ningún fallo de push afecta la creación/confirmación del pedido.
+- **Carrera de dos vendedores**: el segundo que confirma/rechaza un pedido ya terminal recibe el ProblemDetail de `INVALID_STATE_TRANSITION` — nunca doble transición.
+- **Higiene de tokens**: token `UNREGISTERED` en FCM → `active=false` inmediato; purga diaria (inactivos >30 días borrados, sin re-registro >90 días desactivados).
+- El push es el *acelerador*, no la fuente de verdad: la app debe seguir sincronizando con `GET /orders?status=PENDING` al abrir/refrescar.
+
+**Config (biz-api):** `NOTIFICATIONS_PROVIDER` (`logging` default | `fcm`), `FCM_CREDENTIALS_JSON_B64` (service account base64, SOLO en `.env` del VPS), `FCM_TIMEOUT_SECONDS`. Con `logging` el comportamiento es el anterior (solo log, sin Firebase).
+
+**Errores:** `401` sin JWT · `403` rol DEVICE · `422 VALIDATION_ERROR` token blank.
 
 ---
 

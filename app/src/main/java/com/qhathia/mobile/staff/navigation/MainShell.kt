@@ -1,7 +1,15 @@
 package com.qhathia.mobile.staff.navigation
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
@@ -46,6 +54,27 @@ private const val REQUESTS_ROUTE = "requests"
 private const val DEVICES_ROUTE = "devices"
 private const val PROFILE_ROUTE = "profile"
 
+/**
+ * Requests `POST_NOTIFICATIONS` once on first entry to the authenticated shell (API 33+ only). The
+ * result is ignored — order-token registration proceeds regardless; a denial only suppresses the
+ * visible tray notification.
+ */
+@Composable
+private fun RequestNotificationPermissionOnce() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { /* result intentionally ignored */ }
+    LaunchedEffect(Unit) {
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+}
+
 /** A bottom-navigation destination. */
 private data class TopLevelDestination(
     val route: String,
@@ -68,6 +97,8 @@ private val topLevelDestinations = listOf(
  */
 @Composable
 fun MainShell() {
+    RequestNotificationPermissionOnce()
+
     val navController = rememberNavController()
     val currentDestination by navController.currentBackStackEntryAsState()
     val currentRoute = currentDestination?.destination
