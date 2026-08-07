@@ -15,4 +15,7 @@ interface AuthRepository {
 
     /** Exchange a refresh token for a rotated token pair. */
     suspend fun refresh(refreshToken: String): Result<AuthTokens>
+
+    /** Invalidate the session server-side, revoking [refreshToken]. Called on explicit sign out. */
+    suspend fun logout(refreshToken: String): Result<Unit>
 }

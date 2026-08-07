@@ -80,5 +80,23 @@ class AuthRepositoryImplTest {
         assertInstanceOf(LoginError.Unknown::class.java, error)
     }
 
+    @Test
+    fun `given success when logout then returns success`() = runTest {
+        coEvery { api.logout(any()) } returns NetworkResult.Success(Unit)
+
+        val result = repository.logout("refresh")
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `given transport failure when logout then fails with Network`() = runTest {
+        coEvery { api.logout(any()) } returns NetworkResult.NetworkError(IOException())
+
+        val error = repository.logout("refresh").error()
+
+        assertInstanceOf(LoginError.Network::class.java, error)
+    }
+
     private fun <T> Result<T>.error(): LoginError = (exceptionOrNull() as LoginException).error
 }

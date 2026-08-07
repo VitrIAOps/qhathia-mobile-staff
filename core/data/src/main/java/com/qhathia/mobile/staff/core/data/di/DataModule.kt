@@ -12,6 +12,7 @@ import com.qhathia.mobile.staff.core.data.local.SessionStorage
 import com.qhathia.mobile.staff.core.data.repository.AuthRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.CategoryRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.DeviceRepositoryImpl
+import com.qhathia.mobile.staff.core.data.repository.NotificationTokenRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.ProductAiRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.ProductRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.SessionAuthTokenProvider
@@ -19,6 +20,7 @@ import com.qhathia.mobile.staff.core.data.repository.SessionRepositoryImpl
 import com.qhathia.mobile.staff.core.domain.repository.AuthRepository
 import com.qhathia.mobile.staff.core.domain.repository.CategoryRepository
 import com.qhathia.mobile.staff.core.domain.repository.DeviceRepository
+import com.qhathia.mobile.staff.core.domain.repository.NotificationTokenRepository
 import com.qhathia.mobile.staff.core.domain.repository.ProductAiRepository
 import com.qhathia.mobile.staff.core.domain.repository.ProductRepository
 import com.qhathia.mobile.staff.core.domain.repository.SessionRepository
@@ -58,6 +60,12 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindDeviceRepository(impl: DeviceRepositoryImpl): DeviceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNotificationTokenRepository(
+        impl: NotificationTokenRepositoryImpl,
+    ): NotificationTokenRepository
 
     @Binds
     @Singleton

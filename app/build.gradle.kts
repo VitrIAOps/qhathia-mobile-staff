@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 // App version — the catalog holds the base (major + prerelease); CI makes the MINOR auto-increment
@@ -87,6 +88,7 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:data"))
     implementation(project(":core:network"))
+    implementation(project(":core:notifications"))
     implementation(project(":core:ui"))
     implementation(project(":features:auth"))
     implementation(project(":features:product-inventory"))

@@ -15,6 +15,12 @@ data class RefreshRequestDto(
     val refreshToken: String,
 )
 
+/** Request body for `POST /api/v1/auth/logout`. */
+@Serializable
+data class LogoutRequestDto(
+    val refreshToken: String,
+)
+
 /**
  * Response shared by login, register, switch-store and refresh. `user`/`store`/`stores` are
  * absent on the refresh response, so they are nullable/defaulted.

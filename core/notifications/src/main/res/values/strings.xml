@@ -1,0 +1,18 @@
+<resources>
+    <!-- Notification channel -->
+    <string name="notif_channel_orders_name">Órdenes de compra</string>
+    <string name="notif_channel_orders_description">Avisos de nuevas órdenes de compra y su estado</string>
+
+    <!-- New order (NEW_ORDER) -->
+    <string name="notif_new_order_title">Nueva orden de compra</string>
+    <string name="notif_new_order_body">Tienes una nueva orden por atender</string>
+
+    <!-- Order taken (ORDER_TAKEN) -->
+    <string name="notif_order_taken_title">Orden actualizada</string>
+    <string name="notif_order_confirmed_body">Una orden fue confirmada</string>
+    <string name="notif_order_rejected_body">Una orden fue rechazada</string>
+    <string name="notif_order_updated_body">El estado de una orden cambió</string>
+
+    <!-- Fallback -->
+    <string name="notif_order_generic_title">Actualización de órdenes</string>
+</resources>

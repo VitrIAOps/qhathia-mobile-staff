@@ -13,4 +13,10 @@
 
     <!-- Profile -->
     <string name="profile_link_devices">Vincular terminal</string>
+    <string name="profile_logout">Cerrar sesión</string>
+    <string name="profile_logout_confirm_title">Cerrar sesión</string>
+    <string name="profile_logout_confirm_message">¿Seguro que quieres cerrar sesión? Dejarás de recibir notificaciones de órdenes en este dispositivo.</string>
+
+    <!-- Common actions -->
+    <string name="action_cancel">Cancelar</string>
 </resources>

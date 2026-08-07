@@ -9,6 +9,7 @@ import com.qhathia.mobile.staff.core.domain.model.Session
 import com.qhathia.mobile.staff.core.domain.repository.AuthRepository
 import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.dto.LoginRequestDto
+import com.qhathia.mobile.staff.core.network.dto.LogoutRequestDto
 import com.qhathia.mobile.staff.core.network.dto.RefreshRequestDto
 import com.qhathia.mobile.staff.core.network.service.AuthApiService
 import javax.inject.Inject
@@ -35,6 +36,15 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun refresh(refreshToken: String): Result<AuthTokens> =
         when (val result = authApiService.refresh(RefreshRequestDto(refreshToken))) {
             is NetworkResult.Success -> Result.success(result.data.toTokens())
+            is NetworkResult.HttpError ->
+                Result.failure(LoginException(result.code.toLoginError()))
+            is NetworkResult.NetworkError ->
+                Result.failure(LoginException(LoginError.Network))
+        }
+
+    override suspend fun logout(refreshToken: String): Result<Unit> =
+        when (val result = authApiService.logout(LogoutRequestDto(refreshToken))) {
+            is NetworkResult.Success -> Result.success(Unit)
             is NetworkResult.HttpError ->
                 Result.failure(LoginException(result.code.toLoginError()))
             is NetworkResult.NetworkError ->

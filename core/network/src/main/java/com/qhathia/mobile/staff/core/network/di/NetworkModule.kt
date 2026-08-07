@@ -6,6 +6,7 @@ import com.qhathia.mobile.staff.core.network.NetworkConfig
 import com.qhathia.mobile.staff.core.network.service.AuthApiService
 import com.qhathia.mobile.staff.core.network.service.CategoryApiService
 import com.qhathia.mobile.staff.core.network.service.DeviceApiService
+import com.qhathia.mobile.staff.core.network.service.NotificationApiService
 import com.qhathia.mobile.staff.core.network.service.ProductApiService
 import dagger.Module
 import dagger.Provides
@@ -13,6 +14,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
 import kotlinx.serialization.json.Json
+import javax.inject.Provider
 import javax.inject.Singleton
 
 /**
@@ -49,8 +51,16 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAuthApiService(@PublicClient client: HttpClient): AuthApiService =
-        AuthApiService(client)
+    fun provideAuthApiService(
+        @PublicClient publicClient: HttpClient,
+        @AuthenticatedClient authenticatedClient: Provider<HttpClient>,
+    ): AuthApiService = AuthApiService(publicClient, authenticatedClient)
+
+    @Provides
+    @Singleton
+    fun provideNotificationApiService(
+        @AuthenticatedClient client: HttpClient,
+    ): NotificationApiService = NotificationApiService(client)
 
     @Provides
     @Singleton
