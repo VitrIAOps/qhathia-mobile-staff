@@ -9,7 +9,16 @@
 
 ---
 
-## Cambios recientes (Fase 1-15)
+## Cambios recientes (Fase 1-16)
+
+**Fase 16 — 2026-07-26 (change `orders-expiry-and-requests-screen`):**
+- **Expiración de pedidos**: un `PENDING` vence a los `ORDERS_TTL_MINUTES` (default **60 min**). Nuevo estado **`EXPIRED`** + campo `expiresAt` en los shapes de orden (el countdown "Expira en X" lo pinta la app). Un job cada minuto hace la transición y emite push `ORDER_TAKEN` con `status=EXPIRED`.
+- **`POST /api/v1/orders/{id}/recover`** (OWNER/SELLER/ADMIN) — revive un pedido `EXPIRED` a `PENDING` con TTL nuevo. Un rechazo manual NO se recupera.
+- **Código corto**: `orderCode` (6 dígitos, único por tienda) en summary + detalle. Null en pedidos previos a V15 — la app debe tolerarlo.
+- **`GET /orders`**: `status` acepta **lista separada por comas** (`REJECTED,EXPIRED` para la tab Rechazados) y nuevo param **`q`** (busca por nombre del cliente parcial o prefijo del código). El summary gana `rejectionReason`.
+- **Detalle**: cada item trae `productStock` + `productAvailability` (para el warning "Quedan pocos disponibles"; el umbral lo decide la app).
+- **biz V15**: `orders.expires_at`, `orders.order_code`, CHECK de status con `EXPIRED`, índices de búsqueda/expiración.
+
 
 **Fase 15 — 2026-07-25 (change `order-push-notifications-fcm`):**
 - **`POST /api/v1/notifications/tokens`** + **`DELETE /api/v1/notifications/tokens`** (OWNER/SELLER/ADMIN) — los celulares del staff registran su token FCM para recibir push cuando la tablet crea un pedido (`NEW_ORDER`) y cuando otro vendedor lo confirma/rechaza (`ORDER_TAKEN`). Upsert por token; DEVICE → 403. Detalle en sección 9.6.
@@ -2078,11 +2087,14 @@ curl -X POST http://87.99.156.164/api/v1/orders \
 **Headers:** `Authorization: Bearer <accessToken>`
 
 **Query Params:**
-- `status` — `PENDING` | `CONFIRMED` | `REJECTED` | `CANCELLED` (opcional)
-- `customerPhone` — celular del cliente (opcional, formato `9XXXXXXXX`)
+- `status` — uno o **varios separados por coma**: `PENDING` | `CONFIRMED` | `REJECTED` | `CANCELLED` | `EXPIRED` (opcional; ausente = todos). Ej. la tab "Rechazados" usa `status=REJECTED,EXPIRED`.
+- `q` — **búsqueda** por nombre del cliente (parcial, case-insensitive) o por prefijo del `orderCode` (opcional). Si viene junto con `customerPhone`, **`q` gana**.
+- `customerPhone` — celular del cliente (opcional, formato `9XXXXXXXX`, match exacto)
 - `page` — número de página (default: 0)
 - `size` — tamaño de página (default: 20)
 - `sort` — campo,dirección (default: `createdAt,DESC`)
+
+> **Badge de pendientes**: usar `?status=PENDING&size=1` y leer `totalElements` (no hay endpoint de count dedicado).
 
 **Response 200 (shape compacto — sin items[] para mantener payload chico):**
 ```json
@@ -2098,6 +2110,9 @@ curl -X POST http://87.99.156.164/api/v1/orders \
       "itemCount": 2,
       "total": 250.00,
       "sessionId": "sess-123",
+      "orderCode": "859653",
+      "expiresAt": "2026-06-29T21:00:00Z",
+      "rejectionReason": null,
       "createdAt": "2026-06-29T20:00:00Z",
       "lastStatusChangedAt": "2026-06-29T20:00:00Z"
     }
@@ -2120,13 +2135,21 @@ curl "http://87.99.156.164/api/v1/orders?status=PENDING&size=10" \
 # Buscar por cliente (caso: cliente llama de vuelta)
 curl "http://87.99.156.164/api/v1/orders?customerPhone=987654321" \
   -H "Authorization: Bearer eyJ..."
+
+# Tab "Rechazados" (rechazados manualmente + expirados por TTL)
+curl "http://87.99.156.164/api/v1/orders?status=REJECTED,EXPIRED" \
+  -H "Authorization: Bearer eyJ..."
+
+# Búsqueda "por nombre o código" de la pantalla Solicitudes
+curl "http://87.99.156.164/api/v1/orders?q=mari" \
+  -H "Authorization: Bearer eyJ..."
 ```
 
 ---
 
 ### GET /api/v1/orders/{id}
 
-**Descripción:** Retorna el detalle completo de una orden, con `items[]`, customer fields y totales.
+**Descripción:** Retorna el detalle completo de una orden, con `items[]`, customer fields y totales. Desde la Fase 16 incluye además `orderCode`, `expiresAt`, y por cada item `productStock` + `productAvailability` (stock vivo del producto, para el warning "quedan pocos").
 **Autenticación:** JWT requerido (roles: `OWNER`, `SELLER`, `ADMIN`)
 
 **Response 200:** mismo shape que el response 201 de `POST /orders` (objeto `OrderResponse` completo con `items[]`).
@@ -2248,6 +2271,64 @@ curl -X POST http://87.99.156.164/api/v1/orders/550e8400-e29b-41d4-a716-44665544
 curl http://87.99.156.164/api/v1/orders/550e8400-e29b-41d4-a716-446655440000/history \
   -H "Authorization: Bearer eyJ..."
 ```
+
+---
+
+## 9.4. BizAPI — Expiración de pedidos y pantalla "Solicitudes" (Fase 16)
+
+Soporte backend de la pantalla **Solicitudes de compra** de la app Android del staff
+(change `orders-expiry-and-requests-screen`).
+
+### Expiración automática
+
+Un pedido creado por la tablet nace `PENDING` con `expiresAt = createdAt + TTL`
+(`ORDERS_TTL_MINUTES`, default **60 min**). Un job del backend corre **cada minuto** y
+transiciona a **`EXPIRED`** los `PENDING` vencidos:
+
+- Registra la transición en `GET /orders/{id}/history` (`changedBy: "system:expiry"`).
+- Emite push **`ORDER_TAKEN` con `status=EXPIRED`** → la app saca el pedido de "Pendientes"
+  y lo muestra en "Rechazados" (por expirado) sin refresh manual.
+- **El staff siempre gana la carrera**: si un vendedor confirma/rechaza en la misma ventana,
+  el job no toca nada (UPDATE condicional).
+- `EXPIRED` es **terminal**: `confirm`/`reject` sobre un expirado devuelven `422 INVALID_STATE_TRANSITION`.
+
+El **countdown** ("Expira en 20 minutos") lo renderiza la app con `expiresAt`; el servidor
+es la autoridad final del vencimiento.
+
+### POST /api/v1/orders/{id}/recover
+
+**Descripción:** revive un pedido **`EXPIRED`** devolviéndolo a `PENDING` con un `expiresAt`
+nuevo (TTL completo). Emite push `NEW_ORDER`: reaparece en "Pendientes" de todos los celulares.
+No toca stock (el stock solo se decrementa al confirmar).
+**Autenticación:** JWT (roles: `OWNER`, `SELLER`, `ADMIN`) — DEVICE → 403.
+
+**Response 200:** `OrderResponse` con `status: "PENDING"` y `expiresAt` renovado.
+
+**Errores:**
+- `422 INVALID_STATE_TRANSITION` — el pedido no está `EXPIRED` (un **rechazo manual no se deshace**).
+- `404 RESOURCE_NOT_FOUND` — la orden no es de la tienda del token.
+- `403` — rol DEVICE.
+
+```bash
+curl -X POST "http://87.99.156.164/api/v1/orders/<uuid>/recover" \
+  -H "Authorization: Bearer eyJ..."
+```
+
+### Campos nuevos para la pantalla
+
+| Campo | Dónde | Para qué |
+|---|---|---|
+| `orderCode` | summary + detalle | "Código: 859653" en la card. 6 dígitos únicos por tienda. **Null en pedidos previos a V15** → la app necesita fallback |
+| `expiresAt` | summary + detalle | Countdown "Expira en X minutos" |
+| `rejectionReason` | summary (ya estaba en detalle) | Motivo en las cards de la tab Rechazados |
+| `productStock` / `productAvailability` | items del detalle | Warning "Quedan pocos disponibles" (umbral client-side; `productStock: null` = modo consultar) |
+
+### Notas para el front
+
+- **Estados de las tabs**: Pendientes → `status=PENDING`; Aceptados → `status=CONFIRMED`; Rechazados → `status=REJECTED,EXPIRED`.
+- **Doble confirmación**: si dos vendedores tocan "Confirmar" a la vez, el segundo recibe `422 INVALID_STATE_TRANSITION` — mostrar "otro vendedor ya atendió este pedido" y refrescar.
+- **Stock insuficiente al confirmar**: puede aparecer entre el warning y el tap → manejar el ProblemDetail `STOCK_INSUFFICIENT`.
+- El push es el *acelerador*: la fuente de verdad sigue siendo `GET /orders` al abrir/refrescar la pantalla.
 
 ---
 

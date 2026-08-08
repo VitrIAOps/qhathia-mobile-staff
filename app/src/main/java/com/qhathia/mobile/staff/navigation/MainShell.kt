@@ -45,12 +45,13 @@ import com.qhathia.mobile.staff.feature.productregister.navigation.PRODUCT_REGIS
 import com.qhathia.mobile.staff.feature.productregister.navigation.productRegisterGraph
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.DEVICE_LINKING_ROUTE
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.deviceLinkingGraph
+import com.qhathia.mobile.staff.feature.orderrequests.navigation.ORDER_REQUESTS_ROUTE
+import com.qhathia.mobile.staff.feature.orderrequests.navigation.orderRequestsGraph
 import com.qhathia.mobile.staff.ui.home.HomePlaceholderScreen
 import com.qhathia.mobile.staff.ui.home.PlaceholderScreen
 import com.qhathia.mobile.staff.ui.profile.ProfileScreen
 
 private const val HOME_ROUTE = "home"
-private const val REQUESTS_ROUTE = "requests"
 private const val DEVICES_ROUTE = "devices"
 private const val PROFILE_ROUTE = "profile"
 
@@ -85,15 +86,15 @@ private data class TopLevelDestination(
 private val topLevelDestinations = listOf(
     TopLevelDestination(HOME_ROUTE, R.string.nav_home, Icons.Filled.Home),
     TopLevelDestination(INVENTORY_ROUTE, R.string.nav_inventory, Icons.AutoMirrored.Filled.List),
-    TopLevelDestination(REQUESTS_ROUTE, R.string.nav_requests, Icons.Filled.Notifications),
+    TopLevelDestination(ORDER_REQUESTS_ROUTE, R.string.nav_requests, Icons.Filled.Notifications),
     TopLevelDestination(DEVICES_ROUTE, R.string.nav_devices, Icons.Filled.PhoneAndroid),
     TopLevelDestination(PROFILE_ROUTE, R.string.nav_profile, Icons.Filled.Person),
 )
 
 /**
  * Post-login app shell: a bottom navigation bar over an inner [NavHost] of the top-level
- * destinations. Inventario is the start destination and the only fully-implemented tab; the others
- * are placeholders for this change.
+ * destinations. Inventario is the start destination; Inventario, Solicitudes and Perfil are
+ * implemented, Inicio and Dispositivos are still placeholders.
  */
 @Composable
 fun MainShell() {
@@ -166,9 +167,7 @@ fun MainShell() {
                 },
                 onCancelled = { navController.popBackStack() },
             )
-            composable(REQUESTS_ROUTE) {
-                PlaceholderScreen(title = stringResource(R.string.nav_requests))
-            }
+            orderRequestsGraph()
             composable(DEVICES_ROUTE) {
                 PlaceholderScreen(title = stringResource(R.string.nav_devices))
             }

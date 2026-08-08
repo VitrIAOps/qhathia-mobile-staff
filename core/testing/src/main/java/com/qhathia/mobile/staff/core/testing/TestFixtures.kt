@@ -6,15 +6,23 @@ import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceStatus
 import com.qhathia.mobile.staff.core.domain.model.NewProduct
+import com.qhathia.mobile.staff.core.domain.model.Order
+import com.qhathia.mobile.staff.core.domain.model.OrderDetail
+import com.qhathia.mobile.staff.core.domain.model.OrderItem
+import com.qhathia.mobile.staff.core.domain.model.OrderStatus
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import com.qhathia.mobile.staff.core.domain.model.Session
 import com.qhathia.mobile.staff.core.domain.model.Store
 import com.qhathia.mobile.staff.core.domain.model.User
 import com.qhathia.mobile.staff.core.domain.model.UserRole
+import java.time.Instant
 
 /** Shared domain fixtures for tests. */
 object TestFixtures {
+
+    /** Fixed "now" the order fixtures are built around, so expiry assertions stay deterministic. */
+    val NOW: Instant = Instant.parse("2026-06-29T20:00:00Z")
 
     fun tokens(
         accessToken: String = "access-token",
@@ -79,4 +87,68 @@ object TestFixtures {
         tags: List<String> = listOf("vintage"),
         images: List<SelectedImage> = listOf(selectedImage()),
     ) = NewProduct(name, price, quantity, description, categoryId, tags, images)
+
+    /** A pending order expiring 20 minutes after [NOW]. */
+    fun order(
+        id: String = "order-1",
+        status: OrderStatus = OrderStatus.PENDING,
+        customerName: String? = "Maria Murillo",
+        customerPhone: String? = "987654321",
+        orderCode: String? = "859653",
+        itemCount: Int = 2,
+        total: Double = 156.90,
+        expiresAt: Instant? = NOW.plusSeconds(20 * 60),
+        rejectionReason: String? = null,
+        createdAt: Instant? = NOW,
+    ) = Order(
+        id = id,
+        status = status,
+        customerName = customerName,
+        customerPhone = customerPhone,
+        orderCode = orderCode,
+        itemCount = itemCount,
+        total = total,
+        expiresAt = expiresAt,
+        rejectionReason = rejectionReason,
+        createdAt = createdAt,
+    )
+
+    /** An order in the last 3 minutes before expiry — the countdown's emphasized treatment. */
+    fun expiringSoonOrder(
+        id: String = "order-expiring",
+        orderCode: String? = "859654",
+    ) = order(id = id, orderCode = orderCode, expiresAt = NOW.plusSeconds(2 * 60))
+
+    /**
+     * An order predating backend V15 and created without a customer name — the two display
+     * fallbacks the card has to cover.
+     */
+    fun unlabelledOrder(
+        id: String = "order-unlabelled",
+    ) = order(id = id, customerName = null, orderCode = null)
+
+    fun orderItem(
+        id: String = "item-1",
+        productId: String = "product-1",
+        productName: String = "Taladro Percutor Bosch GSB 13 RE",
+        quantity: Int = 1,
+        unitPrice: Double = 50.0,
+        lineTotal: Double = 50.0,
+        productStock: Int? = 12,
+        productAvailability: Availability? = Availability.AVAILABLE,
+    ) = OrderItem(
+        id = id,
+        productId = productId,
+        productName = productName,
+        quantity = quantity,
+        unitPrice = unitPrice,
+        lineTotal = lineTotal,
+        productStock = productStock,
+        productAvailability = productAvailability,
+    )
+
+    fun orderDetail(
+        order: Order = order(),
+        items: List<OrderItem> = listOf(orderItem()),
+    ) = OrderDetail(order, items)
 }
