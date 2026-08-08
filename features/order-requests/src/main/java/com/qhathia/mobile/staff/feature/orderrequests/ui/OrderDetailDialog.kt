@@ -46,6 +46,8 @@ import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.orderrequests.R
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderDetailUiState
+import com.qhathia.mobile.staff.feature.orderrequests.model.RejectionReason
+import com.qhathia.mobile.staff.feature.orderrequests.model.RejectionUiState
 import java.time.Instant
 
 /**
@@ -67,13 +69,36 @@ internal fun OrderDetailDialog(
     now: () -> Instant,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
-    onReject: (String) -> Unit,
+    onStartRejection: () -> Unit,
+    onSelectRejectionReason: (RejectionReason) -> Unit,
+    onOtherRejectionReasonChange: (String) -> Unit,
+    onCancelRejection: () -> Unit,
+    onConfirmRejection: (String) -> Unit,
 ) {
+    val rejection = state.rejection
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(Dimens.SpaceLg),
             color = MaterialTheme.colorScheme.surface,
         ) {
+            // The reject form is a step of this same dialog, and it brings its own centered title,
+            // so the detail header is not drawn over it.
+            if (rejection != null) {
+                OrderRejectForm(
+                    state = rejection,
+                    isSubmitting = state.isSubmitting,
+                    onSelectReason = onSelectRejectionReason,
+                    onOtherReasonChange = onOtherRejectionReasonChange,
+                    onCancel = onCancelRejection,
+                    onConfirm = onConfirmRejection,
+                    modifier = Modifier.padding(
+                        horizontal = Dimens.SpaceLg,
+                        vertical = Dimens.SpaceXl,
+                    ),
+                )
+                return@Surface
+            }
+
             Column(modifier = Modifier.padding(Dimens.SpaceMd)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -100,7 +125,7 @@ internal fun OrderDetailDialog(
                         isSubmitting = state.isSubmitting,
                         now = now,
                         onConfirm = onConfirm,
-                        onReject = onReject,
+                        onReject = onStartRejection,
                     )
                 }
             }
@@ -114,7 +139,7 @@ private fun OrderDetailBody(
     isSubmitting: Boolean,
     now: () -> Instant,
     onConfirm: (String) -> Unit,
-    onReject: (String) -> Unit,
+    onReject: () -> Unit,
 ) {
     val canAct = detail.order.status == OrderStatus.PENDING &&
         !isExpired(detail.order.expiresAt, now()) &&
@@ -160,7 +185,7 @@ private fun OrderDetailBody(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TextButton(
-                onClick = { onReject(detail.order.id) },
+                onClick = onReject,
                 enabled = canAct,
                 modifier = Modifier.weight(1f),
             ) {
@@ -349,7 +374,11 @@ private fun OrderDetailDialogPreview() {
             now = { PREVIEW_NOW },
             onDismiss = {},
             onConfirm = {},
-            onReject = {},
+            onStartRejection = {},
+            onSelectRejectionReason = {},
+            onOtherRejectionReasonChange = {},
+            onCancelRejection = {},
+            onConfirmRejection = {},
         )
     }
 }
@@ -363,7 +392,36 @@ private fun OrderDetailDialogLoadingPreview() {
             now = { PREVIEW_NOW },
             onDismiss = {},
             onConfirm = {},
-            onReject = {},
+            onStartRejection = {},
+            onSelectRejectionReason = {},
+            onOtherRejectionReasonChange = {},
+            onCancelRejection = {},
+            onConfirmRejection = {},
+        )
+    }
+}
+
+@Preview(name = "Order detail — reject form", showBackground = true)
+@Composable
+private fun OrderDetailDialogRejectPreview() {
+    QhathiaTheme {
+        OrderDetailDialog(
+            state = OrderDetailUiState(
+                orderId = "order-1",
+                order = previewOrderDetail(),
+                rejection = RejectionUiState(
+                    orderCode = "458795",
+                    selectedReason = RejectionReason.INSUFFICIENT_QUANTITY,
+                ),
+            ),
+            now = { PREVIEW_NOW },
+            onDismiss = {},
+            onConfirm = {},
+            onStartRejection = {},
+            onSelectRejectionReason = {},
+            onOtherRejectionReasonChange = {},
+            onCancelRejection = {},
+            onConfirmRejection = {},
         )
     }
 }
@@ -377,7 +435,11 @@ private fun OrderDetailDialogErrorPreview() {
             now = { PREVIEW_NOW },
             onDismiss = {},
             onConfirm = {},
-            onReject = {},
+            onStartRejection = {},
+            onSelectRejectionReason = {},
+            onOtherRejectionReasonChange = {},
+            onCancelRejection = {},
+            onConfirmRejection = {},
         )
     }
 }

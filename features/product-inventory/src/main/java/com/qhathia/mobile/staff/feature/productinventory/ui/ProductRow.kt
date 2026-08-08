@@ -11,9 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,11 +33,13 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
+import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.feature.productinventory.R
 import kotlin.math.abs
 
 /**
- * A single inventory product: 59dp thumbnail, name, then a price/stock row, and a trailing chevron.
+ * A single inventory product (DS "Product-cards"): 59dp thumbnail, name over a price/stock row, and
+ * a trailing overflow affordance.
  * The "N stock" value is mocked via [mockedStock] until backend exposes a real stock quantity.
  */
 @Composable
@@ -48,7 +50,7 @@ internal fun ProductRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = Dimens.SpaceSm),
+            .padding(Dimens.SpaceSm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
     ) {
@@ -88,7 +90,9 @@ internal fun ProductRow(
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
+                // The DS lets a long product name wrap onto a second line before truncating —
+                // brand + model rarely fits on one, and both halves identify the product.
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Row(
@@ -109,10 +113,13 @@ internal fun ProductRow(
             }
         }
 
+        // Visual-only for this slice: the DS row ends in a "⋮" that will open the per-product
+        // actions menu once those actions exist.
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            imageVector = Icons.Filled.MoreVert,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.tertiary,
+            tint = QhathiaColors.iconMuted,
+            modifier = Modifier.size(Dimens.IconSm),
         )
     }
 }

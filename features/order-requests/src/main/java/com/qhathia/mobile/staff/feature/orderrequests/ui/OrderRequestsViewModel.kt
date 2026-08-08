@@ -18,6 +18,7 @@ import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsFilter
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiEffect
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiEvent
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiState
+import com.qhathia.mobile.staff.feature.orderrequests.model.RejectionUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -107,7 +108,48 @@ class OrderRequestsViewModel @Inject constructor(
             is OrderRequestsUiEvent.OpenDetail -> loadDetail(event.orderId)
             OrderRequestsUiEvent.DismissDetail -> _uiState.update { it.copy(detail = null) }
             is OrderRequestsUiEvent.ConfirmOrder -> confirmOrder(event.orderId)
-            is OrderRequestsUiEvent.RejectOrder -> rejectOrder(event.orderId)
+
+            is OrderRequestsUiEvent.StartRejection -> startRejection(event)
+            is OrderRequestsUiEvent.SelectRejectionReason -> updateRejection {
+                it.copy(selectedReason = event.reason)
+            }
+            is OrderRequestsUiEvent.EditOtherRejectionReason -> updateRejection {
+                it.copy(otherReason = event.text)
+            }
+            OrderRequestsUiEvent.CancelRejection -> cancelRejection()
+            is OrderRequestsUiEvent.ConfirmRejection -> rejectOrder(event.reason)
+        }
+    }
+
+    /**
+     * Opens the reject form. From a card there is no detail behind it, so the dialog is created on
+     * the spot with only the ids the form needs; from the open dialog it just adds the form step.
+     */
+    private fun startRejection(event: OrderRequestsUiEvent.StartRejection) {
+        _uiState.update { state ->
+            val rejection = RejectionUiState(orderCode = event.orderCode)
+            val detail = state.detail?.takeIf { it.orderId == event.orderId }
+                ?: OrderDetailUiState(orderId = event.orderId)
+            state.copy(detail = detail.copy(rejection = rejection))
+        }
+    }
+
+    private fun updateRejection(transform: (RejectionUiState) -> RejectionUiState) {
+        _uiState.update { state ->
+            val rejection = state.detail?.rejection ?: return@update state
+            state.copy(detail = state.detail.copy(rejection = transform(rejection)))
+        }
+    }
+
+    /** Back to the detail when there is one loaded; otherwise the form *was* the dialog. */
+    private fun cancelRejection() {
+        _uiState.update { state ->
+            val detail = state.detail ?: return@update state
+            if (detail.order == null) {
+                state.copy(detail = null)
+            } else {
+                state.copy(detail = detail.copy(rejection = null))
+            }
         }
     }
 
@@ -232,10 +274,12 @@ class OrderRequestsViewModel @Inject constructor(
         }
     }
 
-    private fun rejectOrder(orderId: String) {
+    /** Rejects the order the form is open for, with the motive the merchant picked. */
+    private fun rejectOrder(reason: String) {
+        val orderId = _uiState.value.detail?.takeIf { it.rejection != null }?.orderId ?: return
         if (!startMutation(orderId)) return
         viewModelScope.launch {
-            rejectOrderUseCase(orderId)
+            rejectOrderUseCase(orderId, reason)
                 .onSuccess {
                     finishMutation(closeDialog = true)
                     _uiEffect.emit(OrderRequestsUiEffect.ShowRejectedSnackbar)

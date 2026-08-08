@@ -35,6 +35,10 @@ data class OrderRequestsUiState(
  *
  * [isSubmitting] is true while a confirm or reject issued from the dialog is in flight, which is
  * what stops a second tap from firing a second request.
+ *
+ * A non-null [rejection] swaps the dialog's body for the reject form. A rejection started from a
+ * list card opens the dialog straight into that form, so [order] can still be null while the form
+ * is on screen — the form only needs the code the card already had.
  */
 @Immutable
 data class OrderDetailUiState(
@@ -43,4 +47,26 @@ data class OrderDetailUiState(
     val isLoading: Boolean = false,
     val isError: Boolean = false,
     val isSubmitting: Boolean = false,
+    val rejection: RejectionUiState? = null,
 )
+
+/**
+ * The reject form: which motive is selected and, for [RejectionReason.OTHER], the typed one.
+ *
+ * [canSubmit] is the whole validation rule — a motive must be chosen, and choosing "Otro motivo"
+ * means actually writing it, since an empty free-text option would send a rejection with no reason
+ * at all.
+ */
+@Immutable
+data class RejectionUiState(
+    val orderCode: String?,
+    val selectedReason: RejectionReason? = null,
+    val otherReason: String = "",
+) {
+    val canSubmit: Boolean
+        get() = when (selectedReason) {
+            null -> false
+            RejectionReason.OTHER -> otherReason.isNotBlank()
+            else -> true
+        }
+}

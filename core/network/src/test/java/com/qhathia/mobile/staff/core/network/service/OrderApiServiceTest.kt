@@ -13,6 +13,7 @@ import io.ktor.client.request.url
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
@@ -57,6 +58,10 @@ class OrderApiServiceTest {
 
     private fun lastQuery(name: String): String? =
         capturedRequests.last().url.parameters[name]
+
+    /** The serialized request body, or null when the call sent none. */
+    private fun lastBody(): String? =
+        (capturedRequests.last().body as? TextContent)?.text
 
     @Test
     fun `getOrders joins statuses into a single comma-separated param`() = runTest {
@@ -165,11 +170,29 @@ class OrderApiServiceTest {
             val body = """{"status":422,"errorCode":"INVALID_STATE_TRANSITION"}"""
             val service = serviceRespondingWith(body, HttpStatusCode.UnprocessableEntity)
 
-            val result = service.rejectOrder("order-1")
+            val result = service.rejectOrder("order-1", reason = null)
 
             val error = assertInstanceOf(OrderMutationResult.HttpError::class.java, result)
             assertEquals("INVALID_STATE_TRANSITION", error.problem?.errorCode)
         }
+
+    @Test
+    fun `rejectOrder sends the reason in the request body`() = runTest {
+        val service = serviceRespondingWith("""{"id":"order-1","status":"REJECTED"}""")
+
+        service.rejectOrder("order-1", reason = "Cantidad insuficiente")
+
+        assertEquals("""{"reason":"Cantidad insuficiente"}""", lastBody())
+    }
+
+    @Test
+    fun `given no reason when rejectOrder then no body is sent`() = runTest {
+        val service = serviceRespondingWith("""{"id":"order-1","status":"REJECTED"}""")
+
+        service.rejectOrder("order-1", reason = null)
+
+        assertNull(lastBody())
+    }
 
     @Test
     fun `given 404 with no parseable body when confirmOrder then problem is null`() = runTest {

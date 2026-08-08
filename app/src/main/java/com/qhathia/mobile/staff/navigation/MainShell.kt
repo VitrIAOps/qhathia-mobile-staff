@@ -10,25 +10,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.annotation.DrawableRes
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import com.qhathia.mobile.staff.core.ui.component.QhathiaBottomBar
+import com.qhathia.mobile.staff.core.ui.component.QhathiaBottomBarItem
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -36,6 +25,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.qhathia.mobile.staff.R
+import com.qhathia.mobile.staff.core.ui.R as CoreUiR
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_KEY
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_PLAN_LIMIT
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_SUCCESS
@@ -80,15 +70,15 @@ private fun RequestNotificationPermissionOnce() {
 private data class TopLevelDestination(
     val route: String,
     @param:StringRes val labelRes: Int,
-    val icon: ImageVector,
+    @param:DrawableRes val iconRes: Int,
 )
 
 private val topLevelDestinations = listOf(
-    TopLevelDestination(HOME_ROUTE, R.string.nav_home, Icons.Filled.Home),
-    TopLevelDestination(INVENTORY_ROUTE, R.string.nav_inventory, Icons.AutoMirrored.Filled.List),
-    TopLevelDestination(ORDER_REQUESTS_ROUTE, R.string.nav_requests, Icons.Filled.Notifications),
-    TopLevelDestination(DEVICES_ROUTE, R.string.nav_devices, Icons.Filled.PhoneAndroid),
-    TopLevelDestination(PROFILE_ROUTE, R.string.nav_profile, Icons.Filled.Person),
+    TopLevelDestination(HOME_ROUTE, R.string.nav_home, CoreUiR.drawable.ic_nav_home),
+    TopLevelDestination(INVENTORY_ROUTE, R.string.nav_inventory, CoreUiR.drawable.ic_nav_inventory),
+    TopLevelDestination(ORDER_REQUESTS_ROUTE, R.string.nav_requests, CoreUiR.drawable.ic_nav_requests),
+    TopLevelDestination(DEVICES_ROUTE, R.string.nav_devices, CoreUiR.drawable.ic_nav_devices),
+    TopLevelDestination(PROFILE_ROUTE, R.string.nav_profile, CoreUiR.drawable.ic_nav_profile),
 )
 
 /**
@@ -112,10 +102,10 @@ fun MainShell() {
     Scaffold(
         bottomBar = {
             if (!showBottomBar) return@Scaffold
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+            QhathiaBottomBar {
                 topLevelDestinations.forEach { destination ->
                     val selected = currentRoute?.hierarchy?.any { it.route == destination.route } == true
-                    NavigationBarItem(
+                    QhathiaBottomBarItem(
                         selected = selected,
                         onClick = {
                             navController.navigate(destination.route) {
@@ -126,20 +116,8 @@ fun MainShell() {
                                 restoreState = true
                             }
                         },
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = null,
-                            )
-                        },
-                        label = { Text(stringResource(destination.labelRes)) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.secondary,
-                            selectedTextColor = MaterialTheme.colorScheme.secondary,
-                            unselectedIconColor = MaterialTheme.colorScheme.tertiary,
-                            unselectedTextColor = MaterialTheme.colorScheme.tertiary,
-                            indicatorColor = Color.Transparent,
-                        ),
+                        iconRes = destination.iconRes,
+                        label = stringResource(destination.labelRes),
                     )
                 }
             }

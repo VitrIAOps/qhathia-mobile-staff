@@ -42,6 +42,19 @@
     <string name="order_item_quantity" tools:ignore="PluralsCandidate">%1$d und</string>
     <string name="order_item_low_stock">Quedan pocos disponibles</string>
 
+    <!-- Reject form (second step of the detail dialog) -->
+    <string name="order_reject_title">Rechazar pedido</string>
+    <string name="order_reject_subtitle">Selecciona el motivo por el que rechazas la solicitud #%1$s</string>
+    <string name="order_reject_subtitle_no_code">Selecciona el motivo por el que rechazas la solicitud</string>
+    <string name="order_reject_reason_no_stock">Sin stock</string>
+    <string name="order_reject_reason_insufficient_quantity">Cantidad insuficiente</string>
+    <string name="order_reject_reason_customer_changed_mind">Cliente se desanimó</string>
+    <string name="order_reject_reason_payment_issue">Problemas con el cobro</string>
+    <string name="order_reject_reason_other">Otro motivo:</string>
+    <string name="order_reject_other_placeholder">Escribe el motivo</string>
+    <string name="order_action_cancel">Cancelar</string>
+    <string name="order_action_confirm_rejection">Confirmar</string>
+
     <!-- Outcomes -->
     <string name="order_confirmed_snackbar">Solicitud confirmada</string>
     <string name="order_rejected_snackbar">Solicitud rechazada</string>

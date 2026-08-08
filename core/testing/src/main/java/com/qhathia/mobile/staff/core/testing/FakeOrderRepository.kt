@@ -46,6 +46,10 @@ class FakeOrderRepository : OrderRepository {
     var rejectedIds: MutableList<String> = mutableListOf()
         private set
 
+    /** Reasons passed to [rejectOrder], in call order — null when the caller sent none. */
+    var rejectedReasons: MutableList<String?> = mutableListOf()
+        private set
+
     override suspend fun getOrders(
         statuses: List<OrderStatus>,
         query: String?,
@@ -67,8 +71,9 @@ class FakeOrderRepository : OrderRepository {
         return confirmResult
     }
 
-    override suspend fun rejectOrder(id: String): Result<OrderDetail> {
+    override suspend fun rejectOrder(id: String, reason: String?): Result<OrderDetail> {
         rejectedIds += id
+        rejectedReasons += reason
         return rejectResult
     }
 }

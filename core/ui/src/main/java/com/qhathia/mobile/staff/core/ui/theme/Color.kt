@@ -24,8 +24,17 @@ internal object QhathiaPalette {
     val BrandAccent = Color(0xFFFF4500)
     val OnBrandAccent = Color(0xFFFFFFFF)
 
+    // DS primitive-orange-400 — fill of the "Filtros" pill, outlined in [BrandAccent].
+    val BrandAccentSoft = Color(0xFFFF6738)
+
     // DS primitive-blue-500 — inactive bottom-nav items.
     val NavInactive = Color(0xFF1C4466)
+
+    // DS primitive-blue-400 — the row overflow ("⋮") glyph inside a list card.
+    val IconMuted = Color(0xFF3B6080)
+
+    // DS primitive-blue-50 — hairline between consecutive rows inside a list card.
+    val RowDivider = Color(0xFFE8EDF2)
 
     // Segmented-control track behind the category tabs (DS neutral).
     val SegmentTrack = Color(0xFFEDEDF2)
@@ -43,20 +52,21 @@ internal object QhathiaPalette {
     val Success = Color(0xFF1E8E3E)
     val OnSuccess = Color(0xFFFFFFFF)
 
-    // Header gradient (DS "Solicitudes" header): brand navy sweeping into burnt orange.
-    val HeaderGradientStart = Color(0xFF0A2540)
-    val HeaderGradientEnd = Color(0xFFB23A0B)
+    // Header gradient (DS screen header): brand orange in the lower-right sweeping up into navy.
+    val HeaderGradientOrange = Color(0xFFFF4500)
+    val HeaderGradientNavy = Color(0xFF0D1F38)
 
     // Dark-mode surfaces (DS does not define a dark palette yet; derived for parity).
     val DarkSurface = Color(0xFF0E1721)
     val DarkTextPrimary = Color(0xFFE8EDF2)
     val DarkTextSecondary = Color(0xFFB0B8C1)
     val DarkBorderDefault = Color(0xFF2A3744)
+    val DarkIconMuted = Color(0xFF7D93A8)
     val DarkErrorContainer = Color(0xFF4A1A0B)
     val DarkOnErrorContainer = Color(0xFFFFB4A1)
     val DarkWarningContainer = Color(0xFF3A2E05)
     val DarkOnWarningContainer = Color(0xFFF2D98B)
     val DarkSuccess = Color(0xFF2FA653)
-    val DarkHeaderGradientStart = Color(0xFF06121D)
-    val DarkHeaderGradientEnd = Color(0xFF7A2707)
+    val DarkHeaderGradientOrange = Color(0xFF7A2707)
+    val DarkHeaderGradientNavy = Color(0xFF06121D)
 }

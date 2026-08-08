@@ -5,6 +5,7 @@ import com.qhathia.mobile.staff.core.network.OrderMutationResult
 import com.qhathia.mobile.staff.core.network.dto.OrderDetailDto
 import com.qhathia.mobile.staff.core.network.dto.OrderPageDto
 import com.qhathia.mobile.staff.core.network.dto.OrderProblemDto
+import com.qhathia.mobile.staff.core.network.dto.RejectOrderRequestDto
 import com.qhathia.mobile.staff.core.network.toNetworkResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -12,6 +13,7 @@ import io.ktor.client.plugins.ResponseException
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json
@@ -58,12 +60,23 @@ class OrderApiService(
     suspend fun confirmOrder(orderId: String): OrderMutationResult =
         mutate("api/v1/orders/$orderId/confirm")
 
-    /** Rejects the order. No body is sent — this screen never asks for a rejection reason. */
-    suspend fun rejectOrder(orderId: String): OrderMutationResult =
-        mutate("api/v1/orders/$orderId/reject")
+    /**
+     * Rejects the order, carrying the merchant's [reason] when the reject form collected one. A
+     * null reason posts no body at all, which the endpoint accepts.
+     */
+    suspend fun rejectOrder(orderId: String, reason: String?): OrderMutationResult =
+        mutate(
+            path = "api/v1/orders/$orderId/reject",
+            body = reason?.let { RejectOrderRequestDto(it) },
+        )
 
-    private suspend fun mutate(path: String): OrderMutationResult =
-        runCatching { client.post(path).body<OrderDetailDto>() }.fold(
+    private suspend fun mutate(
+        path: String,
+        body: RejectOrderRequestDto? = null,
+    ): OrderMutationResult =
+        runCatching {
+            client.post(path) { body?.let { setBody(it) } }.body<OrderDetailDto>()
+        }.fold(
             onSuccess = { OrderMutationResult.Success(it) },
             onFailure = { throwable ->
                 when (throwable) {

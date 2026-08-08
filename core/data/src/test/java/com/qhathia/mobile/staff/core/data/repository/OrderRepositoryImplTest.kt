@@ -182,23 +182,33 @@ class OrderRepositoryImplTest {
 
     @Test
     fun `422 INVALID_STATE_TRANSITION maps to AlreadyHandled on reject`() = runTest {
-        coEvery { api.rejectOrder("order-1") } returns OrderMutationResult.HttpError(
+        coEvery { api.rejectOrder("order-1", null) } returns OrderMutationResult.HttpError(
             code = 422,
             problem = OrderProblemDto(errorCode = "INVALID_STATE_TRANSITION"),
         )
 
-        val result = repository.rejectOrder("order-1")
+        val result = repository.rejectOrder("order-1", reason = null)
 
         assertEquals(RejectOrderError.AlreadyHandled, result.errorOf<RejectOrderException>().error)
     }
 
     @Test
     fun `transport failure maps to Network on reject`() = runTest {
-        coEvery { api.rejectOrder("order-1") } returns
+        coEvery { api.rejectOrder("order-1", null) } returns
             OrderMutationResult.NetworkError(IOException("offline"))
 
-        val result = repository.rejectOrder("order-1")
+        val result = repository.rejectOrder("order-1", reason = null)
 
         assertEquals(RejectOrderError.Network, result.errorOf<RejectOrderException>().error)
+    }
+
+    @Test
+    fun `reject forwards the reason to the api`() = runTest {
+        coEvery { api.rejectOrder("order-1", "Sin stock") } returns
+            OrderMutationResult.NetworkError(IOException("offline"))
+
+        repository.rejectOrder("order-1", reason = "Sin stock")
+
+        coVerify { api.rejectOrder("order-1", "Sin stock") }
     }
 }

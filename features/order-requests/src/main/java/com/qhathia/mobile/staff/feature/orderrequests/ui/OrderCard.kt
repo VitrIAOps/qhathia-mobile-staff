@@ -51,7 +51,7 @@ private const val ID_FALLBACK_LENGTH = 8
 internal fun OrderCard(
     order: Order,
     now: () -> Instant,
-    onReject: (String) -> Unit,
+    onReject: (Order) -> Unit,
     onOpenDetail: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -117,7 +117,7 @@ internal fun OrderCard(
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
                 if (canAct) {
                     OutlinedButton(
-                        onClick = { onReject(order.id) },
+                        onClick = { onReject(order) },
                         shape = RoundedCornerShape(Dimens.ButtonRadius),
                         modifier = Modifier
                             .weight(1f)
