@@ -7,6 +7,7 @@ import com.qhathia.mobile.staff.core.network.service.AuthApiService
 import com.qhathia.mobile.staff.core.network.service.CategoryApiService
 import com.qhathia.mobile.staff.core.network.service.DeviceApiService
 import com.qhathia.mobile.staff.core.network.service.NotificationApiService
+import com.qhathia.mobile.staff.core.network.service.OrderApiService
 import com.qhathia.mobile.staff.core.network.service.ProductApiService
 import dagger.Module
 import dagger.Provides
@@ -68,6 +69,13 @@ object NetworkModule {
         @AuthenticatedClient client: HttpClient,
         json: Json,
     ): ProductApiService = ProductApiService(client, json)
+
+    @Provides
+    @Singleton
+    fun provideOrderApiService(
+        @AuthenticatedClient client: HttpClient,
+        json: Json,
+    ): OrderApiService = OrderApiService(client, json)
 
     @Provides
     @Singleton

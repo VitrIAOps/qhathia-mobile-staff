@@ -1,0 +1,383 @@
+package com.qhathia.mobile.staff.feature.orderrequests.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import com.qhathia.mobile.staff.core.domain.model.OrderDetail
+import com.qhathia.mobile.staff.core.domain.model.OrderItem
+import com.qhathia.mobile.staff.core.domain.model.OrderStatus
+import com.qhathia.mobile.staff.core.ui.theme.Dimens
+import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
+import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
+import com.qhathia.mobile.staff.feature.orderrequests.R
+import com.qhathia.mobile.staff.feature.orderrequests.model.OrderDetailUiState
+import java.time.Instant
+
+/**
+ * At or below this much tracked stock, an item shows the "quedan pocos disponibles" warning. The
+ * threshold is client-side: the contract carries the raw `productStock`, not a low-stock flag.
+ */
+private const val LOW_STOCK_THRESHOLD = 5
+
+/**
+ * The order detail, as a dialog over the list. It always renders from a fresh
+ * `GET /orders/{id}` — the list rows carry no `items[]` — and its confirm/reject actions are the
+ * screen's only writes.
+ *
+ * Dismissing changes nothing: no snackbar, no refresh.
+ */
+@Composable
+internal fun OrderDetailDialog(
+    state: OrderDetailUiState,
+    now: () -> Instant,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+    onReject: (String) -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(Dimens.SpaceLg),
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(modifier = Modifier.padding(Dimens.SpaceMd)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = state.order.dialogTitle(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = stringResource(R.string.order_detail_close_cd),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+
+                when {
+                    state.isLoading -> DialogLoadingState()
+                    state.isError || state.order == null -> DialogErrorState()
+                    else -> OrderDetailBody(
+                        detail = state.order,
+                        isSubmitting = state.isSubmitting,
+                        now = now,
+                        onConfirm = onConfirm,
+                        onReject = onReject,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderDetailBody(
+    detail: OrderDetail,
+    isSubmitting: Boolean,
+    now: () -> Instant,
+    onConfirm: (String) -> Unit,
+    onReject: (String) -> Unit,
+) {
+    val canAct = detail.order.status == OrderStatus.PENDING &&
+        !isExpired(detail.order.expiresAt, now()) &&
+        !isSubmitting
+
+    Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
+        Column(
+            modifier = Modifier
+                .heightIn(max = 320.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+        ) {
+            detail.items.forEach { item -> OrderItemRow(item = item) }
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(Dimens.FieldRadius),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+        ) {
+            Row(
+                modifier = Modifier.padding(Dimens.SpaceMd),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.order_detail_total),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = stringResource(R.string.order_price, detail.order.total),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(
+                onClick = { onReject(detail.order.id) },
+                enabled = canAct,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = stringResource(R.string.order_action_reject),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            Button(
+                onClick = { onConfirm(detail.order.id) },
+                enabled = canAct,
+                shape = RoundedCornerShape(Dimens.ButtonRadius),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(Dimens.ButtonHeight),
+            ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp),
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.order_action_confirm),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One item: a neutral thumbnail placeholder (the order-detail contract carries no product image, and
+ * fetching one per item would be an N+1 on dialog open), the product name, unit price, quantity and
+ * line total — plus the low-stock warning when the product still tracks stock and is running out.
+ */
+@Composable
+private fun OrderItemRow(
+    item: OrderItem,
+    modifier: Modifier = Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(Dimens.FieldRadius)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, colors.outline, shape)
+            .clip(shape)
+            .padding(Dimens.SpaceSm),
+        verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(Dimens.FieldRadius))
+                    .background(colors.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Image,
+                    contentDescription = null,
+                    tint = colors.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.productName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd)) {
+                    Text(
+                        text = stringResource(R.string.order_price, item.unitPrice),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                    )
+                    Text(
+                        text = stringResource(R.string.order_item_quantity, item.quantity),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.order_price, item.lineTotal),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.onSurface,
+            )
+        }
+
+        // Null stock means a consult-mode product: nothing is tracked, so nothing is warned about.
+        val stock = item.productStock
+        if (stock != null && stock <= LOW_STOCK_THRESHOLD) {
+            LowStockWarning()
+        }
+    }
+}
+
+@Composable
+private fun LowStockWarning(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(QhathiaColors.warningContainer, RoundedCornerShape(Dimens.SpaceXs))
+            .padding(horizontal = Dimens.SpaceSm, vertical = Dimens.SpaceXs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceXs, Alignment.CenterHorizontally),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Info,
+            contentDescription = null,
+            tint = QhathiaColors.onWarningContainer,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = stringResource(R.string.order_item_low_stock),
+            style = MaterialTheme.typography.bodySmall,
+            color = QhathiaColors.onWarningContainer,
+        )
+    }
+}
+
+@Composable
+private fun DialogLoadingState() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(Dimens.SpaceXl),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun DialogErrorState() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(Dimens.SpaceLg),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.order_error_detail),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/** `Detalle de solicitud #<code>`, dropping the suffix for orders that predate `orderCode`. */
+@Composable
+private fun OrderDetail?.dialogTitle(): String {
+    val code = this?.order?.orderCode
+    return if (code == null) {
+        stringResource(R.string.order_detail_title_no_code)
+    } else {
+        stringResource(R.string.order_detail_title, code)
+    }
+}
+
+// ---- Previews ----
+
+@Preview(name = "Order detail — light", showBackground = true)
+@Preview(name = "Order detail — dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun OrderDetailDialogPreview() {
+    QhathiaTheme {
+        OrderDetailDialog(
+            state = OrderDetailUiState(orderId = "order-1", order = previewOrderDetail()),
+            now = { PREVIEW_NOW },
+            onDismiss = {},
+            onConfirm = {},
+            onReject = {},
+        )
+    }
+}
+
+@Preview(name = "Order detail — loading", showBackground = true)
+@Composable
+private fun OrderDetailDialogLoadingPreview() {
+    QhathiaTheme {
+        OrderDetailDialog(
+            state = OrderDetailUiState(orderId = "order-1", isLoading = true),
+            now = { PREVIEW_NOW },
+            onDismiss = {},
+            onConfirm = {},
+            onReject = {},
+        )
+    }
+}
+
+@Preview(name = "Order detail — error", showBackground = true)
+@Composable
+private fun OrderDetailDialogErrorPreview() {
+    QhathiaTheme {
+        OrderDetailDialog(
+            state = OrderDetailUiState(orderId = "order-1", isError = true),
+            now = { PREVIEW_NOW },
+            onDismiss = {},
+            onConfirm = {},
+            onReject = {},
+        )
+    }
+}

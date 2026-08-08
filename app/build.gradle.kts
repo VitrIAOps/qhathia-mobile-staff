@@ -94,6 +94,7 @@ dependencies {
     implementation(project(":features:product-inventory"))
     implementation(project(":features:product-register"))
     implementation(project(":features:device-linking"))
+    implementation(project(":features:order-requests"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
