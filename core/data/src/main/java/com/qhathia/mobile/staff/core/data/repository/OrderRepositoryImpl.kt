@@ -63,8 +63,8 @@ class OrderRepositoryImpl @Inject constructor(
                 Result.failure(ConfirmOrderException(ConfirmOrderError.Network))
         }
 
-    override suspend fun rejectOrder(id: String): Result<OrderDetail> =
-        when (val result = apiService.rejectOrder(id)) {
+    override suspend fun rejectOrder(id: String, reason: String?): Result<OrderDetail> =
+        when (val result = apiService.rejectOrder(id, reason)) {
             is OrderMutationResult.Success -> Result.success(result.order.toDomain())
             is OrderMutationResult.HttpError ->
                 Result.failure(RejectOrderException(result.toRejectError()))

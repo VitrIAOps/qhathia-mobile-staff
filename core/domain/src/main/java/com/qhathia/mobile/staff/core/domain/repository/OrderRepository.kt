@@ -29,8 +29,8 @@ interface OrderRepository {
     suspend fun confirmOrder(id: String): Result<OrderDetail>
 
     /**
-     * Rejects the order (`PENDING → REJECTED`) without a reason. Failures carry a
-     * `RejectOrderException`.
+     * Rejects the order (`PENDING → REJECTED`), recording [reason] when the merchant gave one.
+     * Failures carry a `RejectOrderException`.
      */
-    suspend fun rejectOrder(id: String): Result<OrderDetail>
+    suspend fun rejectOrder(id: String, reason: String?): Result<OrderDetail>
 }

@@ -18,6 +18,21 @@ sealed interface OrderRequestsUiEvent {
 
     data class ConfirmOrder(val orderId: String) : OrderRequestsUiEvent
 
-    /** Reject reaches here from both the card action and the dialog; no reason is sent. */
-    data class RejectOrder(val orderId: String) : OrderRequestsUiEvent
+    /**
+     * Opens the reject form. It arrives from both the card's Rechazar action and the detail
+     * dialog's, so every rejection goes through the same motive step; [orderCode] only names the
+     * order in the form's subtitle.
+     */
+    data class StartRejection(val orderId: String, val orderCode: String?) : OrderRequestsUiEvent
+
+    data class SelectRejectionReason(val reason: RejectionReason) : OrderRequestsUiEvent
+
+    /** Free text behind [RejectionReason.OTHER]. */
+    data class EditOtherRejectionReason(val text: String) : OrderRequestsUiEvent
+
+    /** Leaves the form: back to the detail it came from, or closes the dialog if it came from a card. */
+    data object CancelRejection : OrderRequestsUiEvent
+
+    /** Submits the rejection. [reason] is the resolved motive text sent to the backend. */
+    data class ConfirmRejection(val reason: String) : OrderRequestsUiEvent
 }

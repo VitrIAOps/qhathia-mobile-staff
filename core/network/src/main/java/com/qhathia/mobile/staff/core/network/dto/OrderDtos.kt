@@ -69,3 +69,10 @@ data class OrderItemDto(
     val productStock: Int? = null,
     val productAvailability: String? = null,
 )
+
+/**
+ * Body of `POST /api/v1/orders/{id}/reject`. The backend treats the body — and therefore the
+ * reason — as optional, so this is only sent when the merchant picked one.
+ */
+@Serializable
+data class RejectOrderRequestDto(val reason: String)

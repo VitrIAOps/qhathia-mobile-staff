@@ -3,12 +3,16 @@ package com.qhathia.mobile.staff.feature.productinventory.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.outlined.Notifications
@@ -16,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,35 +27,52 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
+import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.feature.productinventory.R
 
 /**
- * Inventory header card (white, rounded, soft shadow per the DS): an inert back chevron, the bold
- * screen title and the notification bell. The icon actions are visual-only for this slice.
+ * Inventory header (DS screen header, same shape as Solicitudes): a full-bleed gradient band with
+ * rounded bottom corners holding an inert back chevron, the bold screen title, the notification
+ * bell and the search box. The icon actions are visual-only for this slice.
+ *
+ * The band starts below the status bar rather than behind it: the shell's `Scaffold` consumes the
+ * system-bar insets for every destination, and the DS header in Solicitudes sits the same way.
  */
 @Composable
-internal fun InventoryHeader(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxWidth(),
+internal fun InventoryHeader(
+    searchQuery: String,
+    onSearch: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                brush = QhathiaColors.headerGradient,
+                shape = RoundedCornerShape(
+                    bottomStart = Dimens.SpaceSm,
+                    bottomEnd = Dimens.SpaceSm,
+                ),
+            )
+            .padding(horizontal = Dimens.SpaceMd)
+            .padding(top = Dimens.SpaceSm, bottom = Dimens.SpaceMd),
     ) {
-        Row(
-            modifier = Modifier.padding(vertical = Dimens.SpaceSm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = {}) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                     contentDescription = stringResource(R.string.inventory_back_cd),
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = QhathiaColors.onHeaderGradient,
                 )
             }
             Text(
                 text = stringResource(R.string.inventory_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = QhathiaColors.onHeaderGradient,
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = Dimens.SpaceXs),
@@ -61,17 +81,21 @@ internal fun InventoryHeader(modifier: Modifier = Modifier) {
                 Icon(
                     imageVector = Icons.Outlined.Notifications,
                     contentDescription = stringResource(R.string.inventory_notifications_cd),
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = QhathiaColors.onHeaderGradient,
                 )
             }
         }
+
+        Spacer(Modifier.height(Dimens.SpaceMd))
+
+        InventorySearchField(query = searchQuery, onQueryChange = onSearch)
     }
 }
 
 /**
- * Pill-shaped search field (DS "Input Field"): white, hairline border, fully rounded, no icon —
- * just a "Buscar" placeholder. Built directly so it matches the DS shape rather than the 8dp
- * design-system text field used by forms.
+ * DS "Input Field" over the gradient: white, hairline border, 8dp corners, no icon — just a
+ * "Buscar" placeholder. Built directly rather than with the form text field so it matches the DS
+ * box height exactly.
  */
 @Composable
 internal fun InventorySearchField(
@@ -80,12 +104,13 @@ internal fun InventorySearchField(
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(Dimens.FieldRadius)
     Box(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 44.dp)
-            .background(colors.surface, RoundedCornerShape(24.dp))
-            .border(1.dp, colors.outline, RoundedCornerShape(24.dp))
+            .background(colors.surface, shape)
+            .border(1.dp, colors.outline, shape)
             .padding(start = Dimens.SpaceMd, end = 12.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -93,6 +118,7 @@ internal fun InventorySearchField(
             value = query,
             onValueChange = onQueryChange,
             singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             textStyle = LocalTextStyle.current.merge(
                 MaterialTheme.typography.bodyMedium.copy(color = colors.onSurface),
             ),

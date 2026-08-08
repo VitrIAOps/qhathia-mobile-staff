@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DS bottom-nav icon "iconamoon:notification-bold" (Figma Qhatia DS).
+  16x16 viewport; stroked glyph, so the translation accounts for the 1.5 stroke overflow.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <group
+        android:translateX="1.9167"
+        android:translateY="0.5833">
+        <path
+            android:pathData="M2.08333,12.0833V6.08333C2.08333,5.02247 2.50476,4.00505 3.25491,3.25491C4.00505,2.50476 5.02247,2.08333 6.08333,2.08333C7.1442,2.08333 8.16162,2.50476 8.91176,3.25491C9.66191,4.00505 10.0833,5.02247 10.0833,6.08333V12.0833M2.08333,12.0833H10.0833M2.08333,12.0833H0.75M10.0833,12.0833H11.4167M5.41667,14.0833H6.75"
+            android:strokeColor="#1C4466"
+            android:strokeWidth="1.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:pathData="M6.08333,2.08333C6.45152,2.08333 6.75,1.78486 6.75,1.41667C6.75,1.04848 6.45152,0.75 6.08333,0.75C5.71514,0.75 5.41667,1.04848 5.41667,1.41667C5.41667,1.78486 5.71514,2.08333 6.08333,2.08333Z"
+            android:strokeColor="#1C4466"
+            android:strokeWidth="1.5" />
+    </group>
+</vector>

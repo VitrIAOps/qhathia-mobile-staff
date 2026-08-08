@@ -47,6 +47,19 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # google-services.json is gitignored, but the google-services plugin fails the build without
+      # it, so CI writes it back from a base64 repo secret. Keep the secret in sync with the file
+      # whenever the Firebase app changes.
+      - name: Restore google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::Missing GOOGLE_SERVICES_JSON secret — add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON" | base64 -d > app/google-services.json
+
       # -PappMinor=<run_number> makes the versionName MINOR auto-increment (+1 per push to main).
       - name: Assemble profile APK
         run: ./gradlew assembleProfile -PappMinor=${{ github.run_number }} --stacktrace

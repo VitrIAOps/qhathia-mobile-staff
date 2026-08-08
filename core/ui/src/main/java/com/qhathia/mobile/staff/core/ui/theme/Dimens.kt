@@ -14,4 +14,8 @@ object Dimens {
     val FieldRadius = 8.dp
     val ButtonHeight = 48.dp
     val ButtonRadius = 12.dp
+    val PillRadius = 20.dp // DS "Tab" pill, e.g. the Filtros trigger
+
+    val CardRadius = 16.dp // DS list card holding the scrollable rows
+    val IconSm = 16.dp // DS glyph size in bottom-nav items, pills and row affordances
 }

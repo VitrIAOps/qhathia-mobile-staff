@@ -10,8 +10,10 @@
     <string name="inventory_category_all">Todas</string>
 
     <string name="inventory_product_count">%1$d productos</string>
-    <string name="inventory_filter">Filtrar</string>
-    <string name="inventory_filter_cd">Filtrar por disponibilidad</string>
+    <string name="inventory_filter">Filtros</string>
+    <string name="inventory_filter_cd">Filtrar productos</string>
+    <string name="inventory_filter_categories">Categoría</string>
+    <string name="inventory_filter_availability">Disponibilidad</string>
 
     <!-- Availability sub-filter options -->
     <string name="inventory_availability_all">Todas</string>

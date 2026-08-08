@@ -17,6 +17,7 @@ import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsFilter
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiEffect
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiEvent
+import com.qhathia.mobile.staff.feature.orderrequests.model.RejectionReason
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -220,13 +221,30 @@ class OrderRequestsViewModelTest {
     }
 
     @Test
-    fun `reject from the card emits the snackbar and reloads without a dialog`() = runTest {
+    fun `reject from the card opens the motive form instead of rejecting outright`() = runTest {
         val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.onEvent(OrderRequestsUiEvent.StartRejection("order-2", "458795"))
+        runCurrent()
+
+        val rejection = viewModel.uiState.value.detail?.rejection
+        assertEquals("order-2", viewModel.uiState.value.detail?.orderId)
+        assertEquals("458795", rejection?.orderCode)
+        assertNull(rejection?.selectedReason)
+        assertTrue(repository.rejectedIds.isEmpty())
+    }
+
+    @Test
+    fun `confirming the form rejects with the reason, emits the snackbar and reloads`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.StartRejection("order-2", "458795"))
         runCurrent()
         val listCallsBefore = repository.calls.count { it.size > 1 }
 
         viewModel.uiEffect.test {
-            viewModel.onEvent(OrderRequestsUiEvent.RejectOrder("order-2"))
+            viewModel.onEvent(OrderRequestsUiEvent.ConfirmRejection("Cantidad insuficiente"))
             runCurrent()
 
             assertEquals(OrderRequestsUiEffect.ShowRejectedSnackbar, awaitItem())
@@ -234,7 +252,59 @@ class OrderRequestsViewModelTest {
         }
 
         assertEquals(listOf("order-2"), repository.rejectedIds)
+        assertEquals(listOf("Cantidad insuficiente"), repository.rejectedReasons)
         assertEquals(listCallsBefore + 1, repository.calls.count { it.size > 1 })
+    }
+
+    @Test
+    fun `a form opened from a card closes the dialog on cancel`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.StartRejection("order-2", "458795"))
+        runCurrent()
+
+        viewModel.onEvent(OrderRequestsUiEvent.CancelRejection)
+        runCurrent()
+
+        assertNull(viewModel.uiState.value.detail)
+    }
+
+    @Test
+    fun `a form opened from the detail returns to it on cancel`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.OpenDetail("order-1"))
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.StartRejection("order-1", "458795"))
+        runCurrent()
+
+        viewModel.onEvent(OrderRequestsUiEvent.CancelRejection)
+        runCurrent()
+
+        val detail = viewModel.uiState.value.detail
+        assertNull(detail?.rejection)
+        assertNotNull(detail?.order)
+    }
+
+    @Test
+    fun `confirming is impossible until a motive is picked`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.StartRejection("order-2", "458795"))
+        runCurrent()
+
+        assertFalse(viewModel.uiState.value.detail?.rejection?.canSubmit == true)
+
+        viewModel.onEvent(OrderRequestsUiEvent.SelectRejectionReason(RejectionReason.OTHER))
+        runCurrent()
+
+        // "Otro motivo" still needs the text written out.
+        assertFalse(viewModel.uiState.value.detail?.rejection?.canSubmit == true)
+
+        viewModel.onEvent(OrderRequestsUiEvent.EditOtherRejectionReason("Se agotó el modelo"))
+        runCurrent()
+
+        assertTrue(viewModel.uiState.value.detail?.rejection?.canSubmit == true)
     }
 
     @Test
@@ -294,10 +364,12 @@ class OrderRequestsViewModelTest {
         runCurrent()
         viewModel.onEvent(OrderRequestsUiEvent.OpenDetail("order-1"))
         runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.StartRejection("order-1", "458795"))
+        runCurrent()
         val listCallsBefore = repository.calls.count { it.size > 1 }
 
         viewModel.uiEffect.test {
-            viewModel.onEvent(OrderRequestsUiEvent.RejectOrder("order-1"))
+            viewModel.onEvent(OrderRequestsUiEvent.ConfirmRejection("Sin stock"))
             runCurrent()
 
             assertTrue(awaitItem() is OrderRequestsUiEffect.ShowError)

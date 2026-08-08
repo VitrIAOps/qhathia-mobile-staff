@@ -26,9 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import com.qhathia.mobile.staff.core.domain.model.Order
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.orderrequests.R
+import com.qhathia.mobile.staff.feature.orderrequests.model.RejectionReason
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderDetailUiState
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsFilter
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiEvent
@@ -71,13 +73,26 @@ fun OrderRequestsContent(
     val onOpenDetail = remember(onEvent) {
         { id: String -> onEvent(OrderRequestsUiEvent.OpenDetail(id)) }
     }
+    // Rejecting always goes through the motive form, whether it starts on a card or in the dialog.
     val onReject = remember(onEvent) {
-        { id: String -> onEvent(OrderRequestsUiEvent.RejectOrder(id)) }
+        { order: Order ->
+            onEvent(OrderRequestsUiEvent.StartRejection(order.id, order.orderCode))
+        }
     }
     val onConfirm = remember(onEvent) {
         { id: String -> onEvent(OrderRequestsUiEvent.ConfirmOrder(id)) }
     }
     val onDismissDetail = remember(onEvent) { { onEvent(OrderRequestsUiEvent.DismissDetail) } }
+    val onSelectRejectionReason = remember(onEvent) {
+        { reason: RejectionReason -> onEvent(OrderRequestsUiEvent.SelectRejectionReason(reason)) }
+    }
+    val onOtherRejectionReasonChange = remember(onEvent) {
+        { text: String -> onEvent(OrderRequestsUiEvent.EditOtherRejectionReason(text)) }
+    }
+    val onCancelRejection = remember(onEvent) { { onEvent(OrderRequestsUiEvent.CancelRejection) } }
+    val onConfirmRejection = remember(onEvent) {
+        { reason: String -> onEvent(OrderRequestsUiEvent.ConfirmRejection(reason)) }
+    }
 
     Column(
         modifier = modifier
@@ -130,7 +145,18 @@ fun OrderRequestsContent(
             now = nowProvider,
             onDismiss = onDismissDetail,
             onConfirm = onConfirm,
-            onReject = onReject,
+            onStartRejection = {
+                onEvent(
+                    OrderRequestsUiEvent.StartRejection(
+                        orderId = detail.orderId,
+                        orderCode = detail.order?.order?.orderCode,
+                    ),
+                )
+            },
+            onSelectRejectionReason = onSelectRejectionReason,
+            onOtherRejectionReasonChange = onOtherRejectionReasonChange,
+            onCancelRejection = onCancelRejection,
+            onConfirmRejection = onConfirmRejection,
         )
     }
 }

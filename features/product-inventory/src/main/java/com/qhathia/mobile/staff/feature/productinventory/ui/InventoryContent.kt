@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,16 +12,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +35,7 @@ import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
+import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.productinventory.R
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEvent
@@ -44,9 +45,9 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 
 /**
- * Stateless inventory UI — a pure function of [uiState]. Lays out the header card, search, category
- * segmented control and count bar over a gray background, with the product list inside a white card
- * (loading / empty / error states handled), plus the registration FAB floating over it.
+ * Stateless inventory UI — a pure function of [uiState]. Lays out the full-bleed gradient header
+ * (title + search) over a gray background, then the filter/count bar and the product list inside a
+ * white card (loading / empty / error states handled), plus the registration FAB floating over it.
  */
 @Composable
 fun InventoryContent(
@@ -59,35 +60,28 @@ fun InventoryContent(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = Dimens.SpaceSm)
-                .padding(horizontal = Dimens.SpaceMd)
-        ) {
-            InventoryHeader()
+        Column(modifier = Modifier.fillMaxSize()) {
+            InventoryHeader(
+                searchQuery = uiState.searchQuery,
+                onSearch = { onEvent(InventoryUiEvent.Search(it)) },
+            )
             Spacer(Modifier.height(Dimens.SpaceMd))
-            InventorySearchField(
-                query = uiState.searchQuery,
-                onQueryChange = { onEvent(InventoryUiEvent.Search(it)) },
-            )
-            Spacer(Modifier.height(Dimens.SpaceSm))
-            CategoryFilterRow(
-                categories = uiState.categories,
-                selectedCategoryId = uiState.selectedCategoryId,
-                onSelectCategory = { onEvent(InventoryUiEvent.SelectCategory(it)) }
-            )
             ProductCountAndFilterBar(
                 productCount = uiState.productCount,
+                categories = uiState.categories,
+                selectedCategoryId = uiState.selectedCategoryId,
                 selectedAvailability = uiState.selectedAvailability,
+                onSelectCategory = { onEvent(InventoryUiEvent.SelectCategory(it)) },
                 onSelectAvailability = { onEvent(InventoryUiEvent.SelectAvailability(it)) },
-                onClearAvailability = { onEvent(InventoryUiEvent.ClearAvailability) }
+                onClearAvailability = { onEvent(InventoryUiEvent.ClearAvailability) },
+                modifier = Modifier.padding(horizontal = Dimens.SpaceMd),
             )
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(vertical = Dimens.SpaceSm),
+                    .padding(horizontal = Dimens.SpaceMd)
+                    .padding(top = Dimens.SpaceMd, bottom = Dimens.SpaceSm),
             ) {
                 when {
                     uiState.isLoading && uiState.loadedProducts.isEmpty() ->
@@ -102,9 +96,10 @@ fun InventoryContent(
             }
         }
 
-        FloatingActionButton(
+        // DS button: a 40dp square with 8dp corners, not the 56dp circular M3 default.
+        SmallFloatingActionButton(
             onClick = { onEvent(InventoryUiEvent.RegisterProductClicked) },
-            shape = RoundedCornerShape(Dimens.ButtonRadius),
+            shape = RoundedCornerShape(Dimens.FieldRadius),
             containerColor = MaterialTheme.colorScheme.secondary,
             contentColor = MaterialTheme.colorScheme.onSecondary,
             modifier = Modifier
@@ -112,7 +107,7 @@ fun InventoryContent(
                 .padding(18.dp),
         ) {
             Icon(
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(24.dp),
                 imageVector = Icons.Rounded.Add,
                 contentDescription = stringResource(R.string.inventory_register_cd),
             )
@@ -120,6 +115,11 @@ fun InventoryContent(
     }
 }
 
+/**
+ * The DS list card: a white, rounded, softly-shadowed sheet the rows scroll inside. Every row
+ * carries a hairline underneath — including the last, so a partially-scrolled list reads as
+ * continuing past the fold rather than ending there.
+ */
 @Composable
 private fun ProductListCard(
     products: ImmutableList<Product>,
@@ -127,19 +127,17 @@ private fun ProductListCard(
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
-        shape = RoundedCornerShape(Dimens.SpaceMd),
+        shape = RoundedCornerShape(Dimens.CardRadius),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp,
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(Dimens.SpaceMd),
+            contentPadding = PaddingValues(Dimens.SpaceMd),
         ) {
-            itemsIndexed(products, key = { _, product -> product.id }) { index, product ->
+            items(products, key = { product -> product.id }) { product ->
                 ProductRow(product = product)
-                if (index < products.lastIndex) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                }
+                HorizontalDivider(color = QhathiaColors.rowDivider)
             }
         }
     }

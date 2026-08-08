@@ -1,14 +1,33 @@
 package com.qhathia.mobile.staff.core.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.qhathia.mobile.staff.core.ui.R
 
-// TODO(design): swap FontFamily.Default for the Urbanist family once the font is bundled
-//  (res/font or downloadable Google Fonts). Sizes/line-heights below already match the DS.
-private val UrbanistFamily = FontFamily.Default
+/**
+ * Urbanist ships as a single variable font (one `wght` axis), so every weight the DS uses is the
+ * same file pinned to a different axis value — see `res/raw/license_urbanist_ofl.txt` for its SIL
+ * Open Font License. Variable axes need API 26, which is the project's `minSdk`.
+ */
+@OptIn(ExperimentalTextApi::class)
+private fun urbanist(weight: FontWeight) = Font(
+    resId = R.font.urbanist_variable,
+    weight = weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+)
+
+private val UrbanistFamily = FontFamily(
+    urbanist(FontWeight.Normal),
+    urbanist(FontWeight.Medium),
+    urbanist(FontWeight.SemiBold),
+    urbanist(FontWeight.Bold),
+)
 
 /**
  * Typography matching the Qhathia DS scale. `bodyMedium` = Urbanist Body/MD (14/20),
