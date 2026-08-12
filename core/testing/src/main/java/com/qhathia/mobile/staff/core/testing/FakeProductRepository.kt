@@ -3,6 +3,8 @@ package com.qhathia.mobile.staff.core.testing
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.domain.model.ProductDetail
+import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.domain.repository.ProductRepository
 
 /**
@@ -14,6 +16,8 @@ class FakeProductRepository : ProductRepository {
 
     var productsResult: Result<List<Product>> = Result.success(listOf(TestFixtures.product()))
     var registerResult: Result<String> = Result.success("new-product-1")
+    var productDetailResult: Result<ProductDetail> = Result.success(TestFixtures.productDetail())
+    var updateResult: Result<Unit> = Result.success(Unit)
 
     var lastCategoryId: String? = null
         private set
@@ -25,6 +29,18 @@ class FakeProductRepository : ProductRepository {
     var registeredProduct: NewProduct? = null
         private set
     var registerCallCount: Int = 0
+        private set
+
+    var lastRequestedId: String? = null
+        private set
+    var detailCallCount: Int = 0
+        private set
+
+    var updatedId: String? = null
+        private set
+    var updatedProduct: ProductUpdate? = null
+        private set
+    var updateCallCount: Int = 0
         private set
 
     override suspend fun getProducts(
@@ -41,5 +57,18 @@ class FakeProductRepository : ProductRepository {
         registerCallCount++
         registeredProduct = product
         return registerResult
+    }
+
+    override suspend fun getProduct(id: String): Result<ProductDetail> {
+        detailCallCount++
+        lastRequestedId = id
+        return productDetailResult
+    }
+
+    override suspend fun updateProduct(id: String, product: ProductUpdate): Result<Unit> {
+        updateCallCount++
+        updatedId = id
+        updatedProduct = product
+        return updateResult
     }
 }

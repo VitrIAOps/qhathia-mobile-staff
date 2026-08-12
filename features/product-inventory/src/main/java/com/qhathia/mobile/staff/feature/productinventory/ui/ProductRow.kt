@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.feature.productinventory.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,17 +40,20 @@ import kotlin.math.abs
 
 /**
  * A single inventory product (DS "Product-cards"): 59dp thumbnail, name over a price/stock row, and
- * a trailing overflow affordance.
+ * a trailing overflow affordance. Tapping the row opens the product's detail/edit screen.
  * The "N stock" value is mocked via [mockedStock] until backend exposes a real stock quantity.
  */
 @Composable
 internal fun ProductRow(
     product: Product,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // The 59dp thumbnail already pushes the row past the 48dp touch target.
+            .clickable(onClickLabel = stringResource(R.string.inventory_open_detail_cd), onClick = onClick)
             .padding(Dimens.SpaceSm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),

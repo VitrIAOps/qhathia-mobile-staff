@@ -91,7 +91,10 @@ fun InventoryContent(
                     uiState.visibleProducts.isEmpty() ->
                         EmptyState()
                     else ->
-                        ProductListCard(products = uiState.visibleProducts)
+                        ProductListCard(
+                            products = uiState.visibleProducts,
+                            onProductClick = { onEvent(InventoryUiEvent.ProductClicked(it)) },
+                        )
                 }
             }
         }
@@ -123,6 +126,7 @@ fun InventoryContent(
 @Composable
 private fun ProductListCard(
     products: ImmutableList<Product>,
+    onProductClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -136,7 +140,7 @@ private fun ProductListCard(
             contentPadding = PaddingValues(Dimens.SpaceMd),
         ) {
             items(products, key = { product -> product.id }) { product ->
-                ProductRow(product = product)
+                ProductRow(product = product, onClick = { onProductClick(product.id) })
                 HorizontalDivider(color = QhathiaColors.rowDivider)
             }
         }

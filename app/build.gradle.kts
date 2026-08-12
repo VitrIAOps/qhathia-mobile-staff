@@ -93,6 +93,7 @@ dependencies {
     implementation(project(":features:auth"))
     implementation(project(":features:product-inventory"))
     implementation(project(":features:product-register"))
+    implementation(project(":features:product-detail"))
     implementation(project(":features:device-linking"))
     implementation(project(":features:order-requests"))
 

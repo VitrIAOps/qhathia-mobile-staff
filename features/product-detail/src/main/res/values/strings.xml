@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="detail_title">Detalle de producto</string>
+    <string name="detail_back_cd">Volver</string>
+    <string name="detail_notifications_cd">Notificaciones</string>
+
+    <string name="detail_photos_label">Fotos</string>
+    <string name="detail_photos_empty">Este producto todavía no tiene fotos</string>
+    <string name="detail_photo_cd">Foto del producto</string>
+
+    <string name="detail_name_label">Nombre</string>
+    <string name="detail_name_placeholder">Ej: Taladro inalámbrico</string>
+    <string name="detail_price_label">Precio</string>
+    <string name="detail_price_placeholder">S/ 0.00</string>
+    <string name="detail_price_prefix">S/</string>
+    <string name="detail_quantity_label">Cantidad</string>
+    <string name="detail_quantity_placeholder">0</string>
+    <string name="detail_description_label">Descripción</string>
+    <string name="detail_description_placeholder">Ej: Describe materiales, usos y características</string>
+    <string name="detail_description_ai">Optimizar con IA</string>
+
+    <string name="detail_category_label">Categoría</string>
+    <string name="detail_tags_label">Tags</string>
+    <string name="detail_tags_placeholder">Ej: Importado, Reacondicionado, Premium …</string>
+
+    <string name="detail_save">Guardar</string>
+    <string name="detail_cancel">Cancelar</string>
+    <string name="detail_retry">Reintentar</string>
+    <string name="detail_load_error">No se pudo cargar el producto</string>
+
+    <string name="detail_error_name">El nombre es muy largo</string>
+    <string name="detail_error_price">Ingresa un precio válido mayor a cero</string>
+    <string name="detail_error_quantity">Ingresa una cantidad válida (0 o más)</string>
+    <string name="detail_error_not_found">Este producto ya no existe</string>
+    <string name="detail_error_network">Sin conexión. Inténtalo de nuevo</string>
+    <string name="detail_error_validation">Revisa los datos ingresados</string>
+    <string name="detail_error_unknown">Algo salió mal. Inténtalo de nuevo</string>
+    <string name="detail_error_ai">No se pudo optimizar con IA. Inténtalo de nuevo</string>
+
+    <string name="detail_discard_title">¿Descartar cambios?</string>
+    <string name="detail_discard_message">Si sales ahora, se borrarán todos los cambios no guardados.</string>
+    <string name="detail_discard_confirm">Descartar</string>
+    <string name="detail_discard_dismiss">Seguir editando</string>
+</resources>

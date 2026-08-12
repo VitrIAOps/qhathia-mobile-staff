@@ -8,4 +8,7 @@ sealed interface InventoryUiEffect {
 
     /** Navigate to the product registration screen (from the registration FAB). */
     data object NavigateToRegister : InventoryUiEffect
+
+    /** Navigate to the detail/edit screen of the tapped product. Only the id crosses the boundary. */
+    data class NavigateToProductDetail(val productId: String) : InventoryUiEffect
 }

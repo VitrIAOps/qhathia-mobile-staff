@@ -11,6 +11,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.qhathia.mobile.staff.core.common.navigation.DESTINATION_ORDER_REQUESTS
+import com.qhathia.mobile.staff.core.common.navigation.EXTRA_DESTINATION
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,7 +20,8 @@ import javax.inject.Singleton
 /**
  * Builds and posts the local, PII-free order notification from a push payload. Content is derived
  * solely from `event`/`status`; `orderId` is used only to key distinct notifications (never shown).
- * Tapping opens the app via its launch intent (no direct dependency on `:app`).
+ * Tapping opens the app on the Solicitudes section via its launch intent plus a destination extra
+ * (no direct dependency on `:app`).
  */
 @Singleton
 class OrderNotificationPresenter @Inject constructor(
@@ -37,7 +40,7 @@ class OrderNotificationPresenter @Inject constructor(
             .setContentText(body)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(openAppIntent())
+            .setContentIntent(openAppIntent(orderId))
             .build()
 
         // Permission is checked above, but it can be revoked between the check and the post.
@@ -60,13 +63,26 @@ class OrderNotificationPresenter @Inject constructor(
             context.getString(R.string.notif_order_updated_body)
     }
 
-    private fun openAppIntent(): PendingIntent {
+    /**
+     * The tap target: the app's own launch intent carrying an [EXTRA_DESTINATION] the shell reads to
+     * land on Solicitudes. Both order events belong to that section, so the destination is fixed.
+     *
+     * `SINGLE_TOP` matters — without it `CLEAR_TOP` destroys and recreates a running `MainActivity`
+     * instead of delivering the intent to `onNewIntent`. The request code is keyed by order so that
+     * `FLAG_UPDATE_CURRENT` cannot rewrite the extras of notifications already in the tray.
+     */
+    private fun openAppIntent(orderId: String?): PendingIntent {
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP }
+            ?.apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(EXTRA_DESTINATION, DESTINATION_ORDER_REQUESTS)
+            }
             ?: Intent()
         return PendingIntent.getActivity(
             context,
-            0,
+            notificationId(orderId),
             launch,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )

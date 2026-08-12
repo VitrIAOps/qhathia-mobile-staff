@@ -4,6 +4,7 @@ import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.dto.CreateProductRequestDto
 import com.qhathia.mobile.staff.core.network.dto.DraftFromImageResponseDto
 import com.qhathia.mobile.staff.core.network.dto.MultipartImage
+import com.qhathia.mobile.staff.core.network.dto.ProductDetailDto
 import com.qhathia.mobile.staff.core.network.dto.ProductDto
 import com.qhathia.mobile.staff.core.network.dto.ProductResponseDto
 import com.qhathia.mobile.staff.core.network.dto.RegenerateDescriptionRequestDto
@@ -16,6 +17,7 @@ import io.ktor.client.request.forms.formData
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
@@ -39,6 +41,26 @@ class ProductApiService(
                 categoryId?.let { parameter("categoryId", it) }
                 availability?.let { parameter("availability", it) }
             }.body<List<ProductDto>>()
+        }.toNetworkResult()
+
+    /** Loads one product with its media and every field the list row omits. */
+    suspend fun getProduct(id: String): NetworkResult<ProductDetailDto> =
+        runCatching {
+            client.get("api/v1/products/$id").body<ProductDetailDto>()
+        }.toNetworkResult()
+
+    /**
+     * Replaces the editable fields of a product. The endpoint is a full replace and takes the same
+     * body shape as the create request, so [product] must carry every field.
+     */
+    suspend fun updateProduct(
+        id: String,
+        product: CreateProductRequestDto,
+    ): NetworkResult<ProductDetailDto> =
+        runCatching {
+            client.put("api/v1/products/$id") {
+                setBody(product)
+            }.body<ProductDetailDto>()
         }.toNetworkResult()
 
     /**

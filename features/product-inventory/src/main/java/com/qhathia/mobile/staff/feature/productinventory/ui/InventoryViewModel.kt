@@ -75,10 +75,14 @@ class InventoryViewModel @Inject constructor(
                 }
             InventoryUiEvent.RegisterProductClicked ->
                 viewModelScope.launch { _uiEffect.emit(InventoryUiEffect.NavigateToRegister) }
+            is InventoryUiEvent.ProductClicked ->
+                viewModelScope.launch {
+                    _uiEffect.emit(InventoryUiEffect.NavigateToProductDetail(event.productId))
+                }
         }
     }
 
-    /** Re-queries products with the active filters — used after a successful product registration. */
+    /** Re-queries products with the active filters — used after a product is registered or edited. */
     fun refresh() = loadProducts()
 
     private fun loadProducts() {

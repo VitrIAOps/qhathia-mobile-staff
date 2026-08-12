@@ -140,4 +140,15 @@ class InventoryViewModelTest {
         assertEquals("Martillo", state.visibleProducts.first().name)
         assertEquals(callsAfterLoad, productRepository.callCount) // no new network call
     }
+
+    @Test
+    fun `tapping a product emits a navigate-to-detail effect carrying its id`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ProductClicked("p7"))
+
+            assertEquals(InventoryUiEffect.NavigateToProductDetail("p7"), awaitItem())
+        }
+    }
 }

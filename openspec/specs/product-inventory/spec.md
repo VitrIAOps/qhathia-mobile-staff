@@ -102,7 +102,7 @@ The Inventory screen SHALL display a count label reflecting the number of produc
 
 ### Requirement: Inventory app shell
 
-The post-login experience SHALL present a bottom navigation bar with the destinations Inicio, Inventario, Solicitudes, Dispositivos and Perfil, with Inventario marked active while the Inventory screen is shown, and an application header containing the screen title and a notification icon.
+The post-login experience SHALL present a bottom navigation bar with exactly four destinations — Inicio, Inventario, Solicitudes and Perfil — with Inventario marked active while the Inventory screen is shown, and an application header containing the screen title and a notification icon. Terminal pairing is reached from Perfil rather than from a bottom-navigation destination.
 
 #### Scenario: Inventory is the active tab
 
@@ -136,3 +136,17 @@ After a product is successfully registered and the app returns to the Inventory 
 
 - **WHEN** the merchant returns to the Inventory screen because registration was rejected for exceeding the plan's product limit
 - **THEN** a message indicating the plan limit was exceeded is shown on the Inventory screen
+
+### Requirement: Product detail entry point
+
+Each product row SHALL be selectable. Tapping a row SHALL navigate to the Product Detail screen for that product, passing only the product id. The row SHALL expose its tappability to accessibility services.
+
+#### Scenario: Tapping a product row
+
+- **WHEN** the merchant taps a product row in the inventory list
+- **THEN** the app navigates to the Product Detail screen for that product
+
+#### Scenario: Returning from a saved edit
+
+- **WHEN** the merchant saves an edit on the Product Detail screen and returns to the Inventory screen
+- **THEN** the inventory list re-queries its products and a snackbar confirms the product was updated

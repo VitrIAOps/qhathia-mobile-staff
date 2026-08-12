@@ -3,11 +3,17 @@ package com.qhathia.mobile.staff.core.data.mapper
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductDraft
+import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.network.dto.CreateProductRequestDto
 import com.qhathia.mobile.staff.core.network.dto.DraftFromImageResponseDto
+import com.qhathia.mobile.staff.core.network.dto.ProductDetailDto
 import com.qhathia.mobile.staff.core.network.dto.ProductDto
+import com.qhathia.mobile.staff.core.network.dto.ProductMediaDto
 import com.qhathia.mobile.staff.core.network.dto.ProductResponseDto
+
+private const val MEDIA_TYPE_IMAGE = "IMAGE"
 
 /** Maps a transport [ProductDto] to the domain [Product]. */
 fun ProductDto.toDomain(): Product = Product(
@@ -18,6 +24,44 @@ fun ProductDto.toDomain(): Product = Product(
     price = price,
     availability = availability.toAvailability(),
     primaryImageUrl = primaryImageUrl,
+)
+
+/**
+ * Maps a transport [ProductDetailDto] to the domain [ProductDetail]. Media is flattened to image
+ * URLs in the order the DS shows them — primary photo first, then by backend position — and
+ * non-image media is dropped, since the detail screen only renders photos.
+ */
+fun ProductDetailDto.toDomain(): ProductDetail = ProductDetail(
+    id = id,
+    name = name,
+    description = description,
+    price = price,
+    stock = stock,
+    categoryId = categoryId,
+    categoryName = categoryName,
+    tags = tags,
+    imageUrls = media
+        .filter { it.mediaType == MEDIA_TYPE_IMAGE }
+        .sortedWith(compareByDescending<ProductMediaDto> { it.primary }.thenBy { it.position })
+        .map { it.url },
+    allowDiscountInquiry = allowDiscountInquiry,
+    position = position,
+)
+
+/**
+ * Maps a domain [ProductUpdate] to the body of `PUT /api/v1/products/{id}`, which takes the same
+ * shape as the create request. As on create, `availability` is not set so the backend derives it
+ * from the stock.
+ */
+fun ProductUpdate.toUpdateRequestDto(): CreateProductRequestDto = CreateProductRequestDto(
+    name = name,
+    description = description,
+    price = price,
+    stock = stock,
+    allowDiscountInquiry = allowDiscountInquiry,
+    categoryId = categoryId,
+    tags = tags,
+    position = position,
 )
 
 /**

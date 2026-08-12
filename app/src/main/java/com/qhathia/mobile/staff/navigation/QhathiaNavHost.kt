@@ -14,10 +14,17 @@ const val MAIN_ROUTE = "main"
 /**
  * App navigation graph. Starts at login or the main shell depending on [startAuthenticated]; a
  * successful login replaces login with the shell so back does not return to the login screen.
+ *
+ * [pendingDestination] is a section requested from outside the app (a notification tap). It is
+ * handed to the shell, which owns the inner NavHost that can reach it, and cleared through
+ * [onPendingDestinationConsumed] once honoured. While unauthenticated the shell is not composed, so
+ * the request simply waits for login.
  */
 @Composable
 fun QhathiaNavHost(
     startAuthenticated: Boolean,
+    pendingDestination: String?,
+    onPendingDestinationConsumed: () -> Unit,
     navController: NavHostController = rememberNavController(),
 ) {
     NavHost(
@@ -32,7 +39,10 @@ fun QhathiaNavHost(
             },
         )
         composable(route = MAIN_ROUTE) {
-            MainShell()
+            MainShell(
+                pendingDestination = pendingDestination,
+                onPendingDestinationConsumed = onPendingDestinationConsumed,
+            )
         }
     }
 }
