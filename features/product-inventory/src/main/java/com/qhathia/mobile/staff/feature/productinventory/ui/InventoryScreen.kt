@@ -17,16 +17,19 @@ import com.qhathia.mobile.staff.feature.productinventory.R
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEffect
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_PLAN_LIMIT
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_SUCCESS
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_UPDATED
 
 /**
  * Stateful inventory entry point: binds [InventoryViewModel], renders [InventoryContent] and
- * surfaces one-shot errors as a snackbar. Reacts to a [registerResult] handed back from the
- * registration screen: success refreshes the list and shows a success snackbar; a plan-limit result
- * shows the plan-limit message. The app shell's Scaffold provides the window insets.
+ * surfaces one-shot errors as a snackbar. Reacts to a [registerResult] handed back from a screen it
+ * pushed: a successful registration or edit refreshes the list and confirms with a snackbar; a
+ * plan-limit result shows the plan-limit message. The app shell's Scaffold provides the window
+ * insets.
  */
 @Composable
 fun InventoryScreen(
     onNavigateToRegister: () -> Unit,
+    onNavigateToProductDetail: (String) -> Unit,
     registerResult: String?,
     onRegisterResultConsumed: () -> Unit,
     modifier: Modifier = Modifier,
@@ -42,6 +45,8 @@ fun InventoryScreen(
                 is InventoryUiEffect.ShowError ->
                     snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
                 InventoryUiEffect.NavigateToRegister -> onNavigateToRegister()
+                is InventoryUiEffect.NavigateToProductDetail ->
+                    onNavigateToProductDetail(effect.productId)
             }
         }
     }
@@ -55,6 +60,11 @@ fun InventoryScreen(
             }
             INVENTORY_REGISTER_RESULT_PLAN_LIMIT -> {
                 snackbarHostState.showSnackbar(resources.getString(R.string.inventory_register_plan_limit))
+                onRegisterResultConsumed()
+            }
+            INVENTORY_RESULT_PRODUCT_UPDATED -> {
+                viewModel.refresh()
+                snackbarHostState.showSnackbar(resources.getString(R.string.inventory_product_updated))
                 onRegisterResultConsumed()
             }
         }

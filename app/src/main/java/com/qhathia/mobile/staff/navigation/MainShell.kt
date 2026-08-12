@@ -25,12 +25,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.qhathia.mobile.staff.R
+import com.qhathia.mobile.staff.core.common.navigation.DESTINATION_ORDER_REQUESTS
 import com.qhathia.mobile.staff.core.ui.R as CoreUiR
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_KEY
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_PLAN_LIMIT
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_SUCCESS
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_UPDATED
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_ROUTE
 import com.qhathia.mobile.staff.feature.productinventory.navigation.inventoryGraph
+import com.qhathia.mobile.staff.feature.productdetail.navigation.productDetailGraph
+import com.qhathia.mobile.staff.feature.productdetail.navigation.productDetailRoute
 import com.qhathia.mobile.staff.feature.productregister.navigation.PRODUCT_REGISTER_ROUTE
 import com.qhathia.mobile.staff.feature.productregister.navigation.productRegisterGraph
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.DEVICE_LINKING_ROUTE
@@ -38,11 +42,9 @@ import com.qhathia.mobile.staff.feature.devicelinking.navigation.deviceLinkingGr
 import com.qhathia.mobile.staff.feature.orderrequests.navigation.ORDER_REQUESTS_ROUTE
 import com.qhathia.mobile.staff.feature.orderrequests.navigation.orderRequestsGraph
 import com.qhathia.mobile.staff.ui.home.HomePlaceholderScreen
-import com.qhathia.mobile.staff.ui.home.PlaceholderScreen
 import com.qhathia.mobile.staff.ui.profile.ProfileScreen
 
 private const val HOME_ROUTE = "home"
-private const val DEVICES_ROUTE = "devices"
 private const val PROFILE_ROUTE = "profile"
 
 /**
@@ -77,22 +79,39 @@ private val topLevelDestinations = listOf(
     TopLevelDestination(HOME_ROUTE, R.string.nav_home, CoreUiR.drawable.ic_nav_home),
     TopLevelDestination(INVENTORY_ROUTE, R.string.nav_inventory, CoreUiR.drawable.ic_nav_inventory),
     TopLevelDestination(ORDER_REQUESTS_ROUTE, R.string.nav_requests, CoreUiR.drawable.ic_nav_requests),
-    TopLevelDestination(DEVICES_ROUTE, R.string.nav_devices, CoreUiR.drawable.ic_nav_devices),
     TopLevelDestination(PROFILE_ROUTE, R.string.nav_profile, CoreUiR.drawable.ic_nav_profile),
 )
 
 /**
  * Post-login app shell: a bottom navigation bar over an inner [NavHost] of the top-level
  * destinations. Inventario is the start destination; Inventario, Solicitudes and Perfil are
- * implemented, Inicio and Dispositivos are still placeholders.
+ * implemented, Inicio is still a placeholder. Terminal pairing is reached from Perfil, so the DS
+ * bottom bar carries only these four tabs.
+ *
+ * [pendingDestination] is a section requested by a notification tap. The inner NavHost lives here,
+ * so this is the only place that can honour it; it does so as a normal tab switch and then reports
+ * back through [onPendingDestinationConsumed].
  */
 @Composable
-fun MainShell() {
+fun MainShell(
+    pendingDestination: String? = null,
+    onPendingDestinationConsumed: () -> Unit = {},
+) {
     RequestNotificationPermissionOnce()
 
     val navController = rememberNavController()
     val currentDestination by navController.currentBackStackEntryAsState()
     val currentRoute = currentDestination?.destination
+
+    LaunchedEffect(pendingDestination) {
+        if (pendingDestination != DESTINATION_ORDER_REQUESTS) return@LaunchedEffect
+        navController.navigate(ORDER_REQUESTS_ROUTE) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+        onPendingDestinationConsumed()
+    }
 
     // Hide the bottom navigation on non-top-level destinations (e.g. product registration).
     val showBottomBar = topLevelDestinations.any { destination ->
@@ -131,6 +150,15 @@ fun MainShell() {
             composable(HOME_ROUTE) { HomePlaceholderScreen() }
             inventoryGraph(
                 onNavigateToRegister = { navController.navigate(PRODUCT_REGISTER_ROUTE) },
+                onNavigateToProductDetail = { id -> navController.navigate(productDetailRoute(id)) },
+            )
+            productDetailGraph(
+                onSaved = {
+                    navController.previousBackStackEntry?.savedStateHandle
+                        ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_RESULT_PRODUCT_UPDATED)
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() },
             )
             productRegisterGraph(
                 onRegistered = {
@@ -146,9 +174,6 @@ fun MainShell() {
                 onCancelled = { navController.popBackStack() },
             )
             orderRequestsGraph()
-            composable(DEVICES_ROUTE) {
-                PlaceholderScreen(title = stringResource(R.string.nav_devices))
-            }
             composable(PROFILE_ROUTE) {
                 ProfileScreen(
                     onNavigateToLinkDevices = { navController.navigate(DEVICE_LINKING_ROUTE) },

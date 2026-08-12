@@ -5,10 +5,9 @@
     <string name="nav_home">Inicio</string>
     <string name="nav_inventory">Inventario</string>
     <string name="nav_requests">Solicitudes</string>
-    <string name="nav_devices">Dispositivos</string>
     <string name="nav_profile">Perfil</string>
 
-    <!-- Placeholder destinations (not yet implemented) -->
+    <!-- Destinations that are still placeholders (Inicio, and the body of Perfil) -->
     <string name="placeholder_coming_soon">Próximamente</string>
 
     <!-- Profile -->

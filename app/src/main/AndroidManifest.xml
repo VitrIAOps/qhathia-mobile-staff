@@ -16,10 +16,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.QhathiaStaff">
+        <!-- singleTop: a notification tap reuses the running instance and arrives through
+             onNewIntent, instead of destroying and recreating the shell. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.QhathiaStaff">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

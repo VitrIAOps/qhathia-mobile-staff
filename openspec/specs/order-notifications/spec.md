@@ -32,7 +32,7 @@ While a merchant is authenticated, the system SHALL register the device's FCM to
 
 ### Requirement: Display a local notification for each order push
 
-The system SHALL handle the backend's data-only, PII-free push payload (`{ event, orderId, storeId, status }`) and post a local notification for each received message. The notification content MUST be derived solely from the `event` and `status` fields — no personally identifiable information and no order-detail fetch. A `NEW_ORDER` event SHALL produce a "new purchase order" notification; an `ORDER_TAKEN` event SHALL produce an "order updated" notification reflecting `CONFIRMED` or `REJECTED`. Tapping the notification SHALL open the app.
+The system SHALL handle the backend's data-only, PII-free push payload (`{ event, orderId, storeId, status }`) and post a local notification for each received message. The notification content MUST be derived solely from the `event` and `status` fields — no personally identifiable information and no order-detail fetch. A `NEW_ORDER` event SHALL produce a "new purchase order" notification; an `ORDER_TAKEN` event SHALL produce an "order updated" notification reflecting `CONFIRMED` or `REJECTED`. Tapping the notification SHALL open the app on the Solicitudes section.
 
 #### Scenario: New order push posts a notification
 - **WHEN** a push with `event = NEW_ORDER` is received
@@ -46,9 +46,17 @@ The system SHALL handle the backend's data-only, PII-free push payload (`{ event
 - **WHEN** any order push is rendered as a notification
 - **THEN** the notification text is generic and contains no customer name, product, or amount
 
-#### Scenario: Tapping opens the app
+#### Scenario: Tapping opens the Solicitudes section
 - **WHEN** the merchant taps an order notification
-- **THEN** the app's main screen is opened
+- **THEN** the app opens on the Solicitudes section with the Pendientes tab selected
+
+#### Scenario: Tapping while the app is already running
+- **WHEN** the merchant taps an order notification while the app is in the background
+- **THEN** the running instance is reused and switched to Solicitudes, without restarting the app
+
+#### Scenario: Tapping while signed out
+- **WHEN** the merchant taps an order notification with no authenticated session
+- **THEN** the login screen is shown, and Solicitudes is opened once the merchant signs in
 
 ### Requirement: Request notification permission on supported devices
 

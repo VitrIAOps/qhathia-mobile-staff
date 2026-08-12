@@ -3,6 +3,8 @@ package com.qhathia.mobile.staff.core.domain.repository
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.domain.model.ProductDetail
+import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 
 /** Port for reading and writing the store's products. */
 interface ProductRepository {
@@ -22,4 +24,16 @@ interface ProductRepository {
      * no client-side attach/rollback is needed. Failures carry a `RegisterProductException`.
      */
     suspend fun registerProduct(product: NewProduct): Result<String>
+
+    /**
+     * Loads one product with the fields the list endpoint omits (description, stock, tags, media).
+     * Failures carry an `UpdateProductException`.
+     */
+    suspend fun getProduct(id: String): Result<ProductDetail>
+
+    /**
+     * Replaces the editable fields of the product [id]. The endpoint is a full replace, so [product]
+     * must carry every field, not just the changed ones. Failures carry an `UpdateProductException`.
+     */
+    suspend fun updateProduct(id: String, product: ProductUpdate): Result<Unit>
 }

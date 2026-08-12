@@ -5,10 +5,14 @@ import com.qhathia.mobile.staff.core.data.local.ImageCompressor
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.RegisterProductError
 import com.qhathia.mobile.staff.core.domain.model.RegisterProductException
+import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
+import com.qhathia.mobile.staff.core.domain.model.UpdateProductException
 import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.dto.CreateProductRequestDto
 import com.qhathia.mobile.staff.core.network.dto.MultipartImage
+import com.qhathia.mobile.staff.core.network.dto.ProductDetailDto
 import com.qhathia.mobile.staff.core.network.dto.ProductDto
+import com.qhathia.mobile.staff.core.network.dto.ProductMediaDto
 import com.qhathia.mobile.staff.core.network.dto.ProductResponseDto
 import com.qhathia.mobile.staff.core.network.service.ProductApiService
 import com.qhathia.mobile.staff.core.testing.TestFixtures
@@ -177,5 +181,89 @@ class ProductRepositoryImplTest {
 
         val error = (result.exceptionOrNull() as RegisterProductException).error
         assertEquals(expected, error)
+    }
+
+    // ---- Detail / update ----
+
+    private fun productDetailDto() = ProductDetailDto(
+        id = "p1",
+        categoryId = "c1",
+        categoryName = "Electrónica",
+        name = "Taladro",
+        description = "Percutor 650W",
+        price = 189.0,
+        stock = 5,
+        tags = listOf("bosch"),
+        media = listOf(ProductMediaDto(id = "m1", url = "http://img/p1.jpg", primary = true)),
+    )
+
+    @Test
+    fun `given success when getProduct then maps the dto to domain`() = runTest {
+        coEvery { api.getProduct("p1") } returns NetworkResult.Success(productDetailDto())
+
+        val result = repository.getProduct("p1")
+
+        assertTrue(result.isSuccess)
+        val detail = result.getOrThrow()
+        assertEquals("p1", detail.id)
+        assertEquals("Percutor 650W", detail.description)
+        assertEquals(5, detail.stock)
+        assertEquals(listOf("http://img/p1.jpg"), detail.imageUrls)
+    }
+
+    @Test
+    fun `given http 404 when getProduct then fails with NotFound`() = runTest {
+        coEvery { api.getProduct("p1") } returns NetworkResult.HttpError(404, "not found")
+
+        val error = (repository.getProduct("p1").exceptionOrNull() as UpdateProductException).error
+
+        assertEquals(UpdateProductError.NotFound, error)
+    }
+
+    @Test
+    fun `given network error when getProduct then fails with Network`() = runTest {
+        coEvery { api.getProduct("p1") } returns NetworkResult.NetworkError(IOException("offline"))
+
+        val error = (repository.getProduct("p1").exceptionOrNull() as UpdateProductException).error
+
+        assertEquals(UpdateProductError.Network, error)
+    }
+
+    @Test
+    fun `given success when updateProduct then sends the full replace body`() = runTest {
+        val body = slot<CreateProductRequestDto>()
+        coEvery { api.updateProduct("p1", capture(body)) } returns
+            NetworkResult.Success(productDetailDto())
+
+        val result = repository.updateProduct(
+            "p1",
+            TestFixtures.productUpdate(name = "Taladro Pro", stock = 9, position = 3),
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals("Taladro Pro", body.captured.name)
+        assertEquals(9, body.captured.stock)
+        assertEquals(3, body.captured.position)
+        coVerify(exactly = 1) { api.updateProduct("p1", any()) }
+    }
+
+    @Test
+    fun `given http 422 when updateProduct then fails with InvalidInput`() = runTest {
+        coEvery { api.updateProduct(any(), any()) } returns NetworkResult.HttpError(422, "invalid")
+
+        val result = repository.updateProduct("p1", TestFixtures.productUpdate())
+
+        val error = (result.exceptionOrNull() as UpdateProductException).error
+        assertEquals(UpdateProductError.InvalidInput, error)
+    }
+
+    @Test
+    fun `given an unmapped http code when updateProduct then fails with Unknown`() = runTest {
+        coEvery { api.updateProduct(any(), any()) } returns NetworkResult.HttpError(500, "boom")
+
+        val result = repository.updateProduct("p1", TestFixtures.productUpdate())
+
+        val error = (result.exceptionOrNull() as UpdateProductException).error
+        assertEquals(UpdateProductError.Unknown("HTTP 500"), error)
     }
 }

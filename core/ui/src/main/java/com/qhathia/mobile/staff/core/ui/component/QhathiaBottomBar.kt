@@ -109,7 +109,6 @@ private fun QhathiaBottomBarPreview() {
             QhathiaBottomBarItem(false, {}, R.drawable.ic_nav_home, "Inicio")
             QhathiaBottomBarItem(true, {}, R.drawable.ic_nav_inventory, "Inventario")
             QhathiaBottomBarItem(false, {}, R.drawable.ic_nav_requests, "Solicitudes")
-            QhathiaBottomBarItem(false, {}, R.drawable.ic_nav_devices, "Dispositivos")
             QhathiaBottomBarItem(false, {}, R.drawable.ic_nav_profile, "Perfil")
         }
     }

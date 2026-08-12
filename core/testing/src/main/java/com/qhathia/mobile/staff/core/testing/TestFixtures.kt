@@ -11,6 +11,8 @@ import com.qhathia.mobile.staff.core.domain.model.OrderDetail
 import com.qhathia.mobile.staff.core.domain.model.OrderItem
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.domain.model.ProductDetail
+import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import com.qhathia.mobile.staff.core.domain.model.Session
 import com.qhathia.mobile.staff.core.domain.model.Store
@@ -59,6 +61,52 @@ object TestFixtures {
         availability: Availability = Availability.AVAILABLE,
         primaryImageUrl: String? = null,
     ) = Product(id, categoryId, categoryName, name, price, availability, primaryImageUrl)
+
+    fun productDetail(
+        id: String = "product-1",
+        name: String = "Taladro Percutor Bosch GSB 13 RE",
+        description: String? = "Taladro percutor de 650W con maletín",
+        price: Double = 189.0,
+        stock: Int? = 12,
+        categoryId: String? = "category-1",
+        categoryName: String? = "Electrónica",
+        tags: List<String> = listOf("herramientas", "bosch"),
+        imageUrls: List<String> = listOf("https://cdn.qhathia.test/product-1.jpg"),
+        allowDiscountInquiry: Boolean = false,
+        position: Int = 0,
+    ) = ProductDetail(
+        id = id,
+        name = name,
+        description = description,
+        price = price,
+        stock = stock,
+        categoryId = categoryId,
+        categoryName = categoryName,
+        tags = tags,
+        imageUrls = imageUrls,
+        allowDiscountInquiry = allowDiscountInquiry,
+        position = position,
+    )
+
+    fun productUpdate(
+        name: String = "Taladro Percutor Bosch GSB 13 RE",
+        price: Double = 189.0,
+        stock: Int = 12,
+        description: String? = "Taladro percutor de 650W con maletín",
+        categoryId: String = "category-1",
+        tags: List<String> = listOf("herramientas", "bosch"),
+        allowDiscountInquiry: Boolean = false,
+        position: Int = 0,
+    ) = ProductUpdate(
+        name = name,
+        price = price,
+        stock = stock,
+        description = description,
+        categoryId = categoryId,
+        tags = tags,
+        allowDiscountInquiry = allowDiscountInquiry,
+        position = position,
+    )
 
     fun category(
         id: String = "category-1",

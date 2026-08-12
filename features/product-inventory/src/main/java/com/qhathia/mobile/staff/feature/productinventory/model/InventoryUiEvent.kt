@@ -11,4 +11,7 @@ sealed interface InventoryUiEvent {
     data object ClearAvailability : InventoryUiEvent
     data class Search(val query: String) : InventoryUiEvent
     data object RegisterProductClicked : InventoryUiEvent
+
+    /** A product row was tapped; opens its detail/edit screen. */
+    data class ProductClicked(val productId: String) : InventoryUiEvent
 }

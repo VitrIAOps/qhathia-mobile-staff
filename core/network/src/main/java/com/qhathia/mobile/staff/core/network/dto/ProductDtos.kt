@@ -20,10 +20,44 @@ data class ProductDto(
     val primaryImageUrl: String? = null,
 )
 
+/** One photo/video row of a product, as returned inside [ProductDetailDto.media]. */
+@Serializable
+data class ProductMediaDto(
+    val id: String,
+    val url: String,
+    val mediaType: String = "IMAGE",
+    val position: Int = 0,
+    val primary: Boolean = false,
+)
+
+/**
+ * Response of `GET /api/v1/products/{id}` and `PUT /api/v1/products/{id}` — the full product, with
+ * the fields the list row ([ProductDto]) omits: description, stock, tags and the whole media set.
+ * Every optional field is defaulted because legacy products predate `stock` and the media/tag
+ * arrays may be absent. `discounts[]` is present in the payload but not consumed.
+ */
+@Serializable
+data class ProductDetailDto(
+    val id: String,
+    val categoryId: String? = null,
+    val categoryName: String? = null,
+    val name: String,
+    val description: String? = null,
+    val price: Double = 0.0,
+    val availability: String? = null,
+    val stock: Int? = null,
+    val allowDiscountInquiry: Boolean = false,
+    val tags: List<String> = emptyList(),
+    val position: Int = 0,
+    val active: Boolean = true,
+    val media: List<ProductMediaDto> = emptyList(),
+)
+
 /**
  * The `product` JSON part of `POST /api/v1/products/with-images`. `availability` is intentionally
  * omitted so the backend derives it from [stock] (`0 → OUT_OF_STOCK`, `>0 → AVAILABLE`) per the
- * contract's `stock ↔ availability` sync.
+ * contract's `stock ↔ availability` sync. Reused verbatim as the body of `PUT /api/v1/products/{id}`,
+ * which the contract defines as taking the same shape as the create request.
  */
 @Serializable
 data class CreateProductRequestDto(
