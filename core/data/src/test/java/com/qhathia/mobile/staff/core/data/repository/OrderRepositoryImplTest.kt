@@ -16,10 +16,12 @@ import com.qhathia.mobile.staff.core.network.service.OrderApiService
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.io.IOException
 
@@ -45,6 +47,16 @@ class OrderRepositoryImplTest {
             ),
         ),
     )
+
+    /**
+     * A successful confirm or reject re-reads the pending count, so every test needs that query
+     * answered. Tests that assert on the count stub it again with the value they care about.
+     */
+    @BeforeEach
+    fun stubPendingCountQuery() {
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns
+            NetworkResult.Success(OrderPageDto())
+    }
 
     /** Extracts the domain error a failed transition carries. */
     private inline fun <reified E : Throwable> Result<*>.errorOf(): E =
@@ -210,5 +222,103 @@ class OrderRepositoryImplTest {
         repository.rejectOrder("order-1", reason = "Sin stock")
 
         coVerify { api.rejectOrder("order-1", "Sin stock") }
+    }
+
+    // --- app-wide pending count -------------------------------------------------------------
+
+    private fun pendingPageOf(count: Int) =
+        NetworkResult.Success(OrderPageDto(content = emptyList(), totalElements = count))
+
+    @Test
+    fun `refreshPendingOrderCount publishes totalElements`() = runTest {
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns pendingPageOf(4)
+
+        val result = repository.refreshPendingOrderCount()
+
+        assertEquals(4, result.getOrThrow())
+        assertEquals(4, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `an unfiltered pending getOrders feeds the count without an extra request`() = runTest {
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 50) } returns pendingPageOf(6)
+
+        repository.getOrders(listOf(OrderStatus.PENDING), query = null, page = 0, size = 50)
+
+        assertEquals(6, repository.pendingOrderCount.first())
+        // The size=1 count query was never issued: the list load already carried the number.
+        coVerify(exactly = 0) { api.getOrders(any(), any(), any(), 1) }
+    }
+
+    @Test
+    fun `a search-narrowed pending query does not publish its count`() = runTest {
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 50) } returns pendingPageOf(6)
+        repository.getOrders(listOf(OrderStatus.PENDING), query = null, page = 0, size = 50)
+        coEvery { api.getOrders(listOf("PENDING"), "mari", 0, 50) } returns pendingPageOf(1)
+
+        repository.getOrders(listOf(OrderStatus.PENDING), query = "mari", page = 0, size = 50)
+
+        // Still 6: one matching order is not "one order pending".
+        assertEquals(6, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `a non-pending query does not publish its count`() = runTest {
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns pendingPageOf(3)
+        repository.refreshPendingOrderCount()
+        coEvery { api.getOrders(listOf("CONFIRMED"), null, 0, 50) } returns pendingPageOf(11)
+
+        repository.getOrders(listOf(OrderStatus.CONFIRMED), query = null, page = 0, size = 50)
+
+        assertEquals(3, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `confirming an order refreshes the count`() = runTest {
+        coEvery { api.confirmOrder("order-1") } returns OrderMutationResult.Success(detailDto())
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns pendingPageOf(1)
+
+        repository.confirmOrder("order-1")
+
+        assertEquals(1, repository.pendingOrderCount.first())
+        coVerify(exactly = 1) { api.getOrders(listOf("PENDING"), null, 0, 1) }
+    }
+
+    @Test
+    fun `rejecting an order refreshes the count`() = runTest {
+        coEvery { api.rejectOrder("order-1", null) } returns OrderMutationResult.Success(detailDto())
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns pendingPageOf(2)
+
+        repository.rejectOrder("order-1", reason = null)
+
+        assertEquals(2, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `an auth failure resets the count to zero`() = runTest {
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns pendingPageOf(5)
+        repository.refreshPendingOrderCount()
+        assertEquals(5, repository.pendingOrderCount.first())
+
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns
+            NetworkResult.HttpError(401, "Unauthorized")
+
+        val result = repository.refreshPendingOrderCount()
+
+        assertTrue(result.isFailure)
+        assertEquals(0, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `a transport failure leaves the count alone`() = runTest {
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns pendingPageOf(5)
+        repository.refreshPendingOrderCount()
+
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns
+            NetworkResult.NetworkError(IOException("offline"))
+
+        assertTrue(repository.refreshPendingOrderCount().isFailure)
+        // Offline is not "nothing is pending"; the last known count stands.
+        assertEquals(5, repository.pendingOrderCount.first())
     }
 }

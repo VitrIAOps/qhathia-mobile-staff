@@ -5,6 +5,7 @@ import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceStatus
+import com.qhathia.mobile.staff.core.domain.model.MissingProductSuggestion
 import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.Order
 import com.qhathia.mobile.staff.core.domain.model.OrderDetail
@@ -13,11 +14,17 @@ import com.qhathia.mobile.staff.core.domain.model.OrderStatus
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
+import com.qhathia.mobile.staff.core.domain.model.RestockSuggestion
+import com.qhathia.mobile.staff.core.domain.model.SalesBucket
+import com.qhathia.mobile.staff.core.domain.model.SalesPeriod
+import com.qhathia.mobile.staff.core.domain.model.SalesSummary
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import com.qhathia.mobile.staff.core.domain.model.Session
+import com.qhathia.mobile.staff.core.domain.model.StoreSuggestions
 import com.qhathia.mobile.staff.core.domain.model.Store
 import com.qhathia.mobile.staff.core.domain.model.User
 import com.qhathia.mobile.staff.core.domain.model.UserRole
+import java.math.BigDecimal
 import java.time.Instant
 
 /** Shared domain fixtures for tests. */
@@ -135,6 +142,57 @@ object TestFixtures {
         tags: List<String> = listOf("vintage"),
         images: List<SelectedImage> = listOf(selectedImage()),
     ) = NewProduct(name, price, quantity, description, categoryId, tags, images)
+
+    fun salesBucket(
+        label: String = "Sem 1",
+        amount: Long = 1240,
+    ) = SalesBucket(label, BigDecimal(amount))
+
+    /**
+     * The design's weekly summary (Figma node `1954-6799`): four week buckets whose sum is the
+     * headline total, with the fourth the best of the period.
+     */
+    /** A week whose period in progress (the last bucket) is also its best, 24.3% above the one before. */
+    fun salesSummary(
+        period: SalesPeriod = SalesPeriod.WEEKLY,
+        buckets: List<SalesBucket> = listOf(
+            salesBucket("Sem 10", 1240),
+            salesBucket("Sem 11", 1480),
+            salesBucket("Sem 12", 1360),
+            salesBucket("Sem 13", 1690),
+        ),
+        total: BigDecimal = buckets.lastOrNull()?.amount ?: BigDecimal.ZERO,
+        deltaPercent: Double? = 24.3,
+        highlightedBucketIndex: Int = buckets.indices.maxByOrNull { buckets[it].amount } ?: -1,
+        highlightedDeltaPercent: Double? = 24.3,
+        generatedAt: Instant = NOW,
+    ) = SalesSummary(
+        period = period,
+        total = total,
+        deltaPercent = deltaPercent,
+        buckets = buckets,
+        highlightedBucketIndex = highlightedBucketIndex,
+        highlightedDeltaPercent = highlightedDeltaPercent,
+        generatedAt = generatedAt,
+    )
+
+    fun missingProductSuggestion(
+        id: String = "taladro",
+        name: String = "Taladro percutor bosch",
+        personCount: Int = 9,
+    ) = MissingProductSuggestion(id, name, personCount)
+
+    fun restockSuggestion(
+        id: String = "restock-1",
+        name: String = "Taladro Percutor Bosch GSB 13 RE",
+        imageUrl: String? = null,
+        remainingStock: Int = 1,
+    ) = RestockSuggestion(id, name, imageUrl, remainingStock)
+
+    fun storeSuggestions(
+        missingProducts: List<MissingProductSuggestion> = listOf(missingProductSuggestion()),
+        restockProducts: List<RestockSuggestion> = listOf(restockSuggestion()),
+    ) = StoreSuggestions(missingProducts, restockProducts)
 
     /** A pending order expiring 20 minutes after [NOW]. */
     fun order(

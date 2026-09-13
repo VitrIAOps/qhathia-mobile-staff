@@ -5,7 +5,9 @@ import com.qhathia.mobile.staff.core.network.KtorClientFactory
 import com.qhathia.mobile.staff.core.network.NetworkConfig
 import com.qhathia.mobile.staff.core.network.service.AuthApiService
 import com.qhathia.mobile.staff.core.network.service.CategoryApiService
+import com.qhathia.mobile.staff.core.network.service.DashboardApiService
 import com.qhathia.mobile.staff.core.network.service.DeviceApiService
+import com.qhathia.mobile.staff.core.network.service.InsightsApiService
 import com.qhathia.mobile.staff.core.network.service.NotificationApiService
 import com.qhathia.mobile.staff.core.network.service.OrderApiService
 import com.qhathia.mobile.staff.core.network.service.ProductApiService
@@ -86,4 +88,14 @@ object NetworkModule {
     @Singleton
     fun provideDeviceApiService(@AuthenticatedClient client: HttpClient): DeviceApiService =
         DeviceApiService(client)
+
+    @Provides
+    @Singleton
+    fun provideDashboardApiService(@AuthenticatedClient client: HttpClient): DashboardApiService =
+        DashboardApiService(client)
+
+    @Provides
+    @Singleton
+    fun provideInsightsApiService(@AuthenticatedClient client: HttpClient): InsightsApiService =
+        InsightsApiService(client)
 }

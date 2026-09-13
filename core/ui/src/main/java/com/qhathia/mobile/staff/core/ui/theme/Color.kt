@@ -52,6 +52,29 @@ internal object QhathiaPalette {
     val Success = Color(0xFF1E8E3E)
     val OnSuccess = Color(0xFFFFFFFF)
 
+    // Inicio summary card (DS "week-summary-card"). The card is dark navy in both themes — it is a
+    // branded surface, not a theme surface, so its tokens barely move between light and dark.
+    val SummaryCardSurface = Color(0xFF10283C) // DS primitive-blue-700
+    val SummaryBarFill = Color(0xFF1C4466) // DS primitive-blue-500
+    val InsightStripSurface = Color(0xFF043762) // DS primitive-green-900 (a blue, despite the name)
+    val OnSummaryCard = Color(0xFFFFFFFF)
+    // "Esta semana" — the design draws it at 65% of the card's on-colour.
+    val OnSummaryCardMuted = Color(0xA6FFFFFF)
+
+    // Period selector inside the summary card: a light track carrying a brand-accent pill. The
+    // track is light on both themes (it sits on the dark card), so its on-colour is fixed too.
+    val PeriodTabTrack = Color(0xFFEBF3F9) // DS primitive-blue-50
+    val OnPeriodTab = Color(0xFF050D14) // DS color-text-primary
+
+    // "N / Búsquedas" block on a "producto no encontrado" card.
+    val SearchCountContainer = Color(0xFFEBF3F9)
+    val OnSearchCountContainer = Color(0xFF0979D6)
+
+    // "Solo queda N" chip on a restock card — a stock alert, distinct from the amber
+    // [WarningContainer] band used inside an order item.
+    val StockAlertContainer = Color(0xFFFCCFD9)
+    val OnStockAlertContainer = Color(0xFF78081F)
+
     // Header gradient (DS screen header): brand orange in the lower-right sweeping up into navy.
     val HeaderGradientOrange = Color(0xFFFF4500)
     val HeaderGradientNavy = Color(0xFF0D1F38)
@@ -67,6 +90,13 @@ internal object QhathiaPalette {
     val DarkWarningContainer = Color(0xFF3A2E05)
     val DarkOnWarningContainer = Color(0xFFF2D98B)
     val DarkSuccess = Color(0xFF2FA653)
+    val DarkSummaryCardSurface = Color(0xFF0F2334)
+    val DarkSummaryBarFill = Color(0xFF1A3D5C)
+    val DarkInsightStripSurface = Color(0xFF06304F)
+    val DarkSearchCountContainer = Color(0xFF13283A)
+    val DarkOnSearchCountContainer = Color(0xFF6FB8F2)
+    val DarkStockAlertContainer = Color(0xFF3E0A18)
+    val DarkOnStockAlertContainer = Color(0xFFF5B9C6)
     val DarkHeaderGradientOrange = Color(0xFF7A2707)
     val DarkHeaderGradientNavy = Color(0xFF06121D)
 }

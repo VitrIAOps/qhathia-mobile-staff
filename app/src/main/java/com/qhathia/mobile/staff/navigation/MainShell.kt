@@ -15,6 +15,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.qhathia.mobile.staff.core.ui.component.QhathiaBottomBar
 import com.qhathia.mobile.staff.core.ui.component.QhathiaBottomBarItem
@@ -41,10 +44,10 @@ import com.qhathia.mobile.staff.feature.devicelinking.navigation.DEVICE_LINKING_
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.deviceLinkingGraph
 import com.qhathia.mobile.staff.feature.orderrequests.navigation.ORDER_REQUESTS_ROUTE
 import com.qhathia.mobile.staff.feature.orderrequests.navigation.orderRequestsGraph
-import com.qhathia.mobile.staff.ui.home.HomePlaceholderScreen
+import com.qhathia.mobile.staff.feature.home.navigation.HOME_ROUTE
+import com.qhathia.mobile.staff.feature.home.navigation.homeGraph
 import com.qhathia.mobile.staff.ui.profile.ProfileScreen
 
-private const val HOME_ROUTE = "home"
 private const val PROFILE_ROUTE = "profile"
 
 /**
@@ -84,9 +87,12 @@ private val topLevelDestinations = listOf(
 
 /**
  * Post-login app shell: a bottom navigation bar over an inner [NavHost] of the top-level
- * destinations. Inventario is the start destination; Inventario, Solicitudes and Perfil are
- * implemented, Inicio is still a placeholder. Terminal pairing is reached from Perfil, so the DS
+ * destinations. Inicio is the start destination — entering the app, whether from login or from a
+ * restored session, lands on the store summary. Terminal pairing is reached from Perfil, so the DS
  * bottom bar carries only these four tabs.
+ *
+ * The Solicitudes tab carries the app-wide pending-order count, read from [MainShellViewModel], so
+ * it can never disagree with the Inicio bell or the `Pendientes (N)` filter label.
  *
  * [pendingDestination] is a section requested by a notification tap. The inner NavHost lives here,
  * so this is the only place that can honour it; it does so as a normal tab switch and then reports
@@ -96,20 +102,31 @@ private val topLevelDestinations = listOf(
 fun MainShell(
     pendingDestination: String? = null,
     onPendingDestinationConsumed: () -> Unit = {},
+    viewModel: MainShellViewModel = hiltViewModel(),
 ) {
     RequestNotificationPermissionOnce()
 
+    val pendingOrderCount by viewModel.pendingOrderCount.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val currentDestination by navController.currentBackStackEntryAsState()
     val currentRoute = currentDestination?.destination
 
-    LaunchedEffect(pendingDestination) {
-        if (pendingDestination != DESTINATION_ORDER_REQUESTS) return@LaunchedEffect
-        navController.navigate(ORDER_REQUESTS_ROUTE) {
+    /**
+     * Switching top-level tabs: one copy of each destination, restoring whatever state it had. The
+     * bell on Inicio and a notification tap both go through this, so they land on Solicitudes
+     * exactly as tapping the tab does instead of stacking a second copy on top.
+     */
+    fun switchTab(route: String) {
+        navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
             restoreState = true
         }
+    }
+
+    LaunchedEffect(pendingDestination) {
+        if (pendingDestination != DESTINATION_ORDER_REQUESTS) return@LaunchedEffect
+        switchTab(ORDER_REQUESTS_ROUTE)
         onPendingDestinationConsumed()
     }
 
@@ -124,19 +141,22 @@ fun MainShell(
             QhathiaBottomBar {
                 topLevelDestinations.forEach { destination ->
                     val selected = currentRoute?.hierarchy?.any { it.route == destination.route } == true
+                    val badged = destination.route == ORDER_REQUESTS_ROUTE && pendingOrderCount > 0
                     QhathiaBottomBarItem(
                         selected = selected,
-                        onClick = {
-                            navController.navigate(destination.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
+                        onClick = { switchTab(destination.route) },
                         iconRes = destination.iconRes,
                         label = stringResource(destination.labelRes),
+                        badgeCount = if (badged) pendingOrderCount else null,
+                        badgeContentDescription = if (badged) {
+                            pluralStringResource(
+                                R.plurals.nav_requests_pending_cd,
+                                pendingOrderCount,
+                                pendingOrderCount,
+                            )
+                        } else {
+                            null
+                        },
                     )
                 }
             }
@@ -144,10 +164,10 @@ fun MainShell(
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = INVENTORY_ROUTE,
+            startDestination = HOME_ROUTE,
             modifier = Modifier.padding(padding),
         ) {
-            composable(HOME_ROUTE) { HomePlaceholderScreen() }
+            homeGraph(onNavigateToOrderRequests = { switchTab(ORDER_REQUESTS_ROUTE) })
             inventoryGraph(
                 onNavigateToRegister = { navController.navigate(PRODUCT_REGISTER_ROUTE) },
                 onNavigateToProductDetail = { id -> navController.navigate(productDetailRoute(id)) },

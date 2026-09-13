@@ -69,6 +69,9 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests.all { it.useJUnitPlatform() }
+    }
 }
 
 // Deterministic APK filename per variant; each build type writes to its own outputs/apk/<buildType>/
@@ -91,6 +94,7 @@ dependencies {
     implementation(project(":core:notifications"))
     implementation(project(":core:ui"))
     implementation(project(":features:auth"))
+    implementation(project(":features:home"))
     implementation(project(":features:product-inventory"))
     implementation(project(":features:product-register"))
     implementation(project(":features:product-detail"))
@@ -115,7 +119,14 @@ dependencies {
     ksp(libs.hilt.compiler)
     ksp(libs.kotlin.metadata.jvm)
 
-    testImplementation(libs.junit)
+    testImplementation(project(":core:testing"))
+    testImplementation(libs.junit5.api)
+    testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
+    testImplementation(libs.coroutines.test)
+    testRuntimeOnly(libs.junit5.engine)
+    testRuntimeOnly(libs.junit5.launcher)
+
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

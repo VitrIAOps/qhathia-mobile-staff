@@ -11,8 +11,9 @@ import java.time.Instant
  * Immutable snapshot of the Solicitudes screen.
  *
  * [orders] is whatever the active [selectedFilter] and [searchQuery] returned — the filtering is
- * server-side, so there is no second "visible" list. [pendingCount] comes from its own `size=1`
- * pending query and therefore stays correct while the merchant looks at another tab.
+ * server-side, so there is no second "visible" list. [pendingCount] is the app-wide count held by
+ * the order data layer, not a copy this screen maintains, so it stays correct while the merchant
+ * looks at another tab and always matches the Solicitudes tab badge and the Inicio bell.
  *
  * A failed load sets [isError] but leaves [orders] and [lastUpdatedAt] untouched, so a refresh that
  * fails degrades to "stale data plus an error" rather than an empty screen.

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Header -->
+    <string name="home_greeting_named">Hola %1$s</string>
+    <!-- Shown when no session name is available; the greeting degrades rather than inventing one. -->
+    <string name="home_greeting_anonymous">Hola</string>
+    <string name="home_last_updated">Última actualización a las %1$s</string>
+    <string name="home_notifications_cd">Notificaciones</string>
+    <plurals name="home_notifications_pending_cd">
+        <item quantity="one">Notificaciones, %1$d pendiente</item>
+        <item quantity="other">Notificaciones, %1$d pendientes</item>
+    </plurals>
+
+    <!-- Resumen section -->
+    <string name="home_summary_title">Resumen</string>
+    <string name="home_summary_see_more">Ver más</string>
+    <string name="home_period_monthly">Mensual</string>
+    <string name="home_period_weekly">Semanal</string>
+    <string name="home_period_daily">Diario</string>
+    <string name="home_period_hourly">Por hora</string>
+    <!-- The period in progress, above the headline amount. -->
+    <string name="home_current_period_monthly">Este mes</string>
+    <string name="home_current_period_weekly">Esta semana</string>
+    <string name="home_current_period_daily">Hoy</string>
+    <string name="home_current_period_hourly">Esta hora</string>
+    <!-- %1$s is a signed percentage, e.g. "+24%". -->
+    <string name="home_delta_monthly">%1$s vs. mes anterior</string>
+    <string name="home_delta_weekly">%1$s vs. semana anterior</string>
+    <string name="home_delta_daily">%1$s vs. día anterior</string>
+    <string name="home_delta_hourly">%1$s vs. hora anterior</string>
+    <string name="home_summary_empty">Todavía no hay ventas en este periodo.</string>
+
+    <!-- Chart: announced as one node so a screen reader gets the point, not four bare numbers. -->
+    <string name="home_chart_cd">Ventas del periodo: %1$s. Mejor resultado: %2$s con %3$s.</string>
+
+    <!-- Insight strip: "Sem 13 generó S/ 1,690, 24% más que la semana anterior." -->
+    <string name="home_insight_with_comparison">%1$s generó %2$s, %3$s.</string>
+    <!-- The best bucket has no preceding bucket with sales to compare against. -->
+    <string name="home_insight_no_comparison">%1$s generó %2$s.</string>
+    <!-- %1$s is an unsigned percentage ("24%"), %2$s one of the home_previous_* phrases. -->
+    <string name="home_comparison_up">%1$s más que %2$s</string>
+    <string name="home_comparison_down">%1$s menos que %2$s</string>
+    <string name="home_comparison_flat">igual que %1$s</string>
+    <string name="home_previous_monthly">el mes anterior</string>
+    <string name="home_previous_weekly">la semana anterior</string>
+    <string name="home_previous_daily">el día anterior</string>
+    <string name="home_previous_hourly">la hora anterior</string>
+
+    <!-- Suggestions -->
+    <string name="home_suggestions_title">Sugerencias para vender más</string>
+    <string name="home_missing_products_title">Productos no encontrados</string>
+    <string name="home_restock_products_title">Productos para reponer</string>
+    <!-- Under the count of distinct shoppers who searched for a product the store does not carry. -->
+    <plurals name="home_people_label">
+        <item quantity="one">Persona</item>
+        <item quantity="other">Personas</item>
+    </plurals>
+    <string name="home_add_product">Agregar</string>
+    <string name="home_restock_product">Reabastecer</string>
+    <plurals name="home_remaining_stock">
+        <item quantity="one">Solo queda %1$d</item>
+        <item quantity="other">Solo quedan %1$d</item>
+    </plurals>
+    <!-- Replaces home_remaining_stock when nothing is left: "Solo quedan 0" undersells a stock-out. -->
+    <string name="home_out_of_stock">Sin existencias</string>
+
+    <!-- Loading / error -->
+    <string name="home_loading_cd">Cargando el resumen</string>
+    <string name="home_error_message">No pudimos actualizar el resumen.</string>
+    <string name="home_retry">Reintentar</string>
+</resources>

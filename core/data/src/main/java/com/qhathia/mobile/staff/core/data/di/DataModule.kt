@@ -18,6 +18,7 @@ import com.qhathia.mobile.staff.core.data.repository.ProductAiRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.ProductRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.SessionAuthTokenProvider
 import com.qhathia.mobile.staff.core.data.repository.SessionRepositoryImpl
+import com.qhathia.mobile.staff.core.data.repository.StoreInsightsRepositoryImpl
 import com.qhathia.mobile.staff.core.domain.repository.AuthRepository
 import com.qhathia.mobile.staff.core.domain.repository.CategoryRepository
 import com.qhathia.mobile.staff.core.domain.repository.DeviceRepository
@@ -26,6 +27,7 @@ import com.qhathia.mobile.staff.core.domain.repository.OrderRepository
 import com.qhathia.mobile.staff.core.domain.repository.ProductAiRepository
 import com.qhathia.mobile.staff.core.domain.repository.ProductRepository
 import com.qhathia.mobile.staff.core.domain.repository.SessionRepository
+import com.qhathia.mobile.staff.core.domain.repository.StoreInsightsRepository
 import com.qhathia.mobile.staff.core.network.AuthTokenProvider
 import dagger.Binds
 import dagger.Module
@@ -66,6 +68,12 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindOrderRepository(impl: OrderRepositoryImpl): OrderRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStoreInsightsRepository(
+        impl: StoreInsightsRepositoryImpl,
+    ): StoreInsightsRepository
 
     @Binds
     @Singleton
