@@ -31,7 +31,8 @@ private val UrbanistFamily = FontFamily(
 
 /**
  * Typography matching the Qhathia DS scale. `bodyMedium` = Urbanist Body/MD (14/20),
- * `bodySmall` = Urbanist Body/SM (12/18). `displaySmall` is used for the large brand wordmark.
+ * `bodySmall` = Urbanist Body/SM (12/18). `displaySmall` is used for the large brand wordmark,
+ * `headlineMedium` for the DS H1 amount headline and `labelSmall` for the DS Caption scale.
  */
 val QhathiaTypography = Typography(
     displaySmall = TextStyle(
@@ -39,6 +40,14 @@ val QhathiaTypography = Typography(
         fontWeight = FontWeight.Bold,
         fontSize = 40.sp,
         lineHeight = 48.sp,
+    ),
+    // DS Urbanist/H1 (32/40 Bold, -0.5) — the Inicio summary headline amount.
+    headlineMedium = TextStyle(
+        fontFamily = UrbanistFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
+        letterSpacing = (-0.5).sp,
     ),
     titleLarge = TextStyle(
         fontFamily = UrbanistFamily,
@@ -63,6 +72,14 @@ val QhathiaTypography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 18.sp,
+    ),
+    // DS Urbanist/Caption (10/14 Medium, 0.4) — count badges and the stock-alert chip.
+    labelSmall = TextStyle(
+        fontFamily = UrbanistFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 10.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.4.sp,
     ),
     labelLarge = TextStyle(
         fontFamily = UrbanistFamily,

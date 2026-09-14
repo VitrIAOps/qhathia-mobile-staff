@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DS "iconoir:sparks" glyph heading the Inicio suggestions section (Figma Qhatia DS, node
+  2228-30402). 24x24 outline; tinted by the caller.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M8,15C12.875,15 15,12.949 15,8C15,12.949 17.11,15 22,15C17.11,15 15,17.11 15,22C15,17.11 12.875,15 8,15ZM2,6.5C5.134,6.5 6.5,5.182 6.5,2C6.5,5.182 7.857,6.5 11,6.5C7.857,6.5 6.5,7.857 6.5,11C6.5,7.857 5.134,6.5 2,6.5Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineJoin="round" />
+</vector>

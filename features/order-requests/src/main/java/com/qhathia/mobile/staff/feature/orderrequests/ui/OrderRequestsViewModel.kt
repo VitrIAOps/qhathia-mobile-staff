@@ -5,12 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderError
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderException
 import com.qhathia.mobile.staff.core.domain.model.OrderPage
-import com.qhathia.mobile.staff.core.domain.model.OrderStatus
 import com.qhathia.mobile.staff.core.domain.model.RejectOrderError
 import com.qhathia.mobile.staff.core.domain.model.RejectOrderException
 import com.qhathia.mobile.staff.core.domain.usecase.ConfirmOrderUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrderDetailUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrdersUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.ObservePendingOrderCountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RejectOrderUseCase
 import com.qhathia.mobile.staff.feature.orderrequests.R
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderDetailUiState
@@ -23,9 +23,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -53,6 +51,11 @@ import javax.inject.Inject
  *
  * Every mutation outcome — success or documented conflict — ends in a reload, so the screen never
  * keeps showing an order the backend has already closed.
+ *
+ * `Pendientes (N)` reads the app-wide pending count rather than counting for itself, so the label,
+ * the Solicitudes tab badge and the Inicio bell are the same number by construction. The count is
+ * fed by the data layer: this screen's own unfiltered pending query updates it, and so does every
+ * confirm and reject — no extra request is issued for it here.
  */
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -61,6 +64,7 @@ class OrderRequestsViewModel @Inject constructor(
     private val getOrderDetailUseCase: GetOrderDetailUseCase,
     private val confirmOrderUseCase: ConfirmOrderUseCase,
     private val rejectOrderUseCase: RejectOrderUseCase,
+    observePendingOrderCountUseCase: ObservePendingOrderCountUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderRequestsUiState())
@@ -85,6 +89,9 @@ class OrderRequestsViewModel @Inject constructor(
     private var mutatingOrderId: String? = null
 
     init {
+        observePendingOrderCountUseCase()
+            .onEach { count -> _uiState.update { it.copy(pendingCount = count) } }
+            .launchIn(viewModelScope)
         observeLoads()
     }
 
@@ -170,46 +177,28 @@ class OrderRequestsViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    /**
-     * Issues the list query and the Pendientes badge query concurrently. The badge is its own
-     * `size=1` pending request — the contract exposes no count endpoint, and reading the list's
-     * `totalElements` would be wrong on the Aceptados and Rechazados tabs.
-     */
-    private suspend fun load(request: LoadRequest): LoadOutcome = coroutineScope {
-        val orders = async {
-            getOrdersUseCase(
-                statuses = request.filter.statuses,
-                query = request.query.trim().takeIf { it.isNotEmpty() },
-                page = FIRST_PAGE,
-                size = PAGE_SIZE,
-            )
-        }
-        val pending = async {
-            getOrdersUseCase(
-                statuses = listOf(OrderStatus.PENDING),
-                query = null,
-                page = FIRST_PAGE,
-                size = BADGE_PAGE_SIZE,
-            )
-        }
-        LoadOutcome(orders = orders.await(), pending = pending.await())
-    }
+    /** Issues the list query for the active filter and search text. */
+    private suspend fun load(request: LoadRequest): Result<OrderPage> =
+        getOrdersUseCase(
+            statuses = request.filter.statuses,
+            query = request.query.trim().takeIf { it.isNotEmpty() },
+            page = FIRST_PAGE,
+            size = PAGE_SIZE,
+        )
 
-    private fun applyOutcome(outcome: LoadOutcome) {
-        val pendingCount = outcome.pending.getOrNull()?.totalElements
+    private fun applyOutcome(outcome: Result<OrderPage>) {
         _uiState.update { state ->
-            val page: OrderPage? = outcome.orders.getOrNull()
+            val page: OrderPage? = outcome.getOrNull()
             state.copy(
                 // A failed load keeps the previously loaded orders and timestamp on screen: stale
                 // data plus an error beats a blank list.
                 orders = page?.orders?.toImmutableList() ?: state.orders,
                 lastUpdatedAt = if (page != null) Instant.now() else state.lastUpdatedAt,
-                pendingCount = pendingCount ?: state.pendingCount,
                 isLoading = false,
                 isError = page == null,
             )
         }
-        if (outcome.orders.isFailure) {
+        if (outcome.isFailure) {
             viewModelScope.launch {
                 _uiEffect.emit(OrderRequestsUiEffect.ShowError(R.string.order_error_load))
             }
@@ -355,19 +344,11 @@ class OrderRequestsViewModel @Inject constructor(
 
     private data class LoadRequest(val query: String, val filter: OrderRequestsFilter)
 
-    private data class LoadOutcome(
-        val orders: Result<OrderPage>,
-        val pending: Result<OrderPage>,
-    )
-
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 350L
         const val FIRST_PAGE = 0
 
         /** Generous enough to cover a realistic day without pagination UI. */
         const val PAGE_SIZE = 50
-
-        /** The badge only needs `totalElements`, so it asks for the smallest possible page. */
-        const val BADGE_PAGE_SIZE = 1
     }
 }

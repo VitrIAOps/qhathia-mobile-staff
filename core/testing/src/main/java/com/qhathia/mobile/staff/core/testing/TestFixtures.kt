@@ -5,6 +5,7 @@ import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceStatus
+import com.qhathia.mobile.staff.core.domain.model.MissingProductSuggestion
 import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.Order
 import com.qhathia.mobile.staff.core.domain.model.OrderDetail
@@ -13,11 +14,22 @@ import com.qhathia.mobile.staff.core.domain.model.OrderStatus
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
+import com.qhathia.mobile.staff.core.domain.model.RestockSuggestion
+import com.qhathia.mobile.staff.core.domain.model.SalesBucket
+import com.qhathia.mobile.staff.core.domain.model.SalesKpis
+import com.qhathia.mobile.staff.core.domain.model.SalesPeriod
+import com.qhathia.mobile.staff.core.domain.model.SalesRanking
+import com.qhathia.mobile.staff.core.domain.model.SalesSummary
+import com.qhathia.mobile.staff.core.domain.model.StalledProduct
+import com.qhathia.mobile.staff.core.domain.model.StoreActivity
+import com.qhathia.mobile.staff.core.domain.model.TopSellingProduct
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import com.qhathia.mobile.staff.core.domain.model.Session
+import com.qhathia.mobile.staff.core.domain.model.StoreSuggestions
 import com.qhathia.mobile.staff.core.domain.model.Store
 import com.qhathia.mobile.staff.core.domain.model.User
 import com.qhathia.mobile.staff.core.domain.model.UserRole
+import java.math.BigDecimal
 import java.time.Instant
 
 /** Shared domain fixtures for tests. */
@@ -135,6 +147,120 @@ object TestFixtures {
         tags: List<String> = listOf("vintage"),
         images: List<SelectedImage> = listOf(selectedImage()),
     ) = NewProduct(name, price, quantity, description, categoryId, tags, images)
+
+    fun salesBucket(
+        label: String = "Sem 1",
+        amount: Long = 1240,
+    ) = SalesBucket(label, BigDecimal(amount))
+
+    /**
+     * The design's weekly summary (Figma node `1954-6799`): four week buckets whose sum is the
+     * headline total, with the fourth the best of the period.
+     */
+    /** A week whose period in progress (the last bucket) is also its best, 24.3% above the one before. */
+    fun salesSummary(
+        period: SalesPeriod = SalesPeriod.WEEKLY,
+        buckets: List<SalesBucket> = listOf(
+            salesBucket("Sem 10", 1240),
+            salesBucket("Sem 11", 1480),
+            salesBucket("Sem 12", 1360),
+            salesBucket("Sem 13", 1690),
+        ),
+        total: BigDecimal = buckets.lastOrNull()?.amount ?: BigDecimal.ZERO,
+        deltaPercent: Double? = 24.3,
+        highlightedBucketIndex: Int = buckets.indices.maxByOrNull { buckets[it].amount } ?: -1,
+        highlightedDeltaPercent: Double? = 24.3,
+        generatedAt: Instant = NOW,
+        periodStart: Instant? = NOW,
+        periodEnd: Instant? = NOW.plusSeconds(WEEK_SECONDS),
+        kpis: SalesKpis = salesKpis(),
+    ) = SalesSummary(
+        period = period,
+        total = total,
+        deltaPercent = deltaPercent,
+        buckets = buckets,
+        highlightedBucketIndex = highlightedBucketIndex,
+        highlightedDeltaPercent = highlightedDeltaPercent,
+        generatedAt = generatedAt,
+        periodStart = periodStart,
+        periodEnd = periodEnd,
+        kpis = kpis,
+    )
+
+    fun salesKpis(
+        salesCount: Int = 24,
+        averageTicket: Long = 70,
+        unitsSold: Int = 55,
+    ) = SalesKpis(salesCount, BigDecimal(averageTicket), unitsSold)
+
+    fun topSellingProduct(
+        id: String = "product-1",
+        name: String = "Taladro percutor Bosch GSB",
+        imageUrl: String? = null,
+        revenue: Long = 1870,
+        unitsSold: Int = 34,
+    ) = TopSellingProduct(id, name, imageUrl, BigDecimal(revenue), unitsSold)
+
+    fun stalledProduct(
+        id: String = "product-9",
+        name: String = "Sierra caladora Stanley",
+        imageUrl: String? = null,
+        stock: Int = 34,
+        price: Long = 100,
+        immobilizedAmount: Long = stock * price,
+    ) = StalledProduct(id, name, imageUrl, stock, BigDecimal(price), BigDecimal(immobilizedAmount))
+
+    fun salesRanking(
+        topSellers: List<TopSellingProduct> = listOf(topSellingProduct()),
+        needsAttention: List<StalledProduct> = listOf(stalledProduct()),
+        periodStart: Instant? = NOW,
+        periodEnd: Instant? = NOW.plusSeconds(WEEK_SECONDS),
+    ) = SalesRanking(
+        periodStart = periodStart,
+        periodEnd = periodEnd,
+        topSellersRevenue = topSellers.fold(BigDecimal.ZERO) { acc, product -> acc + product.revenue },
+        topSellers = topSellers,
+        immobilizedTotal = needsAttention.fold(BigDecimal.ZERO) { acc, product ->
+            acc + product.immobilizedAmount
+        },
+        needsAttention = needsAttention,
+    )
+
+    fun storeActivity(
+        uniqueSessions: Int = 63,
+        uniqueSessionsDeltaPercent: Double? = 12.5,
+        productViews: Int = 148,
+        productViewsDeltaPercent: Double? = 8.8,
+        periodStart: Instant? = NOW,
+        periodEnd: Instant? = NOW.plusSeconds(WEEK_SECONDS),
+    ) = StoreActivity(
+        periodStart = periodStart,
+        periodEnd = periodEnd,
+        uniqueSessions = uniqueSessions,
+        uniqueSessionsDeltaPercent = uniqueSessionsDeltaPercent,
+        productViews = productViews,
+        productViewsDeltaPercent = productViewsDeltaPercent,
+    )
+
+    private const val WEEK_SECONDS = 7 * 24 * 60 * 60L
+
+    fun missingProductSuggestion(
+        id: String = "taladro",
+        name: String = "Taladro percutor bosch",
+        personCount: Int = 9,
+    ) = MissingProductSuggestion(id, name, personCount)
+
+    fun restockSuggestion(
+        id: String = "restock-1",
+        name: String = "Taladro Percutor Bosch GSB 13 RE",
+        imageUrl: String? = null,
+        remainingStock: Int = 1,
+    ) = RestockSuggestion(id, name, imageUrl, remainingStock)
+
+    fun storeSuggestions(
+        missingProducts: List<MissingProductSuggestion> = listOf(missingProductSuggestion()),
+        restockProducts: List<RestockSuggestion> = listOf(restockSuggestion()),
+    ) = StoreSuggestions(missingProducts, restockProducts)
 
     /** A pending order expiring 20 minutes after [NOW]. */
     fun order(

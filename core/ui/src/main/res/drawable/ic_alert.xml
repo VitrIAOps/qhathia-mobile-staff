@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DS "cuida:alert-outline" glyph — heads the "Productos para reponer" row and marks the
+  "Solo queda N" chip (Figma Qhatia DS, node 2228-30391). The Figma export insets the 13.333 glyph
+  by 8.33% inside a 16x16 box, so the group is translated by 1.3333 here. Tinted by the caller.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <group
+        android:translateX="1.3333"
+        android:translateY="1.3333">
+        <path
+            android:pathData="M6.6667,0.6667C9.9804,0.6667 12.6667,3.353 12.6667,6.6667C12.6667,9.9804 9.9804,12.6667 6.6667,12.6667C3.353,12.6667 0.6667,9.9804 0.6667,6.6667C0.6667,3.353 3.353,0.6667 6.6667,0.6667Z"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.3333" />
+        <path
+            android:pathData="M6.6667,4V7.3333"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.3333"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M6.6667,8.6667C7.0349,8.6667 7.3333,8.9651 7.3333,9.3333C7.3333,9.7015 7.0349,10 6.6667,10C6.2985,10 6,9.7015 6,9.3333C6,8.9651 6.2985,8.6667 6.6667,8.6667Z"
+            android:fillColor="#FFFFFF" />
+    </group>
+</vector>

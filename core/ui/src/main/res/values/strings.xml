@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sales summary: period selector labels. -->
+    <string name="sales_period_monthly">Mensual</string>
+    <string name="sales_period_weekly">Semanal</string>
+    <string name="sales_period_daily">Diario</string>
+    <string name="sales_period_hourly">Por hora</string>
+
+    <!-- The period in progress, above the headline amount. -->
+    <string name="sales_current_period_monthly">Este mes</string>
+    <string name="sales_current_period_weekly">Esta semana</string>
+    <string name="sales_current_period_daily">Hoy</string>
+    <string name="sales_current_period_hourly">Esta hora</string>
+
+    <!-- %1$s is a signed percentage, e.g. "+24%". -->
+    <string name="sales_delta_monthly">%1$s vs. mes anterior</string>
+    <string name="sales_delta_weekly">%1$s vs. semana anterior</string>
+    <string name="sales_delta_daily">%1$s vs. día anterior</string>
+    <string name="sales_delta_hourly">%1$s vs. hora anterior</string>
+
+    <string name="sales_summary_empty">Todavía no hay ventas en este periodo.</string>
+
+    <!-- Chart: announced as one node so a screen reader gets the point, not four bare numbers. -->
+    <string name="sales_chart_cd">Ventas del periodo: %1$s. Mejor resultado: %2$s con %3$s.</string>
+
+    <!-- Insight strip: "Sem 13 generó S/ 1,690, 24% más que la semana anterior." -->
+    <string name="sales_insight_with_comparison">%1$s generó %2$s, %3$s.</string>
+    <!-- The best bucket has no preceding bucket with sales to compare against. -->
+    <string name="sales_insight_no_comparison">%1$s generó %2$s.</string>
+    <!-- %1$s is an unsigned percentage ("24%"), %2$s one of the sales_previous_* phrases. -->
+    <string name="sales_comparison_up">%1$s más que %2$s</string>
+    <string name="sales_comparison_down">%1$s menos que %2$s</string>
+    <string name="sales_comparison_flat">igual que %1$s</string>
+    <string name="sales_previous_monthly">el mes anterior</string>
+    <string name="sales_previous_weekly">la semana anterior</string>
+    <string name="sales_previous_daily">el día anterior</string>
+    <string name="sales_previous_hourly">la hora anterior</string>
+</resources>

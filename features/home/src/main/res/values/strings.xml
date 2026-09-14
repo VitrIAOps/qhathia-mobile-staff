@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Header -->
+    <string name="home_greeting_named">Hola %1$s</string>
+    <!-- Shown when no session name is available; the greeting degrades rather than inventing one. -->
+    <string name="home_greeting_anonymous">Hola</string>
+    <string name="home_last_updated">Última actualización a las %1$s</string>
+    <string name="home_notifications_cd">Notificaciones</string>
+    <plurals name="home_notifications_pending_cd">
+        <item quantity="one">Notificaciones, %1$d pendiente</item>
+        <item quantity="other">Notificaciones, %1$d pendientes</item>
+    </plurals>
+
+    <!-- Resumen section. The card's own strings (periods, delta, insight) live in :core:ui. -->
+    <string name="home_summary_title">Resumen</string>
+    <string name="home_summary_see_more">Ver más</string>
+
+    <!-- Suggestions -->
+    <string name="home_suggestions_title">Sugerencias para vender más</string>
+    <string name="home_missing_products_title">Productos no encontrados</string>
+    <string name="home_restock_products_title">Productos para reponer</string>
+    <!-- Under the count of distinct shoppers who searched for a product the store does not carry. -->
+    <plurals name="home_people_label">
+        <item quantity="one">Persona</item>
+        <item quantity="other">Personas</item>
+    </plurals>
+    <string name="home_add_product">Agregar</string>
+    <string name="home_restock_product">Reabastecer</string>
+    <plurals name="home_remaining_stock">
+        <item quantity="one">Solo queda %1$d</item>
+        <item quantity="other">Solo quedan %1$d</item>
+    </plurals>
+    <!-- Replaces home_remaining_stock when nothing is left: "Solo quedan 0" undersells a stock-out. -->
+    <string name="home_out_of_stock">Sin existencias</string>
+
+    <!-- Loading / error -->
+    <string name="home_loading_cd">Cargando el resumen</string>
+    <string name="home_error_message">No pudimos actualizar el resumen.</string>
+    <string name="home_retry">Reintentar</string>
+</resources>

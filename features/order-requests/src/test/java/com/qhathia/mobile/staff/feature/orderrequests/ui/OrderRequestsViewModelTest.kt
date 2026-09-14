@@ -10,6 +10,7 @@ import com.qhathia.mobile.staff.core.domain.model.RejectOrderException
 import com.qhathia.mobile.staff.core.domain.usecase.ConfirmOrderUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrderDetailUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrdersUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.ObservePendingOrderCountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RejectOrderUseCase
 import com.qhathia.mobile.staff.core.testing.FakeOrderRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
@@ -55,17 +56,16 @@ class OrderRequestsViewModelTest {
         getOrderDetailUseCase = GetOrderDetailUseCase(repository),
         confirmOrderUseCase = ConfirmOrderUseCase(repository),
         rejectOrderUseCase = RejectOrderUseCase(repository),
+        observePendingOrderCountUseCase = ObservePendingOrderCountUseCase(repository),
     )
 
-    /** Answers the `size=1` badge query with [count], leaving the list query on its own result. */
-    private fun badgeCountOf(count: Int) {
-        repository.ordersResultFor = { call ->
-            if (call.size == 1) {
-                Result.success(OrderPage(orders = emptyList(), totalElements = count))
-            } else {
-                null
-            }
-        }
+    /**
+     * Publishes [count] on the shared pending-order flow — the screen no longer counts for itself,
+     * so this is the only way the label can move.
+     */
+    private fun sharedPendingCountOf(count: Int) {
+        repository.pendingCountResult = Result.success(count)
+        repository.emitPendingCount(count)
     }
 
     @Test
@@ -126,27 +126,71 @@ class OrderRequestsViewModelTest {
     }
 
     @Test
-    fun `pending count comes from the badge query's totalElements`() = runTest {
-        badgeCountOf(7)
-
+    fun `pending count comes from the shared flow, not from a query of its own`() = runTest {
         val viewModel = createViewModel()
         runCurrent()
 
+        sharedPendingCountOf(7)
+        runCurrent()
+
         assertEquals(7, viewModel.uiState.value.pendingCount)
-        assertTrue(repository.calls.any { it.size == 1 && it.statuses == listOf(OrderStatus.PENDING) })
+        // The screen used to issue its own size=1 pending request; it must not any more.
+        assertTrue(repository.calls.none { it.size == 1 })
     }
 
     @Test
-    fun `pending count is refreshed from PENDING even while another tab is shown`() = runTest {
-        badgeCountOf(3)
+    fun `pending count survives switching to another tab`() = runTest {
         val viewModel = createViewModel()
+        runCurrent()
+        sharedPendingCountOf(3)
         runCurrent()
 
         viewModel.onEvent(OrderRequestsUiEvent.SelectFilter(OrderRequestsFilter.CONFIRMED))
         runCurrent()
 
+        // The Aceptados query says nothing about how many orders are pending, so 3 stands.
         assertEquals(3, viewModel.uiState.value.pendingCount)
         assertEquals(listOf(OrderStatus.CONFIRMED), repository.lastListCall?.statuses)
+    }
+
+    @Test
+    fun `the unfiltered pending list load feeds the shared count`() = runTest {
+        repository.ordersResult = Result.success(
+            OrderPage(orders = listOf(TestFixtures.order()), totalElements = 5),
+        )
+
+        val viewModel = createViewModel()
+        runCurrent()
+
+        assertEquals(5, viewModel.uiState.value.pendingCount)
+    }
+
+    @Test
+    fun `confirming an order moves the shared count`() = runTest {
+        sharedPendingCountOf(2)
+        val viewModel = createViewModel()
+        runCurrent()
+        repository.pendingCountResult = Result.success(1)
+
+        viewModel.onEvent(OrderRequestsUiEvent.ConfirmOrder("order-1"))
+        runCurrent()
+
+        assertEquals(1, viewModel.uiState.value.pendingCount)
+    }
+
+    @Test
+    fun `rejecting an order moves the shared count`() = runTest {
+        sharedPendingCountOf(2)
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.StartRejection("order-1", "859653"))
+        runCurrent()
+        repository.pendingCountResult = Result.success(1)
+
+        viewModel.onEvent(OrderRequestsUiEvent.ConfirmRejection("Sin stock"))
+        runCurrent()
+
+        assertEquals(1, viewModel.uiState.value.pendingCount)
     }
 
     @Test

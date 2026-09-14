@@ -115,6 +115,125 @@ object QhathiaColors {
         @Composable @ReadOnlyComposable
         get() = QhathiaPalette.OnSuccess
 
+    /** Soft success surface: rank badges and positive delta pills. */
+    val successContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkSuccessContainer
+        } else {
+            QhathiaPalette.SuccessContainer
+        }
+
+    val onSuccessContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkOnSuccessContainer
+        } else {
+            QhathiaPalette.OnSuccessContainer
+        }
+
+    /** Neutral track behind a segmented control drawn on the screen background. */
+    val segmentTrack: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkSegmentTrack
+        } else {
+            QhathiaPalette.SegmentTrack
+        }
+
+    /** Light blue track behind a segmented control drawn inside a card, e.g. the "Filtros" panel. */
+    val filterTrack: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkFilterTrack
+        } else {
+            QhathiaPalette.FilterTrack
+        }
+
+    /** Dark navy surface of the Inicio "Resumen" card. */
+    val summaryCard: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkSummaryCardSurface
+        } else {
+            QhathiaPalette.SummaryCardSurface
+        }
+
+    /** Fill of an ordinary bar in the sales chart; the best bucket uses [brandAccentSoft]. */
+    val summaryBar: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkSummaryBarFill
+        } else {
+            QhathiaPalette.SummaryBarFill
+        }
+
+    /** Surface of the insight strip sitting under the sales chart. */
+    val insightStrip: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkInsightStripSurface
+        } else {
+            QhathiaPalette.InsightStripSurface
+        }
+
+    /** Text and glyphs drawn on [summaryCard]. */
+    val onSummaryCard: Color
+        @Composable @ReadOnlyComposable
+        get() = QhathiaPalette.OnSummaryCard
+
+    /** Secondary text on [summaryCard], e.g. the period label above the headline amount. */
+    val onSummaryCardMuted: Color
+        @Composable @ReadOnlyComposable
+        get() = QhathiaPalette.OnSummaryCardMuted
+
+    /**
+     * Track behind the Mensual/Semanal/Diario/Por hora pills. It stays light in both themes because
+     * it sits on the always-dark [summaryCard], so [onPeriodTab] is fixed against it.
+     */
+    val periodTabTrack: Color
+        @Composable @ReadOnlyComposable
+        get() = QhathiaPalette.PeriodTabTrack
+
+    /** Label of an unselected period pill; the selected one uses `onSecondary` over the accent. */
+    val onPeriodTab: Color
+        @Composable @ReadOnlyComposable
+        get() = QhathiaPalette.OnPeriodTab
+
+    /** Surface of the "N / Búsquedas" block on a "producto no encontrado" card. */
+    val searchCountContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkSearchCountContainer
+        } else {
+            QhathiaPalette.SearchCountContainer
+        }
+
+    val onSearchCountContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkOnSearchCountContainer
+        } else {
+            QhathiaPalette.OnSearchCountContainer
+        }
+
+    /** Surface of the "Solo queda N" chip on a restock card. */
+    val stockAlertContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkStockAlertContainer
+        } else {
+            QhathiaPalette.StockAlertContainer
+        }
+
+    val onStockAlertContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkOnStockAlertContainer
+        } else {
+            QhathiaPalette.OnStockAlertContainer
+        }
+
     /** Brand orange in the lower-right sweeping diagonally up into navy. */
     val headerGradient: Brush
         @Composable @ReadOnlyComposable

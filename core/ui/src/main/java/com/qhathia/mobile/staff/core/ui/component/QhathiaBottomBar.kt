@@ -4,10 +4,12 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +34,9 @@ import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 
 private val BarElevation = 8.dp
+
+/** Pushes the badge just past the glyph's top-end corner, the way a classic notification dot sits. */
+private val BadgeOffset = 10.dp
 
 /**
  * DS bottom navigation bar: a white surface lifted off the content by a soft upward shadow, holding
@@ -59,6 +66,11 @@ fun QhathiaBottomBar(
 /**
  * A single destination inside [QhathiaBottomBar]: glyph over label, both tinted by [selected] —
  * brand accent and bold when active, muted brand blue otherwise.
+ *
+ * [badgeCount] draws a [QhathiaBadge] over the glyph's top-end corner when it is greater than zero.
+ * The badge is folded into the item's own semantics — "Solicitudes, 2 pendientes" reads as one node
+ * rather than as a stray number — and `null` (the default) renders exactly what an unbadged tab
+ * renders, so the tabs that never carry a count are untouched.
  */
 @Composable
 fun RowScope.QhathiaBottomBarItem(
@@ -67,28 +79,54 @@ fun RowScope.QhathiaBottomBarItem(
     @DrawableRes iconRes: Int,
     label: String,
     modifier: Modifier = Modifier,
+    badgeCount: Int? = null,
+    badgeContentDescription: String? = null,
 ) {
     val tint = if (selected) {
         MaterialTheme.colorScheme.secondary
     } else {
         MaterialTheme.colorScheme.tertiary
     }
+    val badge = badgeCount?.takeIf { it > 0 }
     Column(
         modifier = modifier
             .weight(1f)
             .semantics { this.selected = selected }
+            .then(
+                // Collapse the glyph, the label and the badge into a single announcement so the
+                // count is read as part of the destination rather than as a loose number.
+                if (badge != null && badgeContentDescription != null) {
+                    Modifier.clearAndSetSemantics {
+                        this.selected = selected
+                        contentDescription = badgeContentDescription
+                    }
+                } else {
+                    Modifier
+                }
+            )
             .clickable(onClick = onClick)
             .padding(vertical = Dimens.SpaceXs),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
     ) {
-        Icon(
-            painter = painterResource(iconRes),
-            // The label right below names the destination; a content description would double it up.
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(Dimens.IconSm),
-        )
+        Box {
+            Icon(
+                painter = painterResource(iconRes),
+                // The label right below names the destination; a content description would double
+                // it up.
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(Dimens.IconSm),
+            )
+            if (badge != null) {
+                QhathiaBadge(
+                    count = badge,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = BadgeOffset, y = -BadgeOffset),
+                )
+            }
+        }
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
@@ -108,7 +146,14 @@ private fun QhathiaBottomBarPreview() {
         QhathiaBottomBar {
             QhathiaBottomBarItem(false, {}, R.drawable.ic_nav_home, "Inicio")
             QhathiaBottomBarItem(true, {}, R.drawable.ic_nav_inventory, "Inventario")
-            QhathiaBottomBarItem(false, {}, R.drawable.ic_nav_requests, "Solicitudes")
+            QhathiaBottomBarItem(
+                selected = false,
+                onClick = {},
+                iconRes = R.drawable.ic_nav_requests,
+                label = "Solicitudes",
+                badgeCount = 2,
+                badgeContentDescription = "Solicitudes, 2 pendientes",
+            )
             QhathiaBottomBarItem(false, {}, R.drawable.ic_nav_profile, "Perfil")
         }
     }
