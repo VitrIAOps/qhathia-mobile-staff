@@ -21,6 +21,17 @@ data class SalesBucket(
     val amount: BigDecimal,
 )
 
+/** What the period in progress added up to beyond its revenue. */
+data class SalesKpis(
+    val salesCount: Int,
+    val averageTicket: BigDecimal,
+    val unitsSold: Int,
+) {
+    companion object {
+        val EMPTY = SalesKpis(salesCount = 0, averageTicket = BigDecimal.ZERO, unitsSold = 0)
+    }
+}
+
 /**
  * What the store sold, as the Inicio summary card renders it.
  *
@@ -35,6 +46,9 @@ data class SalesBucket(
  *
  * Percentages keep the decimals the source computed; rounding them is a presentation decision.
  * [generatedAt] is when the data was received, backing "Última actualización a las HH:mm".
+ *
+ * [periodStart] and [periodEnd] bound the period in progress (null when the source did not say),
+ * and [kpis] are that period's sales count, average ticket and units.
  */
 data class SalesSummary(
     val period: SalesPeriod,
@@ -44,6 +58,9 @@ data class SalesSummary(
     val highlightedBucketIndex: Int,
     val highlightedDeltaPercent: Double?,
     val generatedAt: Instant,
+    val periodStart: Instant? = null,
+    val periodEnd: Instant? = null,
+    val kpis: SalesKpis = SalesKpis.EMPTY,
 ) {
     /** The best bucket of the period, or null when there is nothing to highlight. */
     val highlightedBucket: SalesBucket?

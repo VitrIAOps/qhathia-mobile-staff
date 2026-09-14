@@ -115,6 +115,41 @@ object QhathiaColors {
         @Composable @ReadOnlyComposable
         get() = QhathiaPalette.OnSuccess
 
+    /** Soft success surface: rank badges and positive delta pills. */
+    val successContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkSuccessContainer
+        } else {
+            QhathiaPalette.SuccessContainer
+        }
+
+    val onSuccessContainer: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkOnSuccessContainer
+        } else {
+            QhathiaPalette.OnSuccessContainer
+        }
+
+    /** Neutral track behind a segmented control drawn on the screen background. */
+    val segmentTrack: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkSegmentTrack
+        } else {
+            QhathiaPalette.SegmentTrack
+        }
+
+    /** Light blue track behind a segmented control drawn inside a card, e.g. the "Filtros" panel. */
+    val filterTrack: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkFilterTrack
+        } else {
+            QhathiaPalette.FilterTrack
+        }
+
     /** Dark navy surface of the Inicio "Resumen" card. */
     val summaryCard: Color
         @Composable @ReadOnlyComposable

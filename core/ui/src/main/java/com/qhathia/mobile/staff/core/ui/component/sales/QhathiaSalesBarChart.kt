@@ -1,4 +1,4 @@
-package com.qhathia.mobile.staff.feature.home.ui
+package com.qhathia.mobile.staff.core.ui.component.sales
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,11 +22,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.qhathia.mobile.staff.core.domain.model.SalesBucket
+import com.qhathia.mobile.staff.core.ui.R
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
-import com.qhathia.mobile.staff.feature.home.R
+import kotlinx.collections.immutable.ImmutableList
 import java.math.BigDecimal
 
 /** Height of the tallest bar, matching the design's 62px column. */
@@ -38,15 +38,15 @@ private val MinBarHeight = 6.dp
 private val BarTopRadius = 8.dp
 
 /**
- * The period's buckets as a row of bars, each labelled with its amount above and its name below.
+ * A window's buckets as a row of bars, each labelled with its amount above and its name below.
  *
  * It is a Compose layout rather than a `Canvas`: the labels stay real `Text` nodes, so they scale
  * with the system font size and stay reachable by tests. The whole chart is announced as one node —
  * four unlabelled bars read aloud individually tell a screen-reader user nothing.
  */
 @Composable
-internal fun SalesBarChart(
-    buckets: List<SalesBucket>,
+fun QhathiaSalesBarChart(
+    buckets: ImmutableList<SalesBucketModel>,
     highlightedIndex: Int,
     totalLabel: String,
     modifier: Modifier = Modifier,
@@ -55,7 +55,7 @@ internal fun SalesBarChart(
     val maxAmount = buckets.maxOf { it.amount }
     val highlighted = buckets.getOrNull(highlightedIndex)
     val chartDescription = stringResource(
-        R.string.home_chart_cd,
+        R.string.sales_chart_cd,
         totalLabel,
         highlighted?.label.orEmpty(),
         highlighted?.amount?.toSolesLabel().orEmpty(),
@@ -80,7 +80,7 @@ internal fun SalesBarChart(
 
 @Composable
 private fun RowScope.SalesBar(
-    bucket: SalesBucket,
+    bucket: SalesBucketModel,
     maxAmount: BigDecimal,
     highlighted: Boolean,
 ) {
@@ -134,13 +134,13 @@ private fun RowScope.SalesBar(
 @Preview(name = "Sales chart — light", showBackground = true, backgroundColor = 0xFF10283C)
 @Preview(name = "Sales chart — dark", showBackground = true, uiMode = 0x20)
 @Composable
-private fun SalesBarChartPreview() {
+private fun QhathiaSalesBarChartPreview() {
     QhathiaTheme {
         Box(modifier = Modifier.background(QhathiaColors.summaryCard).padding(Dimens.SpaceMd)) {
-            SalesBarChart(
-                buckets = HomePreviewData.summary.buckets,
-                highlightedIndex = HomePreviewData.summary.highlightedBucketIndex,
-                totalLabel = HomePreviewData.summary.total.toSolesLabel(),
+            QhathiaSalesBarChart(
+                buckets = SalesSummaryPreviewData.weekly.buckets,
+                highlightedIndex = SalesSummaryPreviewData.weekly.highlightedBucketIndex,
+                totalLabel = SalesSummaryPreviewData.weekly.total.toSolesLabel(),
             )
         }
     }
@@ -150,11 +150,11 @@ private fun SalesBarChartPreview() {
 @Preview(name = "Sales chart, lopsided — light", showBackground = true, backgroundColor = 0xFF10283C)
 @Preview(name = "Sales chart, lopsided — dark", showBackground = true, uiMode = 0x20)
 @Composable
-private fun SalesBarChartLopsidedPreview() {
+private fun QhathiaSalesBarChartLopsidedPreview() {
     QhathiaTheme {
         Box(modifier = Modifier.background(QhathiaColors.summaryCard).padding(Dimens.SpaceMd)) {
-            SalesBarChart(
-                buckets = HomePreviewData.lopsidedBuckets,
+            QhathiaSalesBarChart(
+                buckets = SalesSummaryPreviewData.lopsidedBuckets,
                 highlightedIndex = 3,
                 totalLabel = "S/ 1,712",
             )

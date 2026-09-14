@@ -52,6 +52,13 @@ internal object QhathiaPalette {
     val Success = Color(0xFF1E8E3E)
     val OnSuccess = Color(0xFFFFFFFF)
 
+    // Soft success surface — rank badges and positive delta pills on the sales statistics screen.
+    val SuccessContainer = Color(0xFFDDF7E5)
+    val OnSuccessContainer = Color(0xFF1E8E3E)
+
+    // Light blue track behind the period pills inside the "Filtros" panel (DS primitive-blue-50).
+    val FilterTrack = Color(0xFFEBF3F9)
+
     // Inicio summary card (DS "week-summary-card"). The card is dark navy in both themes — it is a
     // branded surface, not a theme surface, so its tokens barely move between light and dark.
     val SummaryCardSurface = Color(0xFF10283C) // DS primitive-blue-700
@@ -90,6 +97,10 @@ internal object QhathiaPalette {
     val DarkWarningContainer = Color(0xFF3A2E05)
     val DarkOnWarningContainer = Color(0xFFF2D98B)
     val DarkSuccess = Color(0xFF2FA653)
+    val DarkSuccessContainer = Color(0xFF10351D)
+    val DarkOnSuccessContainer = Color(0xFF8FE0A8)
+    val DarkSegmentTrack = Color(0xFF1B2733)
+    val DarkFilterTrack = Color(0xFF13283A)
     val DarkSummaryCardSurface = Color(0xFF0F2334)
     val DarkSummaryBarFill = Color(0xFF1A3D5C)
     val DarkInsightStripSurface = Color(0xFF06304F)

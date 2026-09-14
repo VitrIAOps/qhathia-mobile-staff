@@ -90,5 +90,5 @@ private fun String?.toAvailabilityOrNull(): Availability? = when (this) {
 }
 
 /** A malformed or absent timestamp degrades to null instead of failing the whole response. */
-private fun String?.toInstantOrNull(): Instant? =
+internal fun String?.toInstantOrNull(): Instant? =
     this?.let { runCatching { Instant.parse(it) }.getOrNull() }

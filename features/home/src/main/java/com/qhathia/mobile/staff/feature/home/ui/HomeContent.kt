@@ -21,15 +21,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.qhathia.mobile.staff.core.ui.component.sales.QhathiaSalesSummaryCard
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -73,20 +76,25 @@ internal fun HomeContent(
         }
 
         item(key = "summary") {
+            val cardModel = remember(uiState.summary) { uiState.summary?.toCardModel() }
             Column(
                 modifier = Modifier.padding(horizontal = Dimens.SpaceMd),
                 verticalArrangement = Arrangement.spacedBy(Dimens.SpaceMd),
             ) {
-                SummaryHeading()
+                SummaryHeading(onSeeMore = { onEvent(HomeUiEvent.OpenSalesStatistics) })
                 when {
                     uiState.isInitialLoading -> SummaryLoading()
                     uiState.summary == null && uiState.isError -> SummaryError(
                         onRetry = { onEvent(HomeUiEvent.Refresh) },
                     )
-                    else -> SalesSummaryCard(
-                        summary = uiState.summary,
-                        selectedPeriod = uiState.selectedPeriod,
-                        onSelectPeriod = { onEvent(HomeUiEvent.SelectPeriod(it)) },
+                    else -> QhathiaSalesSummaryCard(
+                        model = cardModel,
+                        header = {
+                            PeriodTabs(
+                                selectedPeriod = uiState.selectedPeriod,
+                                onSelectPeriod = { onEvent(HomeUiEvent.SelectPeriod(it)) },
+                            )
+                        },
                     )
                 }
                 // A failure over data that did load degrades to "stale plus an error", never to a
@@ -119,9 +127,12 @@ internal fun HomeContent(
     }
 }
 
-/** "Resumen" with its inert `Ver más ›` action. */
+/** "Resumen" with its `Ver más ›` action, which opens the sales statistics detail. */
 @Composable
-private fun SummaryHeading(modifier: Modifier = Modifier) {
+private fun SummaryHeading(
+    onSeeMore: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -134,9 +145,8 @@ private fun SummaryHeading(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onBackground,
         )
         Row(
-            // There is no detailed-report screen to reach yet, so this renders and does nothing.
             modifier = Modifier
-                .clickable(enabled = false, onClick = {})
+                .clickable(role = Role.Button, onClick = onSeeMore)
                 .padding(horizontal = Dimens.SpaceMd, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,

@@ -95,6 +95,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":features:auth"))
     implementation(project(":features:home"))
+    implementation(project(":features:sales-statistics"))
     implementation(project(":features:product-inventory"))
     implementation(project(":features:product-register"))
     implementation(project(":features:product-detail"))

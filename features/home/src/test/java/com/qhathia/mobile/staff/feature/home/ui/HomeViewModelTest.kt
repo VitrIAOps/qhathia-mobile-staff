@@ -222,6 +222,20 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `Ver más opens the sales statistics on the selected period`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(HomeUiEvent.SelectPeriod(SalesPeriod.DAILY))
+        runCurrent()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(HomeUiEvent.OpenSalesStatistics)
+            assertEquals(HomeUiEffect.NavigateToSalesStatistics(SalesPeriod.DAILY), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `a period that sold nothing still loads without an error`() = runTest {
         insights.setSummary(
             SalesPeriod.HOURLY,

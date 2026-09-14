@@ -1,9 +1,16 @@
-package com.qhathia.mobile.staff.feature.home.ui
+package com.qhathia.mobile.staff.core.ui.component.sales
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 
-class HomeFormattersTest {
+class SalesFormattersTest {
+
+    @Test
+    fun `soles are grouped and rounded to whole units`() {
+        assertEquals("S/ 5,770", BigDecimal("5770").toSolesLabel())
+        assertEquals("S/ 71", BigDecimal("70.5").toSolesLabel())
+    }
 
     @Test
     fun `percentages print as whole numbers rounded half up`() {

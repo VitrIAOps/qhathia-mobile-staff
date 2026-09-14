@@ -5,10 +5,12 @@ import com.qhathia.mobile.staff.core.domain.model.SalesSummary
 import com.qhathia.mobile.staff.core.domain.repository.StoreInsightsRepository
 import javax.inject.Inject
 
-/** Reads the store's sales summary for [SalesPeriod]. */
+/** The sales summary for a period, optionally limited to one product category. */
 class GetSalesSummaryUseCase @Inject constructor(
     private val repository: StoreInsightsRepository,
 ) {
-    suspend operator fun invoke(period: SalesPeriod): Result<SalesSummary> =
-        repository.getSalesSummary(period)
+    suspend operator fun invoke(
+        period: SalesPeriod,
+        categoryId: String? = null,
+    ): Result<SalesSummary> = repository.getSalesSummary(period, categoryId)
 }

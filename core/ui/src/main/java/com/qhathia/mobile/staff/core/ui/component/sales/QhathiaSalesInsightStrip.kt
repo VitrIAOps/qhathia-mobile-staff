@@ -1,4 +1,4 @@
-package com.qhathia.mobile.staff.feature.home.ui
+package com.qhathia.mobile.staff.core.ui.component.sales
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,32 +18,29 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.qhathia.mobile.staff.core.domain.model.SalesPeriod
-import com.qhathia.mobile.staff.core.domain.model.SalesSummary
+import com.qhathia.mobile.staff.core.ui.R
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
-import com.qhathia.mobile.staff.feature.home.R
-import com.qhathia.mobile.staff.core.ui.R as CoreUiR
 
 private val StripRadius = 8.dp
 
 /**
- * The one-sentence read on the period, under the chart: which bucket did best, and by how much
- * against the bucket before it. It quotes the bucket the chart highlights, so the picture and the
- * prose agree by construction.
+ * The one-sentence read on a window, under the chart: which bucket did best, and by how much against
+ * the bucket before it. It quotes the bucket the chart highlights, so the picture and the prose
+ * agree by construction. Nothing renders when there is no best bucket.
  */
 @Composable
-internal fun SalesInsightStrip(
-    summary: SalesSummary,
+fun QhathiaSalesInsightStrip(
+    model: SalesSummaryCardModel,
     modifier: Modifier = Modifier,
 ) {
-    val bucket = summary.highlightedBucket ?: return
+    val bucket = model.highlightedBucket ?: return
     val sentence = insightSentence(
-        period = summary.period,
+        period = model.period,
         bucketLabel = bucket.label,
         amountLabel = bucket.amount.toSolesLabel(),
-        deltaPercent = summary.highlightedDeltaPercent,
+        deltaPercent = model.highlightedDeltaPercent,
     )
     Row(
         modifier = modifier
@@ -54,7 +51,7 @@ internal fun SalesInsightStrip(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            painter = painterResource(CoreUiR.drawable.ic_star),
+            painter = painterResource(R.drawable.ic_star),
             // The sentence beside it says the same thing; a description would double it up.
             contentDescription = null,
             tint = QhathiaColors.success,
@@ -74,42 +71,42 @@ internal fun SalesInsightStrip(
  */
 @Composable
 private fun insightSentence(
-    period: SalesPeriod,
+    period: SalesPeriodUi,
     bucketLabel: String,
     amountLabel: String,
     deltaPercent: Double?,
 ): String {
     if (deltaPercent == null) {
-        return stringResource(R.string.home_insight_no_comparison, bucketLabel, amountLabel)
+        return stringResource(R.string.sales_insight_no_comparison, bucketLabel, amountLabel)
     }
     val previous = stringResource(period.previousRes)
     val comparison = when (deltaPercent.percentTrend) {
         PercentTrend.UP -> stringResource(
-            R.string.home_comparison_up,
+            R.string.sales_comparison_up,
             deltaPercent.toPercentMagnitudeLabel(),
             previous,
         )
         PercentTrend.DOWN -> stringResource(
-            R.string.home_comparison_down,
+            R.string.sales_comparison_down,
             deltaPercent.toPercentMagnitudeLabel(),
             previous,
         )
-        PercentTrend.FLAT -> stringResource(R.string.home_comparison_flat, previous)
+        PercentTrend.FLAT -> stringResource(R.string.sales_comparison_flat, previous)
     }
-    return stringResource(R.string.home_insight_with_comparison, bucketLabel, amountLabel, comparison)
+    return stringResource(R.string.sales_insight_with_comparison, bucketLabel, amountLabel, comparison)
 }
 
 @Preview(name = "Insight strip — light", showBackground = true)
 @Preview(name = "Insight strip — dark", showBackground = true, uiMode = 0x20)
 @Composable
-private fun SalesInsightStripPreview() {
+private fun QhathiaSalesInsightStripPreview() {
     QhathiaTheme {
         Box(
             modifier = Modifier
                 .background(QhathiaColors.summaryCard)
                 .padding(Dimens.SpaceMd),
         ) {
-            SalesInsightStrip(summary = HomePreviewData.summary)
+            QhathiaSalesInsightStrip(model = SalesSummaryPreviewData.weekly)
         }
     }
 }
@@ -117,15 +114,15 @@ private fun SalesInsightStripPreview() {
 @Preview(name = "Insight strip, no comparison — light", showBackground = true)
 @Preview(name = "Insight strip, no comparison — dark", showBackground = true, uiMode = 0x20)
 @Composable
-private fun SalesInsightStripNoComparisonPreview() {
+private fun QhathiaSalesInsightStripNoComparisonPreview() {
     QhathiaTheme {
         Box(
             modifier = Modifier
                 .background(QhathiaColors.summaryCard)
                 .padding(Dimens.SpaceMd),
         ) {
-            SalesInsightStrip(
-                summary = HomePreviewData.summary.copy(highlightedDeltaPercent = null),
+            QhathiaSalesInsightStrip(
+                model = SalesSummaryPreviewData.weekly.copy(highlightedDeltaPercent = null),
             )
         }
     }

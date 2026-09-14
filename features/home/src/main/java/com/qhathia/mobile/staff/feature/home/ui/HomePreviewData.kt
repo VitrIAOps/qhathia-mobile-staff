@@ -12,8 +12,9 @@ import java.time.Instant
 
 /**
  * Fixed data behind the Inicio previews, shaped like what the dashboard endpoints return and using
- * the design's figures (Figma `Qhatia-DS`, node `1954-6799`). Kept out of the tests, which build
- * their own fixtures from `core:testing`.
+ * the design's figures (Figma `Qhatia-DS`, node `1954-6799`). The summary card's own previews live
+ * with the card in `:core:ui`. Kept out of the tests, which build their own fixtures from
+ * `core:testing`.
  */
 internal object HomePreviewData {
 
@@ -35,38 +36,6 @@ internal object HomePreviewData {
         highlightedBucketIndex = 3,
         highlightedDeltaPercent = 24.3,
         generatedAt = generatedAt,
-    )
-
-    /** A week in progress behind the previous one, while an earlier week stays the best. */
-    val decliningSummary = summary.copy(
-        total = BigDecimal(1280),
-        deltaPercent = -5.9,
-        buckets = listOf(
-            bucket("Sem 10", 1240),
-            bucket("Sem 11", 1480),
-            bucket("Sem 12", 1360),
-            bucket("Sem 13", 1280),
-        ),
-        highlightedBucketIndex = 1,
-        highlightedDeltaPercent = 19.4,
-    )
-
-    /** A window that sold nothing — the card's empty treatment. */
-    val emptySummary = summary.copy(
-        period = SalesPeriod.HOURLY,
-        total = BigDecimal.ZERO,
-        deltaPercent = null,
-        buckets = emptyList(),
-        highlightedBucketIndex = -1,
-        highlightedDeltaPercent = null,
-    )
-
-    /** One bucket a fraction of the tallest — the case the minimum bar height exists for. */
-    val lopsidedBuckets = listOf(
-        bucket("Sem 10", 12),
-        bucket("Sem 11", 40),
-        bucket("Sem 12", 60),
-        bucket("Sem 13", 1600),
     )
 
     val missingProducts = persistentListOf(

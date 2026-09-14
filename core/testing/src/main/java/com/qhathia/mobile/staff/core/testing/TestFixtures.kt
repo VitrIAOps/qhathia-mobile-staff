@@ -16,8 +16,13 @@ import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.domain.model.RestockSuggestion
 import com.qhathia.mobile.staff.core.domain.model.SalesBucket
+import com.qhathia.mobile.staff.core.domain.model.SalesKpis
 import com.qhathia.mobile.staff.core.domain.model.SalesPeriod
+import com.qhathia.mobile.staff.core.domain.model.SalesRanking
 import com.qhathia.mobile.staff.core.domain.model.SalesSummary
+import com.qhathia.mobile.staff.core.domain.model.StalledProduct
+import com.qhathia.mobile.staff.core.domain.model.StoreActivity
+import com.qhathia.mobile.staff.core.domain.model.TopSellingProduct
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import com.qhathia.mobile.staff.core.domain.model.Session
 import com.qhathia.mobile.staff.core.domain.model.StoreSuggestions
@@ -166,6 +171,9 @@ object TestFixtures {
         highlightedBucketIndex: Int = buckets.indices.maxByOrNull { buckets[it].amount } ?: -1,
         highlightedDeltaPercent: Double? = 24.3,
         generatedAt: Instant = NOW,
+        periodStart: Instant? = NOW,
+        periodEnd: Instant? = NOW.plusSeconds(WEEK_SECONDS),
+        kpis: SalesKpis = salesKpis(),
     ) = SalesSummary(
         period = period,
         total = total,
@@ -174,7 +182,67 @@ object TestFixtures {
         highlightedBucketIndex = highlightedBucketIndex,
         highlightedDeltaPercent = highlightedDeltaPercent,
         generatedAt = generatedAt,
+        periodStart = periodStart,
+        periodEnd = periodEnd,
+        kpis = kpis,
     )
+
+    fun salesKpis(
+        salesCount: Int = 24,
+        averageTicket: Long = 70,
+        unitsSold: Int = 55,
+    ) = SalesKpis(salesCount, BigDecimal(averageTicket), unitsSold)
+
+    fun topSellingProduct(
+        id: String = "product-1",
+        name: String = "Taladro percutor Bosch GSB",
+        imageUrl: String? = null,
+        revenue: Long = 1870,
+        unitsSold: Int = 34,
+    ) = TopSellingProduct(id, name, imageUrl, BigDecimal(revenue), unitsSold)
+
+    fun stalledProduct(
+        id: String = "product-9",
+        name: String = "Sierra caladora Stanley",
+        imageUrl: String? = null,
+        stock: Int = 34,
+        price: Long = 100,
+        immobilizedAmount: Long = stock * price,
+    ) = StalledProduct(id, name, imageUrl, stock, BigDecimal(price), BigDecimal(immobilizedAmount))
+
+    fun salesRanking(
+        topSellers: List<TopSellingProduct> = listOf(topSellingProduct()),
+        needsAttention: List<StalledProduct> = listOf(stalledProduct()),
+        periodStart: Instant? = NOW,
+        periodEnd: Instant? = NOW.plusSeconds(WEEK_SECONDS),
+    ) = SalesRanking(
+        periodStart = periodStart,
+        periodEnd = periodEnd,
+        topSellersRevenue = topSellers.fold(BigDecimal.ZERO) { acc, product -> acc + product.revenue },
+        topSellers = topSellers,
+        immobilizedTotal = needsAttention.fold(BigDecimal.ZERO) { acc, product ->
+            acc + product.immobilizedAmount
+        },
+        needsAttention = needsAttention,
+    )
+
+    fun storeActivity(
+        uniqueSessions: Int = 63,
+        uniqueSessionsDeltaPercent: Double? = 12.5,
+        productViews: Int = 148,
+        productViewsDeltaPercent: Double? = 8.8,
+        periodStart: Instant? = NOW,
+        periodEnd: Instant? = NOW.plusSeconds(WEEK_SECONDS),
+    ) = StoreActivity(
+        periodStart = periodStart,
+        periodEnd = periodEnd,
+        uniqueSessions = uniqueSessions,
+        uniqueSessionsDeltaPercent = uniqueSessionsDeltaPercent,
+        productViews = productViews,
+        productViewsDeltaPercent = productViewsDeltaPercent,
+    )
+
+    private const val WEEK_SECONDS = 7 * 24 * 60 * 60L
 
     fun missingProductSuggestion(
         id: String = "taladro",

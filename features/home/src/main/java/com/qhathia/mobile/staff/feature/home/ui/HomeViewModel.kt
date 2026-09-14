@@ -96,6 +96,10 @@ class HomeViewModel @Inject constructor(
             HomeUiEvent.OpenNotifications -> viewModelScope.launch {
                 _uiEffect.emit(HomeUiEffect.NavigateToOrderRequests)
             }
+
+            HomeUiEvent.OpenSalesStatistics -> viewModelScope.launch {
+                _uiEffect.emit(HomeUiEffect.NavigateToSalesStatistics(selectedPeriod.value))
+            }
         }
     }
 

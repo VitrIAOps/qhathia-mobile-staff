@@ -13,4 +13,7 @@ sealed interface HomeUiEvent {
 
     /** The header bell — a tab switch to Solicitudes, not a push on top of Inicio. */
     data object OpenNotifications : HomeUiEvent
+
+    /** `Ver más` on the summary heading — opens the sales statistics on the selected period. */
+    data object OpenSalesStatistics : HomeUiEvent
 }

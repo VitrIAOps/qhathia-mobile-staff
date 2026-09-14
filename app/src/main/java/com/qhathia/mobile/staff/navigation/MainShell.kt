@@ -46,6 +46,8 @@ import com.qhathia.mobile.staff.feature.orderrequests.navigation.ORDER_REQUESTS_
 import com.qhathia.mobile.staff.feature.orderrequests.navigation.orderRequestsGraph
 import com.qhathia.mobile.staff.feature.home.navigation.HOME_ROUTE
 import com.qhathia.mobile.staff.feature.home.navigation.homeGraph
+import com.qhathia.mobile.staff.feature.salesstatistics.navigation.salesStatisticsGraph
+import com.qhathia.mobile.staff.feature.salesstatistics.navigation.salesStatisticsRoute
 import com.qhathia.mobile.staff.ui.profile.ProfileScreen
 
 private const val PROFILE_ROUTE = "profile"
@@ -167,7 +169,15 @@ fun MainShell(
             startDestination = HOME_ROUTE,
             modifier = Modifier.padding(padding),
         ) {
-            homeGraph(onNavigateToOrderRequests = { switchTab(ORDER_REQUESTS_ROUTE) })
+            homeGraph(
+                onNavigateToOrderRequests = { switchTab(ORDER_REQUESTS_ROUTE) },
+                // A push, not a tab switch: back returns to Inicio. Not a top-level route, so the
+                // bottom bar hides itself while it is shown.
+                onNavigateToSalesStatistics = { period ->
+                    navController.navigate(salesStatisticsRoute(period))
+                },
+            )
+            salesStatisticsGraph(onBack = { navController.popBackStack() })
             inventoryGraph(
                 onNavigateToRegister = { navController.navigate(PRODUCT_REGISTER_ROUTE) },
                 onNavigateToProductDetail = { id -> navController.navigate(productDetailRoute(id)) },

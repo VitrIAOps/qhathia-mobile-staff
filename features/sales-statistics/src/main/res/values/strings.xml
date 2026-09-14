@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Top bar -->
+    <string name="statistics_title">Resumen de ventas</string>
+    <string name="statistics_back_cd">Volver</string>
+    <string name="statistics_share_cd">Compartir</string>
+
+    <!-- Tabs -->
+    <string name="statistics_tab_summary">Resumen</string>
+    <string name="statistics_tab_ranking">Ranking</string>
+    <string name="statistics_tab_activity">Actividad</string>
+
+    <!-- Filters -->
+    <string name="statistics_filters">Filtros</string>
+    <string name="statistics_filters_expanded">Desplegado</string>
+    <string name="statistics_filters_collapsed">Plegado</string>
+    <string name="statistics_category_label">Selecciona la categoría de producto</string>
+    <string name="statistics_category_all">Todos</string>
+
+    <!-- Resumen tab -->
+    <string name="statistics_kpi_sales">Num Ventas</string>
+    <string name="statistics_kpi_ticket">Ticket prom.</string>
+    <string name="statistics_kpi_units">Unidades</string>
+
+    <!-- Ranking tab -->
+    <string name="statistics_top_sellers_title">Lo que más vende</string>
+    <plurals name="statistics_top_sellers_caption">
+        <item quantity="one">Generados por tu producto principal</item>
+        <item quantity="other">Generados por tus %1$d productos principales</item>
+    </plurals>
+    <string name="statistics_top_sellers_empty">Aún no hay ventas en este periodo.</string>
+    <plurals name="statistics_units_sold">
+        <item quantity="one">%1$d vendido</item>
+        <item quantity="other">%1$d vendidos</item>
+    </plurals>
+    <!-- Announced for a whole top-seller row: "1. Taladro, 34 vendidos, S/ 1,870". -->
+    <string name="statistics_top_seller_row_cd">%1$d. %2$s, %3$s, %4$s</string>
+
+    <string name="statistics_needs_attention_title">Lo que necesita atención</string>
+    <plurals name="statistics_needs_attention_caption">
+        <item quantity="one">Generados por el producto no vendido</item>
+        <item quantity="other">Generados por los %1$d productos no vendidos</item>
+    </plurals>
+    <string name="statistics_needs_attention_empty">Todo tu inventario se movió en este periodo.</string>
+    <plurals name="statistics_units_unsold">
+        <item quantity="one">%1$d unidad sin vender</item>
+        <item quantity="other">%1$d unidades sin vender</item>
+    </plurals>
+    <!-- Announced for a whole stalled-stock row: "Foco LED, 10 unidades sin vender, S/ 500 inmovilizados". -->
+    <string name="statistics_stalled_row_cd">%1$s, %2$s, %3$s inmovilizados</string>
+
+    <!-- Actividad tab -->
+    <string name="statistics_activity_title">Actividad en la tablet</string>
+    <string name="statistics_activity_customers">Clientes</string>
+    <string name="statistics_activity_customers_caption">usaron la tablet</string>
+    <string name="statistics_activity_products">Productos</string>
+    <string name="statistics_activity_products_caption">consultados</string>
+    <!-- %1$s is a spaced signed percentage, e.g. "+ 12%". -->
+    <string name="statistics_activity_delta_monthly">%1$s vs mes pasado</string>
+    <string name="statistics_activity_delta_weekly">%1$s vs semana pasada</string>
+    <string name="statistics_activity_delta_daily">%1$s vs día anterior</string>
+    <string name="statistics_activity_delta_hourly">%1$s vs hora anterior</string>
+
+    <!-- Loading / error -->
+    <string name="statistics_loading_cd">Cargando estadísticas</string>
+    <string name="statistics_error_message">No pudimos cargar esta información.</string>
+    <string name="statistics_retry">Reintentar</string>
+</resources>

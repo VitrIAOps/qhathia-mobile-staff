@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.SalesPeriod
+import com.qhathia.mobile.staff.core.ui.component.sales.labelRes
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -78,7 +79,7 @@ private fun RowScope.PeriodTab(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = stringResource(period.labelRes),
+            text = stringResource(period.toUi().labelRes),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = if (selected) {
