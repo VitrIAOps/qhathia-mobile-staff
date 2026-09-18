@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="inventory_title">Inventory</string>
+    <string name="inventory_back_cd">Back</string>
+    <string name="inventory_notifications_cd">Notifications</string>
+
+    <string name="inventory_search_placeholder">Search</string>
+    <string name="inventory_search_icon_cd">Search</string>
+
+    <string name="inventory_category_all">All</string>
+
+    <string name="inventory_product_count">%1$d products</string>
+    <string name="inventory_filter">Filters</string>
+    <string name="inventory_filter_cd">Filter products</string>
+    <string name="inventory_filter_categories">Category</string>
+    <string name="inventory_filter_availability">Availability</string>
+
+    <!-- Availability sub-filter options -->
+    <string name="inventory_availability_all">All</string>
+    <string name="inventory_availability_available">Available</string>
+    <string name="inventory_availability_low_stock">Low stock</string>
+    <string name="inventory_availability_consult">Check availability</string>
+
+    <string name="inventory_stock_format">%1$d in stock</string>
+    <string name="inventory_price_format">S/ %1$.2f</string>
+
+    <string name="inventory_register_cd">Register product</string>
+    <string name="inventory_product_image_cd">Product image</string>
+    <string name="inventory_open_detail_cd">View details</string>
+
+    <string name="inventory_empty">No products to show</string>
+    <string name="inventory_error">Couldn\'t load the products</string>
+    <string name="inventory_retry">Retry</string>
+
+    <string name="inventory_register_success">Product registered successfully</string>
+    <string name="inventory_register_plan_limit">You reached your plan\'s product limit</string>
+    <string name="inventory_product_updated">Product updated successfully</string>
+</resources>

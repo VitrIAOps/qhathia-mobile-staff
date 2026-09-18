@@ -4,6 +4,7 @@ import com.qhathia.mobile.staff.core.network.AuthTokenProvider
 import com.qhathia.mobile.staff.core.network.KtorClientFactory
 import com.qhathia.mobile.staff.core.network.NetworkConfig
 import com.qhathia.mobile.staff.core.network.service.AuthApiService
+import com.qhathia.mobile.staff.core.network.service.CatalogApiService
 import com.qhathia.mobile.staff.core.network.service.CategoryApiService
 import com.qhathia.mobile.staff.core.network.service.DashboardApiService
 import com.qhathia.mobile.staff.core.network.service.DeviceApiService
@@ -11,6 +12,9 @@ import com.qhathia.mobile.staff.core.network.service.InsightsApiService
 import com.qhathia.mobile.staff.core.network.service.NotificationApiService
 import com.qhathia.mobile.staff.core.network.service.OrderApiService
 import com.qhathia.mobile.staff.core.network.service.ProductApiService
+import com.qhathia.mobile.staff.core.network.service.StoreApiService
+import com.qhathia.mobile.staff.core.network.service.SubscriptionApiService
+import com.qhathia.mobile.staff.core.network.service.UserApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -98,4 +102,25 @@ object NetworkModule {
     @Singleton
     fun provideInsightsApiService(@AuthenticatedClient client: HttpClient): InsightsApiService =
         InsightsApiService(client)
+
+    @Provides
+    @Singleton
+    fun provideUserApiService(@AuthenticatedClient client: HttpClient): UserApiService =
+        UserApiService(client)
+
+    @Provides
+    @Singleton
+    fun provideSubscriptionApiService(
+        @AuthenticatedClient client: HttpClient,
+    ): SubscriptionApiService = SubscriptionApiService(client)
+
+    @Provides
+    @Singleton
+    fun provideStoreApiService(@AuthenticatedClient client: HttpClient): StoreApiService =
+        StoreApiService(client)
+
+    @Provides
+    @Singleton
+    fun provideCatalogApiService(@AuthenticatedClient client: HttpClient): CatalogApiService =
+        CatalogApiService(client)
 }

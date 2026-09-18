@@ -53,7 +53,12 @@ internal fun SalesStatisticsContent(
     modifier: Modifier = Modifier,
 ) {
     val (start, end) = uiState.activeBounds()
-    val rangeLabel = periodRangeLabel(uiState.period, start, end)
+    val rangeLabel = periodRangeLabel(
+        period = uiState.period,
+        start = start,
+        end = end,
+        locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0],
+    )
     val onRetry = { onEvent(SalesStatisticsUiEvent.Retry) }
 
     Column(

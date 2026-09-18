@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.network
 
+import com.qhathia.mobile.staff.core.network.service.REFRESH_TOKEN_HEADER
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
@@ -57,6 +58,11 @@ object KtorClientFactory {
                     }
                 }
                 level = LogLevel.BODY
+                // Credentials never reach the log, even in debug builds.
+                sanitizeHeader { name ->
+                    name.equals(HttpHeaders.Authorization, ignoreCase = true) ||
+                        name.equals(REFRESH_TOKEN_HEADER, ignoreCase = true)
+                }
             }
         }
         if (tokenProvider != null) {

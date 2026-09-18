@@ -6,11 +6,14 @@ package com.qhathia.mobile.staff.core.domain.model
  *
  * @property activeStore the store carried by the JWT. It is `null` when the user has 2+ stores
  *   (the backend omits the active store until `switch-store` is called) or is a global admin.
+ * @property sessionId the server id of this device's session ("este equipo" in Seguridad). It is
+ *   `null` for sessions created before the backend issued one; it survives token refresh.
  */
 data class Session(
     val tokens: AuthTokens,
     val user: User,
     val activeStore: Store?,
+    val sessionId: String? = null,
 )
 
 /** Bearer token pair plus access-token lifetime, as returned by login and refresh. */

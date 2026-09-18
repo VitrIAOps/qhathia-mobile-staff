@@ -101,9 +101,12 @@ dependencies {
     implementation(project(":features:product-detail"))
     implementation(project(":features:device-linking"))
     implementation(project(":features:order-requests"))
+    implementation(project(":features:profile"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui)

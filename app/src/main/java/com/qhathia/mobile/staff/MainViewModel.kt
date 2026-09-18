@@ -2,6 +2,7 @@ package com.qhathia.mobile.staff
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.qhathia.mobile.staff.core.domain.usecase.ObserveBiometricEnabledUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveSessionUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RegisterPushTokenUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -9,11 +10,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 import javax.inject.Inject
 
 /**
@@ -21,21 +26,31 @@ import javax.inject.Inject
  * push token whenever the session transitions to authenticated (covers login and authenticated app
  * start). Registration is fire-and-forget and fail-open.
  *
+ * With fingerprint sign-in on, a stored session starts [AuthState.Locked] until the merchant passes
+ * the device biometric, and locks again after [RELOCK_AFTER] in the background. A password login
+ * counts as verified, so signing in never lands on the lock.
+ *
  * It also holds the section a notification tap asked for until the shell can honour it. The state
  * lives here rather than in the Activity so it survives configuration changes and — more
- * importantly — the `Loading → Authenticated` transition: a push tapped while logged out is applied
- * once the merchant signs in.
+ * importantly — the `Loading → Authenticated` transition: a push tapped while logged out (or locked)
+ * is applied once the merchant is in.
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
     observeSession: ObserveSessionUseCase,
+    observeBiometricEnabled: ObserveBiometricEnabledUseCase,
     private val registerPushToken: RegisterPushTokenUseCase,
+    private val clock: Clock,
 ) : ViewModel() {
 
     private val _pendingDestination = MutableStateFlow<String?>(null)
 
     /** The section to jump to on the next composition of the shell, or null when there is none. */
     val pendingDestination: StateFlow<String?> = _pendingDestination.asStateFlow()
+
+    /** Whether the biometric gate was passed in this process (or skipped by a password login). */
+    private val unlocked = MutableStateFlow(false)
+    private var backgroundedAt: Instant? = null
 
     /**
      * Records a destination requested from outside the app. Takes the already-extracted value rather
@@ -51,21 +66,54 @@ class MainViewModel @Inject constructor(
         _pendingDestination.value = null
     }
 
-    val authState: StateFlow<AuthState> = observeSession()
+    /** The merchant passed the biometric prompt. */
+    fun onUnlocked() {
+        unlocked.value = true
+    }
+
+    /** The whole app went to the background. */
+    fun onAppBackgrounded() {
+        backgroundedAt = clock.instant()
+    }
+
+    /** The app came back; a long enough absence locks it again. */
+    fun onAppForegrounded() {
+        val since = backgroundedAt ?: return
+        backgroundedAt = null
+        if (Duration.between(since, clock.instant()) >= RELOCK_AFTER) unlocked.value = false
+    }
+
+    private val isAuthenticated = observeSession()
         .map { session -> session != null }
         .distinctUntilChanged()
         .onEach { authenticated ->
             if (authenticated) {
                 viewModelScope.launch { registerPushToken() }
+            } else {
+                // The next session starts with a password login, which already proves who is there.
+                unlocked.value = true
             }
         }
-        .map { authenticated -> if (authenticated) AuthState.Authenticated else AuthState.Unauthenticated }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = AuthState.Loading,
-        )
+
+    val authState: StateFlow<AuthState> =
+        combine(isAuthenticated, observeBiometricEnabled(), unlocked) { authenticated, biometric, isUnlocked ->
+            when {
+                !authenticated -> AuthState.Unauthenticated
+                biometric && !isUnlocked -> AuthState.Locked
+                else -> AuthState.Authenticated
+            }
+        }
+            .distinctUntilChanged()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = AuthState.Loading,
+            )
+
+    companion object {
+        val RELOCK_AFTER: Duration = Duration.ofMinutes(5)
+    }
 }
 
-/** Top-level authentication state used to choose the navigation start destination. */
-enum class AuthState { Loading, Authenticated, Unauthenticated }
+/** Top-level authentication state used to choose what the root renders. */
+enum class AuthState { Loading, Locked, Authenticated, Unauthenticated }

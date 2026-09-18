@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Header -->
+    <string name="home_greeting_named">Hi %1$s</string>
+    <string name="home_greeting_anonymous">Hi</string>
+    <string name="home_last_updated">Last updated at %1$s</string>
+    <string name="home_notifications_cd">Notifications</string>
+    <plurals name="home_notifications_pending_cd">
+        <item quantity="one">Notifications, %1$d pending</item>
+        <item quantity="other">Notifications, %1$d pending</item>
+    </plurals>
+
+    <!-- Resumen section -->
+    <string name="home_summary_title">Summary</string>
+    <string name="home_summary_see_more">See more</string>
+
+    <!-- Suggestions -->
+    <string name="home_suggestions_title">Suggestions to sell more</string>
+    <string name="home_missing_products_title">Products not found</string>
+    <string name="home_restock_products_title">Products to restock</string>
+    <plurals name="home_people_label">
+        <item quantity="one">Person</item>
+        <item quantity="other">People</item>
+    </plurals>
+    <string name="home_add_product">Add</string>
+    <string name="home_restock_product">Restock</string>
+    <plurals name="home_remaining_stock">
+        <item quantity="one">Only %1$d left</item>
+        <item quantity="other">Only %1$d left</item>
+    </plurals>
+    <string name="home_out_of_stock">Out of stock</string>
+
+    <!-- Loading / error -->
+    <string name="home_loading_cd">Loading the summary</string>
+    <string name="home_error_message">We couldn\'t update the summary.</string>
+    <string name="home_retry">Retry</string>
+</resources>

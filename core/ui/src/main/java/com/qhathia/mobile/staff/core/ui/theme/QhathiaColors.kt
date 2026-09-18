@@ -234,6 +234,47 @@ object QhathiaColors {
             QhathiaPalette.OnStockAlertContainer
         }
 
+    /** Track of a checked settings switch. */
+    val switchChecked: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkSwitchChecked
+        } else {
+            QhathiaPalette.SwitchChecked
+        }
+
+    /** Gold surface of the subscription card on Mi perfil and Mi suscripción. */
+    val subscriptionCard: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) {
+            QhathiaPalette.DarkSubscriptionCardSurface
+        } else {
+            QhathiaPalette.SubscriptionCardSurface
+        }
+
+    /** Text and glyphs drawn on [subscriptionCard]. */
+    val onSubscriptionCard: Color
+        @Composable @ReadOnlyComposable
+        get() = QhathiaPalette.OnSubscriptionCard
+
+    /** The "PLAN PRO" badge on [subscriptionCard]; fixed in both themes like the card it sits on. */
+    val planBadge: Color
+        @Composable @ReadOnlyComposable
+        get() = QhathiaPalette.PlanBadge
+
+    val onPlanBadge: Color
+        @Composable @ReadOnlyComposable
+        get() = QhathiaPalette.OnPlanBadge
+
+    /** Track and fill of the subscription period bar. */
+    val planProgressTrack: Color
+        @Composable @ReadOnlyComposable
+        get() = QhathiaPalette.PlanProgressTrack
+
+    val planProgressFill: Color
+        @Composable @ReadOnlyComposable
+        get() = QhathiaPalette.PlanProgressFill
+
     /** Brand orange in the lower-right sweeping diagonally up into navy. */
     val headerGradient: Brush
         @Composable @ReadOnlyComposable

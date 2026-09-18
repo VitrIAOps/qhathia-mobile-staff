@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">QhathiaStaff</string>
+    <string name="app_name" translatable="false">QhathiaStaff</string>
 
     <!-- Bottom navigation -->
     <string name="nav_home">Inicio</string>
@@ -11,16 +11,4 @@
         <item quantity="other">Solicitudes, %1$d pendientes</item>
     </plurals>
     <string name="nav_profile">Perfil</string>
-
-    <!-- Destinations that are still placeholders (Inicio, and the body of Perfil) -->
-    <string name="placeholder_coming_soon">Próximamente</string>
-
-    <!-- Profile -->
-    <string name="profile_link_devices">Vincular terminal</string>
-    <string name="profile_logout">Cerrar sesión</string>
-    <string name="profile_logout_confirm_title">Cerrar sesión</string>
-    <string name="profile_logout_confirm_message">¿Seguro que quieres cerrar sesión? Dejarás de recibir notificaciones de órdenes en este dispositivo.</string>
-
-    <!-- Common actions -->
-    <string name="action_cancel">Cancelar</string>
 </resources>

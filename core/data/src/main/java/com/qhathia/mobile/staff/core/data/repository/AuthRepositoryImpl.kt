@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.data.repository
 
+import com.qhathia.mobile.staff.core.data.local.DeviceLabelProvider
 import com.qhathia.mobile.staff.core.data.mapper.toSession
 import com.qhathia.mobile.staff.core.data.mapper.toTokens
 import com.qhathia.mobile.staff.core.domain.model.AuthTokens
@@ -20,10 +21,12 @@ import javax.inject.Inject
  */
 class AuthRepositoryImpl @Inject constructor(
     private val authApiService: AuthApiService,
+    private val deviceLabelProvider: DeviceLabelProvider,
 ) : AuthRepository {
 
-    override suspend fun login(email: String, password: String): Result<Session> =
-        when (val result = authApiService.login(LoginRequestDto(email, password))) {
+    override suspend fun login(email: String, password: String): Result<Session> {
+        val request = LoginRequestDto(email, password, deviceLabelProvider.label())
+        return when (val result = authApiService.login(request)) {
             is NetworkResult.Success ->
                 runCatching { result.data.toSession() }
                     .recoverCatching { throw LoginException(LoginError.Unknown(it.message)) }
@@ -32,6 +35,7 @@ class AuthRepositoryImpl @Inject constructor(
             is NetworkResult.NetworkError ->
                 Result.failure(LoginException(LoginError.Network))
         }
+    }
 
     override suspend fun refresh(refreshToken: String): Result<AuthTokens> =
         when (val result = authApiService.refresh(RefreshRequestDto(refreshToken))) {

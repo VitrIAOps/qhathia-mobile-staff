@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="register_title">Product registration</string>
+    <string name="register_back_cd">Back</string>
+    <string name="register_notifications_cd">Notifications</string>
+
+    <string name="register_photos_title">Product photos</string>
+    <string name="register_photos_subtitle">The first photo will be the main one.</string>
+
+    <string name="register_name_label">Name</string>
+    <string name="register_name_placeholder">E.g. Cordless drill</string>
+    <string name="register_price_label">Price</string>
+    <string name="register_price_placeholder">S/ 0.00</string>
+    <string name="register_price_prefix">S/</string>
+    <string name="register_quantity_label">Quantity</string>
+    <string name="register_quantity_placeholder">0</string>
+    <string name="register_description_label">Description</string>
+    <string name="register_description_placeholder">E.g. Describe materials, uses and features</string>
+    <string name="register_description_ai">Generate with AI</string>
+    <string name="register_description_ai_optimize">Optimize with AI</string>
+
+    <string name="register_category_label">Category</string>
+    <string name="register_tags_label">Tags</string>
+    <string name="register_tags_placeholder">E.g. Imported, Refurbished, Premium …</string>
+
+    <string name="register_images_label">Photos</string>
+    <string name="register_add_image">Add</string>
+    <string name="register_add_image_cd">Add photo</string>
+    <string name="register_remove_image_cd">Remove photo</string>
+    <string name="register_photo_source_title">Add photo</string>
+    <string name="register_photo_source_camera">Take photo</string>
+    <string name="register_photo_source_gallery">Choose from gallery</string>
+
+    <string name="register_submit">Add</string>
+    <string name="register_cancel">Cancel</string>
+    <string name="register_retry">Retry</string>
+    <string name="register_catalog_error">Couldn\'t load the categories</string>
+
+    <string name="register_error_name">The name is too long</string>
+    <string name="register_error_price">Enter a valid price greater than zero</string>
+    <string name="register_error_quantity">Enter a valid quantity (0 or more)</string>
+    <string name="register_error_image_format">Only JPG or PNG images are allowed</string>
+    <string name="register_error_image">Couldn\'t process the image</string>
+    <string name="register_error_network">No connection. Try again</string>
+    <string name="register_error_validation">Check the details you entered</string>
+    <string name="register_error_unknown">Something went wrong. Try again</string>
+    <string name="register_error_ai">Couldn\'t generate with AI. Try again</string>
+
+    <string name="register_discard_title">Discard changes?</string>
+    <string name="register_discard_message">If you leave now, all unsaved changes will be lost.</string>
+    <string name="register_discard_confirm">Discard</string>
+    <string name="register_discard_dismiss">Keep editing</string>
+
+    <string name="register_ai_replace_title">Replace fields?</string>
+    <string name="register_ai_replace_message">AI generation will replace the description, category and tags you already entered.</string>
+    <string name="register_ai_replace_confirm">Replace</string>
+    <string name="register_ai_replace_dismiss">Cancel</string>
+</resources>

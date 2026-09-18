@@ -14,4 +14,16 @@
     <string name="login_error_validation">Revisa los datos ingresados</string>
     <string name="login_error_network">Sin conexión. Inténtalo de nuevo</string>
     <string name="login_error_unknown">Algo salió mal. Inténtalo de nuevo</string>
+
+    <!-- Biometric unlock gate -->
+    <string name="unlock_greeting_named">Hola, %1$s</string>
+    <string name="unlock_greeting_anonymous">Hola</string>
+    <string name="unlock_subtitle">Usa tu huella para entrar a tu tienda.</string>
+    <string name="unlock_action">Desbloquear con huella</string>
+    <string name="unlock_use_password">Ingresar con contraseña</string>
+    <string name="unlock_continue">Continuar</string>
+    <string name="unlock_biometric_gone">Tu huella ya no está configurada en este equipo. Ingresa con tu contraseña.</string>
+    <string name="unlock_prompt_title">Ingresar a Qhathia</string>
+    <string name="unlock_prompt_subtitle">Confirma que eres tú</string>
+    <string name="unlock_prompt_negative">Cancelar</string>
 </resources>

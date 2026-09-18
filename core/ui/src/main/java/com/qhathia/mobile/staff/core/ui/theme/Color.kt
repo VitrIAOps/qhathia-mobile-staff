@@ -110,4 +110,18 @@ internal object QhathiaPalette {
     val DarkOnStockAlertContainer = Color(0xFFF5B9C6)
     val DarkHeaderGradientOrange = Color(0xFF7A2707)
     val DarkHeaderGradientNavy = Color(0xFF06121D)
+
+    // Mi suscripción card (DS "subscription-card"): a branded gold surface in both themes, with the
+    // yellow plan badge and the blue period-progress bar drawn on it.
+    val SubscriptionCardSurface = Color(0xFF946B00)
+    val DarkSubscriptionCardSurface = Color(0xFF6E5000)
+    val OnSubscriptionCard = Color(0xFFFFFFFF)
+    val PlanBadge = Color(0xFFFFC53D)
+    val OnPlanBadge = Color(0xFF050D14)
+    val PlanProgressTrack = Color(0xFFE8EDF2)
+    val PlanProgressFill = Color(0xFF2F6BA8)
+
+    // Checked settings switch (DS "toggle-on").
+    val SwitchChecked = Color(0xFF34A853)
+    val DarkSwitchChecked = Color(0xFF2FA653)
 }

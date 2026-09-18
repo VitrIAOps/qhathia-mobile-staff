@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.Locale
 
 class StatisticsFormattersTest {
 
@@ -65,6 +66,23 @@ class StatisticsFormattersTest {
         assertEquals(
             "24 de marzo",
             periodRangeLabel(SalesPeriod.DAILY, Instant.parse("2026-03-25T02:00:00Z"), null),
+        )
+    }
+
+    @Test
+    fun `labels follow the app language when it is English`() {
+        val english = Locale.US
+
+        assertEquals("March 24 – 30", periodRangeLabel(SalesPeriod.WEEKLY, at(2026, 3, 24), at(2026, 3, 31), english))
+        assertEquals("March 30 – April 5", periodRangeLabel(SalesPeriod.WEEKLY, at(2026, 3, 30), at(2026, 4, 6), english))
+        assertEquals(
+            "December 29, 2025 – January 4, 2026",
+            periodRangeLabel(SalesPeriod.WEEKLY, at(2025, 12, 29), at(2026, 1, 5), english),
+        )
+        assertEquals("March 2026", periodRangeLabel(SalesPeriod.MONTHLY, at(2026, 3, 1), at(2026, 4, 1), english))
+        assertEquals(
+            "March 30, 14:00 – 15:00",
+            periodRangeLabel(SalesPeriod.HOURLY, at(2026, 3, 30, 14), at(2026, 3, 30, 15), english),
         )
     }
 

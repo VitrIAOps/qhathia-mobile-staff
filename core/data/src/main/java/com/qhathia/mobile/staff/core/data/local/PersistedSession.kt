@@ -7,7 +7,10 @@ import com.qhathia.mobile.staff.core.domain.model.User
 import com.qhathia.mobile.staff.core.domain.model.UserRole
 import kotlinx.serialization.Serializable
 
-/** Serializable mirror of [Session] persisted (encrypted) as a single JSON blob. */
+/**
+ * Serializable mirror of [Session] persisted (encrypted) as a single JSON blob. [sessionId] defaults
+ * to `null` so blobs written before it existed still decode — nobody is signed out by the update.
+ */
 @Serializable
 internal data class PersistedSession(
     val accessToken: String,
@@ -18,6 +21,7 @@ internal data class PersistedSession(
     val userFullName: String,
     val userRole: String,
     val store: PersistedStore?,
+    val sessionId: String? = null,
 )
 
 @Serializable
@@ -37,6 +41,7 @@ internal fun Session.toPersisted(): PersistedSession = PersistedSession(
     userFullName = user.fullName,
     userRole = user.role.name,
     store = activeStore?.let { PersistedStore(it.id, it.shoppingCenterId, it.name, it.category) },
+    sessionId = sessionId,
 )
 
 internal fun PersistedSession.toDomain(): Session = Session(
@@ -48,4 +53,5 @@ internal fun PersistedSession.toDomain(): Session = Session(
         role = runCatching { UserRole.valueOf(userRole) }.getOrDefault(UserRole.UNKNOWN),
     ),
     activeStore = store?.let { Store(it.id, it.shoppingCenterId, it.name, it.category) },
+    sessionId = sessionId,
 )

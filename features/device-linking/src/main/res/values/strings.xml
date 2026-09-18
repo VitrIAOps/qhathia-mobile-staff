@@ -1,28 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="device_linking_title">Dispositivos vinculados</string>
-    <string name="device_linking_back_cd">Volver</string>
-    <string name="device_linking_add_cd">Vincular terminal</string>
-
-    <string name="device_linking_empty">Aún no tienes terminales vinculados. Toca + para agregar uno.</string>
-    <string name="device_linking_error">No se pudieron cargar los terminales</string>
+    <string name="device_linking_title">Dispositivos</string>
+    <string name="device_linking_add">Vincular otro dispositivo</string>
+    <string name="device_linking_empty">Aún no tienes tablets vinculadas. Toca «Vincular otro dispositivo» para agregar una.</string>
+    <string name="device_linking_error">No se pudieron cargar tus dispositivos</string>
     <string name="device_linking_retry">Reintentar</string>
+    <string name="device_cancel">Cancelar</string>
 
-    <string name="device_unnamed">Terminal</string>
-    <string name="device_app_version_format">Versión %1$s</string>
+    <!-- Device card -->
+    <string name="device_unnamed">Tablet</string>
+    <string name="device_missing">—</string>
+    <string name="device_connected">Conectada</string>
+    <string name="device_disconnected">Desconectada</string>
+    <string name="device_catalog_label">Catálogo visible</string>
+    <plurals name="device_catalog_products">
+        <item quantity="one">%d producto</item>
+        <item quantity="other">%d productos</item>
+    </plurals>
+    <!-- %1$s is a relative time, e.g. "hace 4 min". -->
+    <string name="device_catalog_updated">Actualizado %1$s</string>
+    <string name="device_last_report">Último reporte %1$s</string>
+    <string name="device_battery">Batería</string>
+    <string name="device_connection">Conexión</string>
+    <string name="device_store">Tienda</string>
+    <string name="device_customers_today">Clientes hoy</string>
+    <string name="device_network_wifi">Wi Fi</string>
+    <string name="device_network_mobile">Datos móviles</string>
+    <string name="device_network_online">En línea</string>
+    <string name="device_network_limited">Limitada</string>
 
-    <!-- Device status labels -->
-    <string name="device_status_active">Activo</string>
-    <string name="device_status_pending">Pendiente de vinculación</string>
-    <string name="device_status_inactive">Inactivo</string>
-    <string name="device_status_suspended">Suspendido</string>
-    <string name="device_status_unknown">Desconocido</string>
+    <!-- Remote commands -->
+    <string name="device_refresh_catalog">Actualizar catálogo</string>
+    <string name="device_restart">Reiniciar</string>
+    <string name="device_restart_title">Reiniciar la tablet</string>
+    <string name="device_restart_message">Se reiniciará la app de la vitrina en %1$s. La tablet puede tardar unos minutos en recibir la orden.</string>
+    <string name="device_command_refresh_label">Catálogo</string>
+    <string name="device_command_restart_label">Reinicio</string>
+    <!-- %1$s is the command label, %2$s its status. -->
+    <string name="device_command_status_line">%1$s: %2$s</string>
+    <string name="device_command_sent">Enviado</string>
+    <string name="device_command_ready">Listo</string>
+    <string name="device_command_failed">Falló</string>
+    <string name="device_command_failed_detail">Falló: %1$s</string>
+    <string name="device_command_expired">No se pudo entregar</string>
+    <string name="device_command_error">No se pudo enviar la orden. Inténtalo de nuevo.</string>
 
     <!-- Pair dialog -->
-    <string name="device_pair_title">Vincular terminal</string>
+    <string name="device_pair_title">Vincular tablet</string>
     <string name="device_pair_close_cd">Cerrar</string>
     <string name="device_pair_code_placeholder">Código de vinculación</string>
     <string name="device_pair_submit">Vincular</string>
-    <string name="device_pair_error_generic">No se pudo vincular el terminal. Inténtalo de nuevo.</string>
+    <string name="device_pair_error_generic">No se pudo vincular la tablet. Inténtalo de nuevo.</string>
     <string name="device_pair_error_invalid_code">Código inválido o expirado.</string>
 </resources>

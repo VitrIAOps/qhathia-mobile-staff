@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="detail_title">Product details</string>
+    <string name="detail_back_cd">Back</string>
+    <string name="detail_notifications_cd">Notifications</string>
+
+    <string name="detail_photos_label">Photos</string>
+    <string name="detail_photos_empty">This product has no photos yet</string>
+    <string name="detail_photo_cd">Product photo</string>
+
+    <string name="detail_name_label">Name</string>
+    <string name="detail_name_placeholder">E.g. Cordless drill</string>
+    <string name="detail_price_label">Price</string>
+    <string name="detail_price_placeholder">S/ 0.00</string>
+    <string name="detail_price_prefix">S/</string>
+    <string name="detail_quantity_label">Quantity</string>
+    <string name="detail_quantity_placeholder">0</string>
+    <string name="detail_description_label">Description</string>
+    <string name="detail_description_placeholder">E.g. Describe materials, uses and features</string>
+    <string name="detail_description_ai">Optimize with AI</string>
+
+    <string name="detail_category_label">Category</string>
+    <string name="detail_tags_label">Tags</string>
+    <string name="detail_tags_placeholder">E.g. Imported, Refurbished, Premium …</string>
+
+    <string name="detail_save">Save</string>
+    <string name="detail_cancel">Cancel</string>
+    <string name="detail_retry">Retry</string>
+    <string name="detail_load_error">Couldn\'t load the product</string>
+
+    <string name="detail_error_name">The name is too long</string>
+    <string name="detail_error_price">Enter a valid price greater than zero</string>
+    <string name="detail_error_quantity">Enter a valid quantity (0 or more)</string>
+    <string name="detail_error_not_found">This product no longer exists</string>
+    <string name="detail_error_network">No connection. Try again</string>
+    <string name="detail_error_validation">Check the details you entered</string>
+    <string name="detail_error_unknown">Something went wrong. Try again</string>
+    <string name="detail_error_ai">Couldn\'t optimize with AI. Try again</string>
+
+    <string name="detail_discard_title">Discard changes?</string>
+    <string name="detail_discard_message">If you leave now, all unsaved changes will be lost.</string>
+    <string name="detail_discard_confirm">Discard</string>
+    <string name="detail_discard_dismiss">Keep editing</string>
+</resources>

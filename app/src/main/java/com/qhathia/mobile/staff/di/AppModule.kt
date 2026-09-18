@@ -6,9 +6,13 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import java.time.Clock
 import javax.inject.Singleton
 
-/** App-level bindings — supplies environment config from `BuildConfig` to the network layer. */
+/**
+ * App-level bindings — supplies environment config from `BuildConfig` to the network layer, and the
+ * [Clock] ViewModels read "now" from (tests substitute a controllable one).
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -19,4 +23,8 @@ object AppModule {
         baseUrl = BuildConfig.BASE_URL,
         enableLogging = BuildConfig.DEBUG,
     )
+
+    @Provides
+    @Singleton
+    fun provideClock(): Clock = Clock.systemDefaultZone()
 }

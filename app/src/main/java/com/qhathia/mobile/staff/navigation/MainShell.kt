@@ -48,9 +48,8 @@ import com.qhathia.mobile.staff.feature.home.navigation.HOME_ROUTE
 import com.qhathia.mobile.staff.feature.home.navigation.homeGraph
 import com.qhathia.mobile.staff.feature.salesstatistics.navigation.salesStatisticsGraph
 import com.qhathia.mobile.staff.feature.salesstatistics.navigation.salesStatisticsRoute
-import com.qhathia.mobile.staff.ui.profile.ProfileScreen
-
-private const val PROFILE_ROUTE = "profile"
+import com.qhathia.mobile.staff.feature.profile.navigation.PROFILE_ROUTE
+import com.qhathia.mobile.staff.feature.profile.navigation.profileGraph
 
 /**
  * Requests `POST_NOTIFICATIONS` once on first entry to the authenticated shell (API 33+ only). The
@@ -204,11 +203,12 @@ fun MainShell(
                 onCancelled = { navController.popBackStack() },
             )
             orderRequestsGraph()
-            composable(PROFILE_ROUTE) {
-                ProfileScreen(
-                    onNavigateToLinkDevices = { navController.navigate(DEVICE_LINKING_ROUTE) },
-                )
-            }
+            profileGraph(
+                navController = navController,
+                // Pushed over Mi perfil like its other sections, so back returns there.
+                onNavigateToDevices = { navController.navigate(DEVICE_LINKING_ROUTE) },
+                onNavigateToOrderRequests = { switchTab(ORDER_REQUESTS_ROUTE) },
+            )
             deviceLinkingGraph(onBack = { navController.popBackStack() })
         }
     }

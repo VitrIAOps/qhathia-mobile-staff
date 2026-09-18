@@ -29,6 +29,18 @@ import com.qhathia.mobile.staff.core.domain.model.StoreSuggestions
 import com.qhathia.mobile.staff.core.domain.model.Store
 import com.qhathia.mobile.staff.core.domain.model.User
 import com.qhathia.mobile.staff.core.domain.model.UserRole
+import com.qhathia.mobile.staff.core.domain.model.ActiveSession
+import com.qhathia.mobile.staff.core.domain.model.AppLanguage
+import com.qhathia.mobile.staff.core.domain.model.DeviceCommand
+import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
+import com.qhathia.mobile.staff.core.domain.model.DeviceCommandType
+import com.qhathia.mobile.staff.core.domain.model.NotificationPreference
+import com.qhathia.mobile.staff.core.domain.model.NotificationPreferences
+import com.qhathia.mobile.staff.core.domain.model.PlanFeatures
+import com.qhathia.mobile.staff.core.domain.model.StoreSettings
+import com.qhathia.mobile.staff.core.domain.model.Subscription
+import com.qhathia.mobile.staff.core.domain.model.SubscriptionStatus
+import com.qhathia.mobile.staff.core.domain.model.UserProfile
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -62,7 +74,8 @@ object TestFixtures {
         tokens: AuthTokens = tokens(),
         user: User = user(),
         activeStore: Store? = store(),
-    ) = Session(tokens, user, activeStore)
+        sessionId: String? = "session-1",
+    ) = Session(tokens, user, activeStore, sessionId)
 
     fun product(
         id: String = "product-1",
@@ -131,7 +144,82 @@ object TestFixtures {
         status: DeviceStatus = DeviceStatus.ACTIVE,
         appVersion: String? = "1.0.0",
         linkedAt: String? = "2026-04-15T18:30:00Z",
-    ) = Device(id, serialNumber, status, appVersion, linkedAt)
+        name: String? = "Tablet vitrina 1",
+        batteryLevel: Int? = 82,
+        networkStatus: String? = "WIFI",
+        storeName: String? = "Stand 1",
+        lastPingAt: Instant? = NOW.minusSeconds(180),
+        lastSyncAt: Instant? = NOW.minusSeconds(240),
+    ) = Device(
+        id = id,
+        serialNumber = serialNumber,
+        status = status,
+        appVersion = appVersion,
+        linkedAt = linkedAt,
+        name = name,
+        batteryLevel = batteryLevel,
+        networkStatus = networkStatus,
+        storeName = storeName,
+        lastPingAt = lastPingAt,
+        lastSyncAt = lastSyncAt,
+    )
+
+    fun deviceCommand(
+        id: String = "cmd-1",
+        type: DeviceCommandType = DeviceCommandType.REFRESH_CATALOG,
+        status: DeviceCommandStatus = DeviceCommandStatus.PENDING,
+        requestedAt: Instant? = NOW,
+        resultDetail: String? = null,
+    ) = DeviceCommand(id, type, status, requestedAt, resultDetail)
+
+    fun userProfile(
+        id: String = "user-1",
+        fullName: String = "Carla Mendoza",
+        email: String = "carla.mendoza@gmail.com",
+        phone: String? = "999888777",
+        passwordUpdatedAt: Instant? = null,
+        role: UserRole = UserRole.OWNER,
+        storeCount: Int = 3,
+    ) = UserProfile(id, fullName, email, phone, passwordUpdatedAt, role, storeCount)
+
+    fun subscription(
+        planType: String = "PRO",
+        planName: String = "Plan Pro",
+        status: SubscriptionStatus = SubscriptionStatus.ACTIVE,
+        priceMonthlyPen: BigDecimal = BigDecimal("89.00"),
+        features: PlanFeatures = PlanFeatures(
+            productLimit = 200,
+            hasAdvancedAnalytics = true,
+            hasVideoProducts = false,
+            hasBulkPriceUpdate = false,
+            hasPrioritySupport = false,
+        ),
+        startedAt: Instant? = Instant.parse("2025-08-15T05:00:00Z"),
+        endsAt: Instant? = Instant.parse("2026-09-15T05:00:00Z"),
+    ) = Subscription(planType, planName, status, priceMonthlyPen, features, startedAt, endsAt)
+
+    fun notificationPreferences(
+        values: Map<NotificationPreference, Boolean> =
+            NotificationPreference.entries.associateWith { it != NotificationPreference.LOW_BATTERY },
+    ) = NotificationPreferences(
+        values = values,
+        activeCount = values.count { it.value },
+        totalCount = NotificationPreference.entries.size,
+    )
+
+    fun activeSession(
+        sessionId: String = "session-1",
+        deviceLabel: String = "Redmi Note 12",
+        lastUsedAt: Instant? = NOW.minusSeconds(60),
+        isCurrent: Boolean = false,
+    ) = ActiveSession(sessionId, deviceLabel, lastUsedAt, isCurrent)
+
+    fun storeSettings(
+        storeId: String = "store-1",
+        language: AppLanguage? = AppLanguage.SPANISH,
+        pricesIncludeIgv: Boolean = true,
+        igvRate: BigDecimal = BigDecimal("0.18"),
+    ) = StoreSettings(storeId, language, pricesIncludeIgv, igvRate)
 
     fun selectedImage(
         uri: String = "content://images/1",
