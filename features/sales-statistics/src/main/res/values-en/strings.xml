@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Top bar -->
+    <string name="statistics_title">Sales summary</string>
+    <string name="statistics_back_cd">Back</string>
+    <string name="statistics_share_cd">Share</string>
+
+    <!-- Tabs -->
+    <string name="statistics_tab_summary">Summary</string>
+    <string name="statistics_tab_ranking">Ranking</string>
+    <string name="statistics_tab_activity">Activity</string>
+
+    <!-- Filters -->
+    <string name="statistics_filters">Filters</string>
+    <string name="statistics_filters_expanded">Expanded</string>
+    <string name="statistics_filters_collapsed">Collapsed</string>
+    <string name="statistics_category_label">Select the product category</string>
+    <string name="statistics_category_all">All</string>
+
+    <!-- Resumen tab -->
+    <string name="statistics_kpi_sales">No. of sales</string>
+    <string name="statistics_kpi_ticket">Avg. ticket</string>
+    <string name="statistics_kpi_units">Units</string>
+
+    <!-- Ranking tab -->
+    <string name="statistics_top_sellers_title">Best sellers</string>
+    <plurals name="statistics_top_sellers_caption">
+        <item quantity="one">Brought in by your top product</item>
+        <item quantity="other">Brought in by your %1$d top products</item>
+    </plurals>
+    <string name="statistics_top_sellers_empty">No sales in this period yet.</string>
+    <plurals name="statistics_units_sold">
+        <item quantity="one">%1$d sold</item>
+        <item quantity="other">%1$d sold</item>
+    </plurals>
+    <string name="statistics_top_seller_row_cd">%1$d. %2$s, %3$s, %4$s</string>
+
+    <string name="statistics_needs_attention_title">Needs attention</string>
+    <plurals name="statistics_needs_attention_caption">
+        <item quantity="one">Tied up in the unsold product</item>
+        <item quantity="other">Tied up in the %1$d unsold products</item>
+    </plurals>
+    <string name="statistics_needs_attention_empty">All your inventory moved in this period.</string>
+    <plurals name="statistics_units_unsold">
+        <item quantity="one">%1$d unit unsold</item>
+        <item quantity="other">%1$d units unsold</item>
+    </plurals>
+    <string name="statistics_stalled_row_cd">%1$s, %2$s, %3$s tied up</string>
+
+    <!-- Actividad tab -->
+    <string name="statistics_activity_title">Tablet activity</string>
+    <string name="statistics_activity_customers">Customers</string>
+    <string name="statistics_activity_customers_caption">used the tablet</string>
+    <string name="statistics_activity_products">Products</string>
+    <string name="statistics_activity_products_caption">viewed</string>
+    <string name="statistics_activity_delta_monthly">%1$s vs last month</string>
+    <string name="statistics_activity_delta_weekly">%1$s vs last week</string>
+    <string name="statistics_activity_delta_daily">%1$s vs previous day</string>
+    <string name="statistics_activity_delta_hourly">%1$s vs previous hour</string>
+
+    <!-- Loading / error -->
+    <string name="statistics_loading_cd">Loading statistics</string>
+    <string name="statistics_error_message">We couldn\'t load this information.</string>
+    <string name="statistics_retry">Retry</string>
+</resources>

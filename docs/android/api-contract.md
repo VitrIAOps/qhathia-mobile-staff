@@ -9,19 +9,40 @@
 
 ---
 
-## Cambios recientes (Fase 1-21)
+## Cambios recientes (Fase 1-23)
+
+**Fase 23 — 2026-09-13 (change `device-remote-commands`):** los botones "Actualizar catálogo" y "Reiniciar" de la card de Dispositivos.
+- **`POST /api/v1/devices/{deviceId}/commands`** (OWNER/ADMIN) → 202. Encola `REFRESH_CATALOG` o `RESTART_APP`. **Idempotente mientras hay uno en vuelo**: tocar el botón cinco veces encola uno.
+- **`GET /api/v1/devices/{deviceId}/commands`** → los últimos 20 con su estado, para pintar "Enviado hace 2 min" / "Listo" / "Falló".
+- **`POST /api/v1/devices/me/commands/{commandId}/ack`** (DEVICE) → la tablet confirma qué pasó.
+- **El heartbeat entrega los comandos**: `pendingCommands` en la respuesta. **No es instantáneo** — hay hasta un ciclo de latido de latencia, así que la pantalla debe decir "Enviado" y no "Listo" hasta el ack.
+- Los comandos **expiran a los 10 min y no se reintentan**. Un "Reiniciar" del viernes no puede ejecutarse el lunes, y re-entregar un `RESTART_APP` dejaría la tablet en bucle.
+- **auth V18**: tabla `device_commands`.
+
+**Fase 22 — 2026-09-13 (change `store-display-settings`):** pantalla Configuración ("Idioma y precios").
+- **`GET/PUT /api/v1/stores/{storeId}`** gana `language` (`"es"` | `"en"`) y `pricesIncludeIgv`. **Sin endpoint nuevo** — es donde ya viven `whatsapp` y `address`.
+- **`igvRate`** (`0.18`) sale en la respuesta para que la tablet, la app y el PDF no lo hardcodeen por separado.
+- **El backend NO recalcula precios.** `pricesIncludeIgv` declara cómo leer `products.price`; mover el toggle cambia etiquetas, nunca montos.
+- El **PDF del carrito** rotula el total: "Precios con IGV incluido." o "Los precios no incluyen IGV (18%)". No suma impuesto.
+- `language` **se persiste pero todavía no se aplica**: que el asistente de voz conteste en inglés es su propio change.
+- **auth V17**: `stores.language` + `stores.prices_include_igv`.
+- **Además**: `GlobalExceptionHandler` (auth y biz) mapea `HttpMessageNotReadableException` a **400** con los valores válidos del enum. Antes un enum desconocido en el body salía como **500**.
 
 **Fase 21 — 2026-09-13 (change `remote-tablet-settings`):** ajustes remotos de la tablet.
-- **`GET/PUT /api/v1/devices/{deviceId}/settings`** (OWNER/ADMIN) — modo kiosco, PIN de salida, asistente de voz, vitrina en reposo, auto-sync y brillo. `PUT` es **parcial**.
+- **`GET/PUT /api/v1/devices/{deviceId}/settings`** (OWNER/ADMIN) — los 6 controles del mockup: vitrina en reposo, asistente por voz, brillo, modo kiosco, PIN de salida y sincronización automática. `PUT` es **parcial**.
+- **`brightnessMode` es un selector** (`AUTO | LOW | MEDIUM | HIGH`), no un porcentaje: el comerciante declara una intención y Android resuelve el nit según su sensor.
 - **El PIN es write-only**: se guarda con BCrypt y el comerciante solo ve `exitPinSet: true|false`. Para quitarlo, `removeExitPin: true` explícito.
 - **`GET /api/v1/devices/me/settings`** (DEVICE) — la tablet lee **los suyos**; es el único endpoint que devuelve `exitPinHash`, para poder salir del modo kiosco **sin red**.
 - **`POST /api/v1/devices/heartbeat` devuelve `settingsVersion`** — sube en cada escritura. La tablet re-lee sus ajustes solo cuando el número cambia: sin polling nuevo ni push a la tablet.
+- **`devices.model`** (V16) — el bloque INFORMACIÓN de la pantalla pide el modelo comercial ("Lenovo Tab M11"). La tablet lo reporta en el heartbeat; `serialNumber`, `linkedAt` y `appVersion` ya existían.
 - **auth V16**: tabla `device_settings`, 1:1 con `devices`, creada al vincular (y al vuelo para las tablets anteriores).
 
 **Fase 20 — 2026-09-13 (change `notification-preferences`):** pantalla Notificaciones del perfil.
-- **`GET /api/v1/notifications/preferences`** (OWNER/SELLER/ADMIN) — los 7 toggles ya resueltos + `activeCount` para el "N de 7 alertas activas" del menú. **Nunca 404**: si el usuario nunca guardó nada devuelve los defaults.
+- **`GET /api/v1/notifications/preferences`** (OWNER/SELLER/ADMIN) — los 7 toggles del mockup ya resueltos + `activeCount`/`totalCount` para el "N de 7 alertas activas" del menú. **Nunca 404**: si el usuario nunca guardó nada devuelve los defaults (todos en `true`).
 - **`PUT /api/v1/notifications/preferences`** — update **parcial**: manda solo lo que cambió.
-- El fan-out de push **respeta los toggles** de `newOrders`, `orderTaken` y `orderExpired` (los tres eventos que el backend emite hoy). Los otros cuatro (`lowStock`, `dailySummary`, `unmetSearches`, `productNews`) se guardan pero **todavía no tienen emisor**.
+- Los 7, en los grupos del mockup: **Pedidos** (`newOrder`, `orderExpiring`) · **Tablet** (`tabletDisconnected`, `productOutOfStock`, `lowBattery`) · **Tu negocio** (`weeklyReport`, `sellingSuggestions`).
+- **Solo `newOrder` tiene emisor hoy** (el push `NEW_ORDER`). Los otros seis se guardan y esperan su job — el contrato ya está fijo para cuando existan.
+- **`ORDER_TAKEN` no tiene toggle y sale siempre**: es sincronización (saca la orden de "Pendientes" en los demás celulares), no una alerta. Silenciarlo dejaría la lista mintiendo.
 - **La ausencia de preferencias nunca silencia**: sin fila, o si la consulta falla, el push sale igual.
 - **biz V17**: tabla `notification_preferences`, una fila por `(user_id, store_id)`.
 
@@ -169,6 +190,8 @@ Esta sección resume los cambios contractuales más relevantes desde la versión
 19. [Seguridad de la cuenta y sesiones (Fase 19)](#19-seguridad-de-la-cuenta-y-sesiones-fase-19)
 20. [Preferencias de notificaciones (Fase 20)](#20-preferencias-de-notificaciones-fase-20)
 21. [Ajustes remotos de la tablet (Fase 21)](#21-ajustes-remotos-de-la-tablet-fase-21)
+22. [Configuración de la tienda: idioma e IGV (Fase 22)](#22-configuración-de-la-tienda-idioma-e-igv-fase-22)
+23. [Comandos remotos a la tablet (Fase 23)](#23-comandos-remotos-a-la-tablet-fase-23)
 
 ---
 
@@ -3661,22 +3684,28 @@ obligaría a un Feign call sincrónico dentro del fan-out.
 
 ### Los 7 toggles
 
-| Campo | Default | ¿Efectivo hoy? |
-|---|---|---|
-| `newOrders` | `true` | **Sí** — la tablet creó un pedido |
-| `orderTaken` | `true` | **Sí** — otro vendedor lo confirmó o lo rechazó |
-| `orderExpired` | `true` | **Sí** — el pedido venció sin que nadie lo atendiera |
-| `lowStock` | `true` | No — se guarda, falta el job que observe el umbral |
-| `dailySummary` | `false` | No — se guarda, falta el job |
-| `unmetSearches` | `false` | No — se guarda, falta el job |
-| `productNews` | `true` | No — se guarda, falta el canal |
+Los grupos son presentación y los arma el front; el backend devuelve los siete planos.
 
-Los dos resúmenes arrancan **apagados** a propósito: son notificaciones programadas y un push
-diario que nadie pidió se lee como spam.
+| Grupo | Campo | Label del mockup | Default | ¿Emisor hoy? |
+|---|---|---|---|---|
+| Pedidos | `newOrder` | "Nuevo pedido" | `true` | **Sí** — push `NEW_ORDER` |
+| Pedidos | `orderExpiring` | "Pedido por expirar" (aviso ~2 min antes) | `true` | No |
+| Tablet | `tabletDisconnected` | "Tablet desconectada" | `true` | No |
+| Tablet | `productOutOfStock` | "Producto agotado en vitrina" | `true` | No |
+| Tablet | `lowBattery` | "Batería baja" | `true` | No |
+| Tu negocio | `weeklyReport` | "Reporte semanal" (lunes, por WhatsApp) | `true` | No |
+| Tu negocio | `sellingSuggestions` | "Sugerencias para vender más" | `true` | No |
 
-Los cuatro sin emisor **se pueden mostrar y guardar** — la pantalla queda completa y el día que
-exista el job no hay que migrar nada. Si prefieres no prometer lo que aún no llega, píntalos con
-un "pronto".
+> **Solo `newOrder` está cableado.** Los otros seis se guardan y se devuelven, pero **nada los
+> emite todavía**: cada uno necesita su job (umbral, ventana y dedup para no spamear). El contrato
+> ya está fijo, así que cuando existan no hay que migrar la tabla ni tocar la app.
+>
+> Si prefieres no prometer lo que aún no llega, píntalos con un "pronto".
+
+**`orderExpiring` no es el push de `EXPIRED`.** El backend ya manda un `ORDER_TAKEN` con
+`status=EXPIRED` cuando un pedido vence — eso es **sincronización**: le dice a los demás celulares
+que lo saquen de "Pendientes". Este toggle es para un aviso **previo** ("te quedan 2 min"), que es
+otra cosa y todavía no existe.
 
 ### GET /api/v1/notifications/preferences
 
@@ -3684,19 +3713,21 @@ un "pronto".
 
 ```json
 {
-  "newOrders": true,
-  "orderTaken": false,
-  "orderExpired": true,
-  "lowStock": true,
-  "dailySummary": false,
-  "unmetSearches": false,
-  "productNews": true,
-  "activeCount": 4
+  "newOrder": true,
+  "orderExpiring": true,
+  "tabletDisconnected": true,
+  "productOutOfStock": true,
+  "lowBattery": false,
+  "weeklyReport": true,
+  "sellingSuggestions": true,
+  "activeCount": 6,
+  "totalCount": 7
 }
 ```
 
-- **Nunca devuelve 404 ni nulls.** Sin fila guardada responde con los defaults de la tabla de
-  arriba, así la pantalla se pinta igual la primera vez que se abre.
+- **Nunca devuelve 404 ni nulls.** Sin fila guardada responde con los defaults, así la pantalla se
+  pinta igual la primera vez que se abre.
+- `activeCount`/`totalCount` alimentan el subtítulo del menú sin que el front hardcodee el 7.
 - Leer **no crea** la fila: aparece con el primer `PUT`.
 - Las preferencias son **por tienda activa**: tras un `switch-store` la respuesta puede cambiar.
 
@@ -3705,37 +3736,29 @@ un "pronto".
 **Auth:** OWNER/SELLER/ADMIN. Update **parcial** → 200 con el set completo ya aplicado.
 
 ```json
-{ "orderTaken": false }
+{ "lowBattery": false }
 ```
 
 - Los campos ausentes (o `null`) **no se tocan**. Manda solo el toggle que el usuario acaba de
-  mover; no hace falta re-enviar los otros seis y así dos celulares del mismo usuario editando a
-  la vez no se pisan.
+  mover; así dos celulares del mismo usuario editando a la vez no se pisan.
 - Es upsert: el primer `PUT` crea la fila partiendo de los defaults.
 - Body vacío `{}` es válido y no cambia nada.
 
 ### Qué pasa con los pushes
 
-El fan-out salta los celulares de los usuarios que apagaron la bandera correspondiente al evento:
-
 | Evento del push | Bandera |
 |---|---|
-| `NEW_ORDER` | `newOrders` |
-| `ORDER_TAKEN` con `status` `CONFIRMED`/`REJECTED` | `orderTaken` |
-| `ORDER_TAKEN` con `status` `EXPIRED` | `orderExpired` |
+| `NEW_ORDER` | `newOrder` |
+| `ORDER_TAKEN` (`CONFIRMED`/`REJECTED`/`EXPIRED`) | **ninguna — siempre se entrega** |
 
 **La ausencia de preferencias nunca silencia.** El filtro consulta a quienes *apagaron* la
 bandera, no a quienes la encendieron; sin fila, con la fila ilegible o con la consulta caída, el
 push sale igual. Silenciar por accidente un pedido nuevo le cuesta una venta al comerciante.
 
-Los toggles son independientes: apagar `orderTaken` **no** apaga `newOrders`, y `orderExpired`
-tiene el suyo aunque viaje en el mismo evento `ORDER_TAKEN`.
-
 ### Qué NO cubre esta fase
 
-Horario de silencio ("no molestar"), preferencias por canal (no hay email transaccional) y los
-cuatro jobs que faltan para que `lowStock`, `dailySummary`, `unmetSearches` y `productNews`
-lleguen a emitir algo.
+Horario de silencio ("no molestar"), preferencias por canal, y **los seis jobs que faltan** para
+que todo lo que no sea `newOrder` llegue a emitir algo.
 
 ---
 
@@ -3746,19 +3769,38 @@ Vive en **auth**, que es quien posee `devices`.
 
 ### Los ajustes
 
-| Campo | Default | Rango |
-|---|---|---|
-| `kioskMode` | `true` | — |
-| `exitPin` | sin PIN | 4-6 dígitos (**write-only**) |
-| `voiceAssistantEnabled` | `true` | — |
-| `idleShowcaseEnabled` | `true` | — |
-| `idleTimeoutSeconds` | `120` | 30-3600 |
-| `autoSyncEnabled` | `true` | — |
-| `syncIntervalMinutes` | `15` | 5-1440 |
-| `screenBrightness` | `80` | 0-100 |
+| Grupo del mockup | Campo | Label | Default |
+|---|---|---|---|
+| Pantalla del cliente | `idleShowcaseEnabled` | "Modo Vitrina en reposo" | `true` |
+| Pantalla del cliente | `voiceAssistantEnabled` | "Asistente por voz" | `true` |
+| Pantalla del cliente | `brightnessMode` | "Brillo" | `AUTO` |
+| Seguridad | `kioskMode` | "Modo kiosco" | `true` |
+| Seguridad | `exitPin` | "PIN de salida" (**write-only**) | sin PIN |
+| Catálogo | `autoSyncEnabled` | "Sincronizar automáticamente" | `true` |
 
-`screenBrightness: 0` es válido (stands que apagan la pantalla de noche). Un
-`syncIntervalMinutes` menor a 5 no: sería un DDoS involuntario contra el backend.
+`brightnessMode` es un **selector**: `AUTO | LOW | MEDIUM | HIGH`. No es un porcentaje porque un
+valor fijo se ve distinto en cada modelo y queda ilegible bajo el sol de un pasillo; el
+comerciante declara una intención y Android resuelve el nit con su sensor.
+
+**No hay intervalo de sync ni timeout de reposo configurables** — el mockup no los expone y el
+backend no tiene por qué opinar sobre cada cuánto late una tablet.
+
+### El bloque INFORMACIÓN
+
+Sale de `GET /api/v1/devices` / `GET /api/v1/devices/{id}`, no de este endpoint:
+
+| Fila del mockup | Campo |
+|---|---|
+| Modelo ("Lenovo Tab M11") | `model` — **nuevo en V16** |
+| N.º de serie | `serialNumber` |
+| Vinculada desde | `linkedAt` |
+| Versión de la app | `appVersion` |
+| Tienda asignada | `storeName` |
+| Nombre | `name` (editable con `PATCH /devices/{id}`) |
+
+`model` lo reporta la tablet en el heartbeat (`{"model": "Lenovo Tab M11"}`, opcional, máx. 100).
+Es telemetría como la batería: si viene se guarda, y **nunca rompe el latido**. Las tablets
+vinculadas antes de V16 lo llenan en su siguiente heartbeat.
 
 ### GET /api/v1/devices/{deviceId}/settings
 
@@ -3767,14 +3809,12 @@ Vive en **auth**, que es quien posee `devices`.
 ```json
 {
   "deviceId": "…",
+  "idleShowcaseEnabled": true,
+  "voiceAssistantEnabled": true,
+  "brightnessMode": "AUTO",
   "kioskMode": true,
   "exitPinSet": true,
-  "voiceAssistantEnabled": true,
-  "idleShowcaseEnabled": true,
-  "idleTimeoutSeconds": 120,
   "autoSyncEnabled": true,
-  "syncIntervalMinutes": 15,
-  "screenBrightness": 80,
   "settingsVersion": 4
 }
 ```
@@ -3790,7 +3830,7 @@ Vive en **auth**, que es quien posee `devices`.
 **Auth:** OWNER/ADMIN. Update **parcial** → 200 con el set completo ya aplicado.
 
 ```json
-{ "kioskMode": false, "screenBrightness": 40 }
+{ "kioskMode": false, "brightnessMode": "HIGH" }
 ```
 
 - Los campos ausentes **no se tocan**.
@@ -3798,7 +3838,7 @@ Vive en **auth**, que es quien posee `devices`.
   `"removeExitPin": true`** — un `exitPin` ausente significa "no lo toques", y un borrado
   accidental dejaría la tablet abierta en el stand sin que nadie se entere.
 - Cada escritura **sube `settingsVersion`**.
-- `422` con `fieldErrors` si algún valor sale de rango; nada se persiste.
+- `422` si el PIN no cumple el formato o `brightnessMode` no es uno de los cuatro valores.
 
 ### GET /api/v1/devices/me/settings
 
@@ -3833,7 +3873,178 @@ la tablet no tiene). Es la misma semántica que `catalogVersion` ya tenía.
 
 ### Qué NO cubre esta fase
 
-Horarios ("kiosco activo de 9 a 21"), ajustes por tienda que se propaguen a varias tablets, y
-**aplicar** los ajustes: el backend los guarda y los sirve; bajar el brillo o arrancar la vitrina
-es trabajo de la app del kiosko. Mientras la app no lea `settingsVersion`, los ajustes se guardan
-sin efecto visible — es aditivo, nada se rompe.
+Horarios ("kiosco activo de 9 a 21"), ajustes por tienda que se propaguen a varias tablets, los
+botones remotos "Actualizar catálogo" y "Reiniciar" de la pantalla Dispositivos, y **aplicar** los
+ajustes: el backend los guarda y los sirve; bajar el brillo o arrancar la vitrina es trabajo de la
+app del kiosko. Mientras la app no lea `settingsVersion`, los ajustes se guardan sin efecto
+visible — es aditivo, nada se rompe.
+
+---
+
+## 22. Configuración de la tienda: idioma e IGV (Fase 22)
+
+Backend de la pantalla **Configuración** ("Idioma y precios"). Change `store-display-settings`.
+**No hay endpoint nuevo**: los dos campos entran por `GET/PUT /api/v1/stores/{storeId}`, que ya es
+donde viven `whatsapp` y `address`.
+
+```json
+{
+  "id": "…", "name": "El Martillo", "slug": "el-martillo",
+  "language": "es",
+  "pricesIncludeIgv": true,
+  "igvRate": 0.18,
+  "…": "…"
+}
+```
+
+| Campo | Valores | Default |
+|---|---|---|
+| `language` | `"es"` \| `"en"` | `"es"` |
+| `pricesIncludeIgv` | `true` \| `false` | `true` |
+| `igvRate` | derivado, solo lectura | `0.18` |
+
+`PUT` es parcial (los campos ausentes no se tocan) y requiere OWNER/ADMIN. Un `language` fuera de
+los dos valores da **400** con el detalle listando los válidos.
+
+### El backend NO recalcula precios
+
+`pricesIncludeIgv` es una **declaración sobre cómo leer `products.price`**, no una instrucción de
+cálculo:
+
+```
+true   →  products.price YA lleva IGV   →  mostrar "S/ 118 · IGV incluido"
+false  →  products.price es neto        →  mostrar "S/ 100 + IGV"
+```
+
+Mover el toggle **no cambia ningún precio guardado ni ningún total servido**. Si recalculara,
+activarlo y desactivarlo dos veces dejaría precios distintos por redondeo, y un toque accidental
+repreciaría el catálogo entero. El redondeo lo hace quien muestra el número, con su propia regla.
+
+`igvRate` viene del backend justamente para que el kiosko, la app y el PDF no lo escriban por
+separado y discrepen el día que cambie.
+
+### `language` se guarda, todavía no se aplica
+
+Es el idioma del **kiosko** — lo que lee y habla el cliente frente a la tablet — no el de la app
+del comerciante, que es una preferencia local de Android.
+
+Hoy se persiste y se sirve, nada más. Que `vo-api` conteste en inglés exige traducir el prompt del
+sistema y validar que las respuestas no salgan en spanglish con un catálogo cuyos productos tienen
+nombre en español. Eso se prueba con el LLM delante; es su propio change.
+
+### Qué hace el PDF
+
+El PDF de la cotización agrega bajo el TOTAL REFERENCIAL:
+
+- `pricesIncludeIgv: true` → "Precios con IGV incluido."
+- `pricesIncludeIgv: false` → "Los precios no incluyen IGV (18%)."
+
+**No suma el IGV al total.** Ya es un documento referencial que dice que el precio final se
+confirma en la tienda; calcularle un tributo le daría una precisión que no tiene. Si auth no
+responde, el PDF sale igual con el default (IGV incluido) — un share nunca falla por una etiqueta.
+
+---
+
+## 23. Comandos remotos a la tablet (Fase 23)
+
+Backend de los botones **"Actualizar catálogo"** y **"Reiniciar"** de la card de Dispositivos.
+Change `device-remote-commands`.
+
+### No es instantáneo, y la pantalla tiene que decirlo
+
+No hay push hacia la tablet: los tokens FCM son de los celulares del staff, y el WebSocket del
+repo es exclusivo del pairing. El comando viaja en el **heartbeat**, que la tablet ya emite.
+
+```
+comerciante pulsa  →  POST /devices/{id}/commands   →  202 PENDING
+                              ⋮  (hasta un ciclo de heartbeat)
+tablet late        →  pendingCommands: [{id, command}]  →  DELIVERED
+tablet ejecuta     →  POST /devices/me/commands/{id}/ack →  ACKED | FAILED
+```
+
+**La card debe mostrar "Enviado" y recién "Listo" con el ack.** Prometer inmediatez que no existe
+es peor que la espera.
+
+### POST /api/v1/devices/{deviceId}/commands
+
+**Auth:** OWNER/ADMIN, solo dispositivos de la tienda activa → **202**.
+
+```json
+{ "command": "REFRESH_CATALOG" }
+```
+
+| Comando | Qué hace la tablet |
+|---|---|
+| `REFRESH_CATALOG` | Fuerza un `GET /device-sync/manifest` fuera de ciclo |
+| `RESTART_APP` | Reinicia **la app del kiosko**, no el sistema operativo |
+
+Respuesta:
+
+```json
+{
+  "id": "…", "deviceId": "…",
+  "command": "REFRESH_CATALOG",
+  "status": "PENDING",
+  "requestedAt": "…", "expiresAt": "…",
+  "deliveredAt": null, "ackedAt": null, "resultDetail": null
+}
+```
+
+- **Idempotente mientras hay uno en vuelo**: si ya existe uno del mismo tipo en `PENDING` o
+  `DELIVERED`, devuelve **ese mismo id**. Un comerciante impaciente genera un comando, no cinco.
+- Contra comandos ya terminados **no** deduplica: volver a pulsar media hora después es legítimo.
+- `404` si el dispositivo no es de la tienda activa · `400` si el comando no existe.
+
+### GET /api/v1/devices/{deviceId}/commands
+
+**Auth:** OWNER/ADMIN. Los últimos 20, más nuevo primero, con `status`, `requestedAt`, `ackedAt` y
+`resultDetail`.
+
+### El heartbeat entrega
+
+`POST /api/v1/devices/heartbeat` gana:
+
+```json
+{ "received": true, "…": "…", "settingsVersion": 4,
+  "pendingCommands": [ { "id": "…", "command": "REFRESH_CATALOG" } ] }
+```
+
+Lista vacía cuando no hay nada. **Entregarlos los marca `DELIVERED` y no se repiten.**
+
+### POST /api/v1/devices/me/commands/{commandId}/ack
+
+**Auth:** DEVICE. El dispositivo sale del JWT → **204**.
+
+```json
+{ "success": false, "detail": "sin conexión al catálogo" }
+```
+
+`success: true` → `ACKED`. `false` → `FAILED`, y el `detail` (máx. 300, truncado) aparece en la
+card para que el comerciante vea algo más útil que "Falló". Un comando de **otra** tablet → `404`.
+
+### Expiración: 10 minutos, sin reintentos
+
+Un comando que nadie recoge dentro de su TTL pasa a `EXPIRED`, y el heartbeat nunca lo entrega. Un
+"Reiniciar" pulsado el viernes por la tarde no puede ejecutarse el lunes cuando alguien prende la
+tablet.
+
+**Un comando entregado tampoco se re-entrega.** Si la tablet muere entre recibirlo y confirmarlo,
+expira. Para `REFRESH_CATALOG` reintentar sería inofensivo, pero para `RESTART_APP` no: una tablet
+que reinicia, no alcanza a confirmar y vuelve a recibir la orden queda en bucle — inutilizada por
+el mismo mecanismo que debía arreglarla. El reintento es un botón, no un job.
+
+### Estados
+
+| Estado | Qué mostrar |
+|---|---|
+| `PENDING` | "Enviado" |
+| `DELIVERED` | "Enviado" (la tablet lo recibió, aún no confirma) |
+| `ACKED` | "Listo" |
+| `FAILED` | "Falló: {resultDetail}" |
+| `EXPIRED` | "No se pudo entregar" — ofrecer reintentar |
+
+### Qué NO cubre esta fase
+
+Comandos a varias tablets a la vez, comandos programados, reintentos automáticos, y **ejecutarlos**:
+el backend encola, entrega y guarda el desenlace; ejecutar es la app del kiosko. Mientras no lea
+`pendingCommands`, los comandos se encolan y expiran solos — aditivo, nada se rompe.

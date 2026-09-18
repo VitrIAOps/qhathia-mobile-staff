@@ -1,13 +1,21 @@
 package com.qhathia.mobile.staff.feature.devicelinking.ui
 
+import app.cash.turbine.test
+import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
+import com.qhathia.mobile.staff.core.domain.model.DeviceCommandType
 import com.qhathia.mobile.staff.core.domain.model.PairDeviceError
 import com.qhathia.mobile.staff.core.domain.model.PairDeviceException
+import com.qhathia.mobile.staff.core.domain.usecase.GetCatalogCountUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.GetDeviceCommandsUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetDevicesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.PairDeviceUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.SendDeviceCommandUseCase
 import com.qhathia.mobile.staff.core.testing.FakeDeviceRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
+import com.qhathia.mobile.staff.core.testing.MutableClock
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.devicelinking.R
+import com.qhathia.mobile.staff.feature.devicelinking.model.DeviceLinkingUiEffect
 import com.qhathia.mobile.staff.feature.devicelinking.model.DeviceLinkingUiEvent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -18,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import java.io.IOException
+import java.time.Duration
 
 class DeviceLinkingViewModelTest {
 
@@ -26,6 +35,7 @@ class DeviceLinkingViewModelTest {
     val mainDispatcher = MainDispatcherExtension()
 
     private lateinit var repository: FakeDeviceRepository
+    private val clock = MutableClock()
 
     @BeforeEach
     fun setUp() {
@@ -35,10 +45,19 @@ class DeviceLinkingViewModelTest {
     private fun createViewModel() = DeviceLinkingViewModel(
         getDevicesUseCase = GetDevicesUseCase(repository),
         pairDeviceUseCase = PairDeviceUseCase(repository),
+        getCatalogCountUseCase = GetCatalogCountUseCase(repository),
+        sendDeviceCommandUseCase = SendDeviceCommandUseCase(repository),
+        getDeviceCommandsUseCase = GetDeviceCommandsUseCase(repository),
+        clock = clock,
     )
 
+    private fun advancePoll() {
+        mainDispatcher.dispatcher.scheduler.advanceTimeBy(DeviceLinkingViewModel.COMMAND_POLL_INTERVAL.toMillis())
+        mainDispatcher.dispatcher.scheduler.runCurrent()
+    }
+
     @Test
-    fun `on init loads devices`() = runTest {
+    fun `on init loads devices and the catalog count`() = runTest {
         repository.devicesResult = Result.success(
             listOf(TestFixtures.device(id = "d1"), TestFixtures.device(id = "d2")),
         )
@@ -47,6 +66,7 @@ class DeviceLinkingViewModelTest {
 
         assertEquals(2, state.devices.size)
         assertTrue(state.hasDevices)
+        assertEquals(12, state.catalogCount)
         assertFalse(state.isLoading)
         assertFalse(state.isError)
     }
@@ -56,6 +76,136 @@ class DeviceLinkingViewModelTest {
         repository.devicesResult = Result.failure(IOException("offline"))
 
         assertTrue(createViewModel().uiState.value.isError)
+    }
+
+    @Test
+    fun `a failed catalog count leaves the devices visible without a count`() = runTest {
+        repository.catalogCountResult = Result.failure(IOException("offline"))
+
+        val state = createViewModel().uiState.value
+
+        assertTrue(state.hasDevices)
+        assertNull(state.catalogCount)
+    }
+
+    @Test
+    fun `refresh catalog is sent and the button stays busy until the tablet answers`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(DeviceLinkingUiEvent.RefreshCatalog("device-1"))
+        viewModel.onEvent(DeviceLinkingUiEvent.RefreshCatalog("device-1"))
+
+        val state = viewModel.uiState.value
+        assertEquals(listOf("device-1" to DeviceCommandType.REFRESH_CATALOG), repository.sentCommands)
+        assertEquals(DeviceCommandStatus.PENDING, state.commandFor("device-1", DeviceCommandType.REFRESH_CATALOG)?.status)
+        assertTrue(state.isCommandBusy("device-1", DeviceCommandType.REFRESH_CATALOG))
+        assertFalse(state.isCommandBusy("device-1", DeviceCommandType.RESTART_APP))
+    }
+
+    @Test
+    fun `a failed command is reported and the button is usable again`() = runTest {
+        repository.sendCommandResult = Result.failure(IOException("offline"))
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(DeviceLinkingUiEvent.RefreshCatalog("device-1"))
+            assertEquals(DeviceLinkingUiEffect.ShowCommandError(DeviceCommandType.REFRESH_CATALOG), awaitItem())
+        }
+        assertFalse(viewModel.uiState.value.isCommandBusy("device-1", DeviceCommandType.REFRESH_CATALOG))
+    }
+
+    @Test
+    fun `restart is sent only after confirmation`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(DeviceLinkingUiEvent.RestartRequested("device-1"))
+        assertEquals("device-1", viewModel.uiState.value.pendingRestartDeviceId)
+        assertTrue(repository.sentCommands.isEmpty())
+
+        viewModel.onEvent(DeviceLinkingUiEvent.RestartConfirmed)
+
+        assertNull(viewModel.uiState.value.pendingRestartDeviceId)
+        assertEquals(listOf("device-1" to DeviceCommandType.RESTART_APP), repository.sentCommands)
+    }
+
+    @Test
+    fun `dismissing the restart confirmation sends nothing`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(DeviceLinkingUiEvent.RestartRequested("device-1"))
+        viewModel.onEvent(DeviceLinkingUiEvent.RestartDismissed)
+
+        assertTrue(repository.sentCommands.isEmpty())
+    }
+
+    @Test
+    fun `a visible screen polls an in-flight command until the tablet confirms`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+        viewModel.onEvent(DeviceLinkingUiEvent.RefreshCatalog("device-1"))
+        val callsBefore = repository.getCommandsCallCount
+        repository.commandsResults["device-1"] = Result.success(
+            listOf(TestFixtures.deviceCommand(id = "cmd-1", status = DeviceCommandStatus.ACKED)),
+        )
+
+        advancePoll()
+
+        assertEquals(callsBefore + 1, repository.getCommandsCallCount)
+        val state = viewModel.uiState.value
+        assertEquals(DeviceCommandStatus.ACKED, state.commandFor("device-1", DeviceCommandType.REFRESH_CATALOG)?.status)
+        assertFalse(state.isCommandBusy("device-1", DeviceCommandType.REFRESH_CATALOG))
+
+        advancePoll()
+        assertEquals(callsBefore + 1, repository.getCommandsCallCount)
+    }
+
+    @Test
+    fun `an expired command frees the button for a retry`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+        viewModel.onEvent(DeviceLinkingUiEvent.RefreshCatalog("device-1"))
+        repository.commandsResults["device-1"] = Result.success(
+            listOf(TestFixtures.deviceCommand(id = "cmd-1", status = DeviceCommandStatus.EXPIRED)),
+        )
+
+        advancePoll()
+
+        assertEquals(
+            DeviceCommandStatus.EXPIRED,
+            viewModel.uiState.value.commandFor("device-1", DeviceCommandType.REFRESH_CATALOG)?.status,
+        )
+        assertFalse(viewModel.uiState.value.isCommandBusy("device-1", DeviceCommandType.REFRESH_CATALOG))
+    }
+
+    @Test
+    fun `a stopped screen does not poll`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+        viewModel.onEvent(DeviceLinkingUiEvent.RefreshCatalog("device-1"))
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStopped)
+        val callsBefore = repository.getCommandsCallCount
+
+        advancePoll()
+
+        assertEquals(callsBefore, repository.getCommandsCallCount)
+    }
+
+    @Test
+    fun `on open, a recent command is shown and an old finished one is not`() = runTest {
+        repository.devicesResult = Result.success(
+            listOf(TestFixtures.device(id = "d1"), TestFixtures.device(id = "d2")),
+        )
+        repository.commandsResults["d1"] = Result.success(
+            listOf(TestFixtures.deviceCommand(status = DeviceCommandStatus.ACKED, requestedAt = clock.now.minus(Duration.ofMinutes(2)))),
+        )
+        repository.commandsResults["d2"] = Result.success(
+            listOf(TestFixtures.deviceCommand(status = DeviceCommandStatus.ACKED, requestedAt = clock.now.minus(Duration.ofMinutes(11)))),
+        )
+
+        val state = createViewModel().uiState.value
+
+        assertEquals(DeviceCommandStatus.ACKED, state.commandFor("d1", DeviceCommandType.REFRESH_CATALOG)?.status)
+        assertNull(state.commandFor("d2", DeviceCommandType.REFRESH_CATALOG))
     }
 
     @Test
@@ -94,7 +244,7 @@ class DeviceLinkingViewModelTest {
         assertFalse(state.isPairDialogVisible)
         assertFalse(state.isPairing)
         assertEquals("AB3CD", repository.lastPairedCode)
-        assertEquals(loadsAfterInit + 1, repository.getDevicesCallCount) // reloaded after pairing
+        assertEquals(loadsAfterInit + 1, repository.getDevicesCallCount)
     }
 
     @Test

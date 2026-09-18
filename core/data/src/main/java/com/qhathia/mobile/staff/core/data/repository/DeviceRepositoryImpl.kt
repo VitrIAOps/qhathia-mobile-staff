@@ -2,11 +2,15 @@ package com.qhathia.mobile.staff.core.data.repository
 
 import com.qhathia.mobile.staff.core.data.mapper.toDomain
 import com.qhathia.mobile.staff.core.domain.model.Device
+import com.qhathia.mobile.staff.core.domain.model.DeviceCommand
+import com.qhathia.mobile.staff.core.domain.model.DeviceCommandType
 import com.qhathia.mobile.staff.core.domain.model.PairDeviceError
 import com.qhathia.mobile.staff.core.domain.model.PairDeviceException
 import com.qhathia.mobile.staff.core.domain.repository.DeviceRepository
 import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceRequestDto
+import com.qhathia.mobile.staff.core.network.dto.SendDeviceCommandRequestDto
+import com.qhathia.mobile.staff.core.network.service.CatalogApiService
 import com.qhathia.mobile.staff.core.network.service.DeviceApiService
 import javax.inject.Inject
 
@@ -19,17 +23,11 @@ import javax.inject.Inject
  */
 class DeviceRepositoryImpl @Inject constructor(
     private val apiService: DeviceApiService,
+    private val catalogApiService: CatalogApiService,
 ) : DeviceRepository {
 
     override suspend fun getDevices(): Result<List<Device>> =
-        when (val result = apiService.getDevices()) {
-            is NetworkResult.Success ->
-                Result.success(result.data.map { it.toDomain() })
-            is NetworkResult.HttpError ->
-                Result.failure(IllegalStateException("HTTP ${result.code}: ${result.message}"))
-            is NetworkResult.NetworkError ->
-                Result.failure(result.cause)
-        }
+        apiService.getDevices().asDomainResult { devices -> devices.map { it.toDomain() } }
 
     override suspend fun pairDevice(code: String): Result<Unit> {
         val body = PairDeviceRequestDto(
@@ -48,6 +46,23 @@ class DeviceRepositoryImpl @Inject constructor(
                 Result.failure(PairDeviceException(PairDeviceError.Network))
         }
     }
+
+    override suspend fun getCatalogCount(): Result<Int> =
+        catalogApiService.getCount().asDomainResult { it.activeProducts.coerceAtLeast(0) }
+
+    override suspend fun sendCommand(
+        deviceId: String,
+        type: DeviceCommandType,
+    ): Result<DeviceCommand> =
+        apiService.sendCommand(deviceId, SendDeviceCommandRequestDto(type.name))
+            .asDomainResult { dto ->
+                requireNotNull(dto.toDomain()) { "Unexpected command type ${dto.command}" }
+            }
+
+    override suspend fun getCommands(deviceId: String): Result<List<DeviceCommand>> =
+        apiService.getCommands(deviceId).asDomainResult { commands ->
+            commands.mapNotNull { it.toDomain() }
+        }
 
     private fun Int.toPairError(): PairDeviceError = when (this) {
         400 -> PairDeviceError.InvalidCode

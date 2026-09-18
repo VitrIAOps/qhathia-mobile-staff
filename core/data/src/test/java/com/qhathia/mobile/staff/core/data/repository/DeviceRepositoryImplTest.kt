@@ -7,6 +7,7 @@ import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.dto.DeviceDto
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceRequestDto
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceResponseDto
+import com.qhathia.mobile.staff.core.network.service.CatalogApiService
 import com.qhathia.mobile.staff.core.network.service.DeviceApiService
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -21,7 +22,8 @@ import java.io.IOException
 class DeviceRepositoryImplTest {
 
     private val api = mockk<DeviceApiService>()
-    private val repository = DeviceRepositoryImpl(api)
+    private val catalogApi = mockk<CatalogApiService>()
+    private val repository = DeviceRepositoryImpl(api, catalogApi)
 
     private fun deviceDto() = DeviceDto(
         id = "d1",

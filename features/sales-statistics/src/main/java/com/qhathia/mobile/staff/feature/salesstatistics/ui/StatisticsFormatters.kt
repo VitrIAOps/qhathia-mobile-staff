@@ -17,21 +17,27 @@ private val SPANISH_PERU: Locale = Locale.forLanguageTag("es-PE")
 private val HOUR_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 /**
- * The calendar range a period covers, as the design writes it: `24 – 30 de marzo`,
- * `30 de marzo – 5 de abril`, `marzo 2026`, `30 de marzo`, `30 de marzo, 14:00 – 15:00`.
+ * The calendar range a period covers, as the design writes it, in the app [locale]:
+ * `24 – 30 de marzo` / `March 24 – 30`, `30 de marzo – 5 de abril` / `March 30 – April 5`,
+ * `marzo 2026` / `March 2026`, `30 de marzo, 14:00 – 15:00` / `March 30, 14:00 – 15:00`.
  * Null without a start bound.
  *
  * The contract does not say whether [end] is exclusive, so the last day is read at `end − 1 ns`:
  * right for both an exclusive midnight and an inclusive `23:59:59.999`.
  */
-internal fun periodRangeLabel(period: SalesPeriod, start: Instant?, end: Instant?): String? {
+internal fun periodRangeLabel(
+    period: SalesPeriod,
+    start: Instant?,
+    end: Instant?,
+    locale: Locale = SPANISH_PERU,
+): String? {
     val from = start?.atZone(LIMA) ?: return null
     return when (period) {
-        SalesPeriod.MONTHLY -> "${from.monthName()} ${from.year}"
-        SalesPeriod.DAILY -> from.dayAndMonth()
+        SalesPeriod.MONTHLY -> "${from.monthName(locale)} ${from.year}"
+        SalesPeriod.DAILY -> from.dayAndMonth(locale)
         SalesPeriod.HOURLY ->
-            "${from.dayAndMonth()}, ${from.format(HOUR_FORMAT)} – ${from.plusHours(1).format(HOUR_FORMAT)}"
-        SalesPeriod.WEEKLY -> weekLabel(from, end)
+            "${from.dayAndMonth(locale)}, ${from.format(HOUR_FORMAT)} – ${from.plusHours(1).format(HOUR_FORMAT)}"
+        SalesPeriod.WEEKLY -> weekLabel(from, end, locale)
     }
 }
 
@@ -42,20 +48,33 @@ internal fun Double.toSpacedSignedPercentLabel(): String = when (percentTrend) {
     PercentTrend.FLAT -> "0%"
 }
 
-private fun weekLabel(from: ZonedDateTime, end: Instant?): String {
+private fun weekLabel(from: ZonedDateTime, end: Instant?, locale: Locale): String {
     val to = end
         ?.minusNanos(1)
         ?.atZone(LIMA)
         ?.takeIf { it.toLocalDate() > from.toLocalDate() }
-        ?: return from.dayAndMonth()
-    return when {
-        from.year != to.year ->
-            "${from.dayAndMonth()} de ${from.year} – ${to.dayAndMonth()} de ${to.year}"
-        from.month != to.month -> "${from.dayAndMonth()} – ${to.dayAndMonth()}"
-        else -> "${from.dayOfMonth} – ${to.dayAndMonth()}"
+        ?: return from.dayAndMonth(locale)
+    return if (locale.isSpanish) {
+        when {
+            from.year != to.year ->
+                "${from.dayAndMonth(locale)} de ${from.year} – ${to.dayAndMonth(locale)} de ${to.year}"
+            from.month != to.month -> "${from.dayAndMonth(locale)} – ${to.dayAndMonth(locale)}"
+            else -> "${from.dayOfMonth} – ${to.dayAndMonth(locale)}"
+        }
+    } else {
+        when {
+            from.year != to.year ->
+                "${from.dayAndMonth(locale)}, ${from.year} – ${to.dayAndMonth(locale)}, ${to.year}"
+            from.month != to.month -> "${from.dayAndMonth(locale)} – ${to.dayAndMonth(locale)}"
+            else -> "${from.dayAndMonth(locale)} – ${to.dayOfMonth}"
+        }
     }
 }
 
-private fun ZonedDateTime.monthName(): String = month.getDisplayName(TextStyle.FULL, SPANISH_PERU)
+private val Locale.isSpanish: Boolean get() = language == "es"
 
-private fun ZonedDateTime.dayAndMonth(): String = "$dayOfMonth de ${monthName()}"
+private fun ZonedDateTime.monthName(locale: Locale): String = month.getDisplayName(TextStyle.FULL, locale)
+
+/** "30 de marzo" in Spanish, "March 30" otherwise. */
+private fun ZonedDateTime.dayAndMonth(locale: Locale): String =
+    if (locale.isSpanish) "$dayOfMonth de ${monthName(locale)}" else "${monthName(locale)} $dayOfMonth"

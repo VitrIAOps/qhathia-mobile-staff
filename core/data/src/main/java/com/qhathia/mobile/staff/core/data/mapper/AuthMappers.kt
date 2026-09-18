@@ -24,6 +24,7 @@ fun AuthResponseDto.toSession(): Session = Session(
     tokens = toTokens(),
     user = requireNotNull(user) { "Auth response is missing the user" }.toDomain(),
     activeStore = store?.toDomain(),
+    sessionId = sessionId?.takeIf { it.isNotBlank() },
 )
 
 fun UserDto.toDomain(): User = User(

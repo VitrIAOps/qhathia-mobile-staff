@@ -19,7 +19,7 @@ import java.io.IOException
 class AuthRepositoryImplTest {
 
     private val api = mockk<AuthApiService>()
-    private val repository = AuthRepositoryImpl(api)
+    private val repository = AuthRepositoryImpl(api) { "Xiaomi Redmi Note 12" }
 
     private fun loginResponse() = AuthResponseDto(
         accessToken = "access",

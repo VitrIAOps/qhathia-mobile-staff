@@ -35,4 +35,33 @@
     <string name="sales_previous_weekly">la semana anterior</string>
     <string name="sales_previous_daily">el día anterior</string>
     <string name="sales_previous_hourly">la hora anterior</string>
+
+    <!-- Settings components -->
+    <string name="coming_soon">Próximamente</string>
+    <!-- %1$s is the label of an element that is not available yet. -->
+    <string name="coming_soon_cd">%1$s, próximamente</string>
+    <string name="navigate_back_cd">Volver</string>
+
+    <!-- Relative time -->
+    <string name="time_just_now">hace un momento</string>
+    <plurals name="time_minutes_ago">
+        <item quantity="one">hace %d min</item>
+        <item quantity="other">hace %d min</item>
+    </plurals>
+    <plurals name="time_hours_ago">
+        <item quantity="one">hace %d hora</item>
+        <item quantity="other">hace %d horas</item>
+    </plurals>
+    <plurals name="time_days_ago">
+        <item quantity="one">hace %d día</item>
+        <item quantity="other">hace %d días</item>
+    </plurals>
+    <plurals name="time_months_ago">
+        <item quantity="one">hace %d mes</item>
+        <item quantity="other">hace %d meses</item>
+    </plurals>
+    <plurals name="time_years_ago">
+        <item quantity="one">hace %d año</item>
+        <item quantity="other">hace %d años</item>
+    </plurals>
 </resources>

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="profile_retry">Retry</string>
+    <string name="profile_cancel">Cancel</string>
+    <string name="profile_missing_value">—</string>
+
+    <!-- Mi perfil -->
+    <string name="profile_title">My profile</string>
+    <string name="profile_bell_cd">View requests</string>
+    <string name="profile_edit_cd">View personal details</string>
+    <string name="profile_load_error_retry">We couldn\'t update your profile. Tap to retry.</string>
+    <string name="profile_role_owner">Owner</string>
+    <string name="profile_role_seller">Seller</string>
+    <string name="profile_role_admin">Administrator</string>
+    <string name="profile_role_unknown">User</string>
+    <plurals name="profile_role_stores">
+        <item quantity="one">%1$s · %2$d store</item>
+        <item quantity="other">%1$s · %2$d stores</item>
+    </plurals>
+    <string name="profile_logout">Sign out</string>
+    <string name="profile_logout_confirm_title">Sign out</string>
+    <string name="profile_logout_confirm_message">Are you sure you want to sign out? You\'ll stop receiving order notifications on this device.</string>
+
+    <!-- Menu -->
+    <string name="menu_personal_title">Personal details</string>
+    <string name="menu_personal_subtitle">Your account and your store details</string>
+    <string name="menu_notifications_title">Notifications</string>
+    <plurals name="menu_notifications_active">
+        <item quantity="one">%1$d of %2$d alert on</item>
+        <item quantity="other">%1$d of %2$d alerts on</item>
+    </plurals>
+    <string name="menu_notifications_fallback">Order and tablet alerts</string>
+    <string name="menu_security_title">Security</string>
+    <string name="menu_security_subtitle">Password, fingerprint and sessions</string>
+    <string name="menu_settings_title">Settings</string>
+    <string name="menu_settings_subtitle">Language and prices</string>
+    <string name="menu_devices_title">Devices</string>
+    <plurals name="menu_devices_connected">
+        <item quantity="one">%d tablet connected</item>
+        <item quantity="other">%d tablets connected</item>
+    </plurals>
+    <string name="menu_devices_fallback">Your showcase tablets</string>
+    <string name="menu_help_title">Help</string>
+    <string name="menu_help_subtitle">WhatsApp support and guides</string>
+
+    <!-- Subscription -->
+    <string name="subscription_title">My subscription</string>
+    <string name="subscription_plan_badge">%1$s PLAN</string>
+    <string name="subscription_status_active">Active</string>
+    <string name="subscription_status_cancelled">Cancelled</string>
+    <string name="subscription_status_expired">Expired</string>
+    <string name="subscription_price_monthly">%1$s a month</string>
+    <string name="subscription_per_month">a month</string>
+    <string name="subscription_renews_on">Renews on %1$s</string>
+    <string name="subscription_started_on">Start: %1$s</string>
+    <string name="subscription_renewal_on">Renewal: %1$s</string>
+    <string name="subscription_none">You don\'t have an active subscription</string>
+    <string name="subscription_error">We couldn\'t load your subscription</string>
+    <plurals name="subscription_feature_product_limit">
+        <item quantity="one">Up to %d product</item>
+        <item quantity="other">Up to %d products</item>
+    </plurals>
+    <string name="subscription_feature_unlimited">Unlimited products</string>
+    <string name="subscription_feature_analytics">Advanced statistics</string>
+    <string name="subscription_feature_video">Products with video</string>
+    <string name="subscription_feature_bulk_price">Bulk price updates</string>
+    <string name="subscription_feature_support">Priority support</string>
+    <string name="subscription_payment_method">Payment method</string>
+    <string name="subscription_payment_method_row">Saved card</string>
+    <string name="subscription_payment_history">Payment history</string>
+    <string name="subscription_payment_history_row">Past payments</string>
+    <string name="subscription_cancel">Cancel my subscription</string>
+    <string name="subscription_cancel_cd">Cancel my subscription, coming soon</string>
+
+    <!-- Datos personales -->
+    <string name="personal_title">Personal details</string>
+    <string name="personal_change_photo">Change photo</string>
+    <string name="personal_change_photo_cd">Change photo, coming soon</string>
+    <string name="personal_full_name">Full name</string>
+    <string name="personal_email">Email</string>
+    <string name="personal_phone">Phone</string>
+    <string name="personal_error">We couldn\'t load your details</string>
+
+    <!-- Ayuda -->
+    <string name="help_title">Help</string>
+    <string name="help_faq_title">Frequently asked questions</string>
+    <string name="help_faq_expanded">Expanded</string>
+    <string name="help_faq_collapsed">Collapsed</string>
+    <string name="help_faq_link_tablet_q">How do I link a new tablet?</string>
+    <string name="help_faq_link_tablet_a">In Profile → Devices, tap “Link another device” and enter the 5-character code shown on the tablet. The code expires after 5 minutes.</string>
+    <string name="help_faq_ai_suggestions_q">Where do the AI suggestions come from?</string>
+    <string name="help_faq_ai_suggestions_a">They come from what your customers search for on the tablet and from your recent sales: products they couldn\'t find and products that are running out.</string>
+    <string name="help_faq_offline_q">Can I use the app without internet?</string>
+    <string name="help_faq_offline_a">You need internet to see orders and update your inventory. The tablet keeps its catalog and keeps showing it if it loses the connection for a while.</string>
+    <string name="help_faq_prices_q">How do I change the prices customers see?</string>
+    <string name="help_faq_prices_a">Edit the product in Inventory. The tablet gets the new price on its next sync, or right away with “Refresh catalog” in Devices.</string>
+    <string name="help_guides_title">Quick guides</string>
+    <string name="help_guide_first_steps">Getting started with your showcase tablet</string>
+    <string name="help_guide_combos">How to build combos that sell</string>
+    <string name="help_guide_sales_report">Reading your sales report</string>
+    <string name="help_version">Version %1$s</string>
+    <string name="help_terms">Terms and privacy</string>
+    <string name="help_terms_cd">Terms and privacy, coming soon</string>
+
+    <!-- Notificaciones -->
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_group_orders">Orders</string>
+    <string name="notifications_group_tablet">Tablet</string>
+    <string name="notifications_group_business">Your business</string>
+    <string name="notifications_new_order">New order</string>
+    <string name="notifications_order_expiring">Order about to expire</string>
+    <string name="notifications_order_expiring_subtitle">Alert when 2 min are left</string>
+    <string name="notifications_tablet_disconnected">Tablet disconnected</string>
+    <string name="notifications_out_of_stock">Product out of stock in the showcase</string>
+    <string name="notifications_low_battery">Low battery</string>
+    <string name="notifications_weekly_report">Weekly report</string>
+    <string name="notifications_weekly_report_subtitle">Every Monday on WhatsApp</string>
+    <string name="notifications_selling_suggestions">Suggestions to sell more</string>
+    <string name="notifications_error">We couldn\'t load your notifications</string>
+    <string name="notifications_save_error">Couldn\'t save the change. Try again.</string>
+
+    <!-- Seguridad -->
+    <string name="security_title">Security</string>
+    <string name="security_change_password">Change password</string>
+    <string name="security_password_updated">Updated %1$s</string>
+    <string name="security_password_never">Never updated</string>
+    <string name="security_password_changed">Password updated</string>
+    <string name="security_biometric">Sign in with fingerprint</string>
+    <string name="security_biometric_subtitle">Get in without typing your password</string>
+    <string name="security_sessions_title">Active sessions</string>
+    <string name="security_session_current">%1$s · this device</string>
+    <string name="security_session_unknown_device">Unknown device</string>
+    <string name="security_session_last_used">Active %1$s</string>
+    <string name="security_session_close">Close</string>
+    <string name="security_session_close_cd">Sign out on %1$s</string>
+    <string name="security_sessions_error">We couldn\'t load your sessions</string>
+    <string name="security_revoke_others">Sign out on other devices</string>
+    <string name="security_revoke_title">Sign out</string>
+    <string name="security_revoke_message">The session on %1$s will be closed.</string>
+    <string name="security_revoke_others_message">All your other devices will be signed out. This device will stay signed in.</string>
+    <string name="security_revoke_confirm">Sign out</string>
+    <string name="security_revoke_error">Couldn\'t close the session. Try again.</string>
+    <string name="biometric_prompt_title">Turn on fingerprint sign-in</string>
+    <string name="biometric_prompt_subtitle">Confirm with the fingerprint registered on this device</string>
+    <string name="biometric_prompt_negative">Cancel</string>
+    <string name="biometric_not_enrolled_title">Set up your fingerprint</string>
+    <string name="biometric_not_enrolled_message">Set up your fingerprint in the device settings to use this option</string>
+    <string name="biometric_open_settings">Open settings</string>
+    <string name="biometric_not_now">Not now</string>
+    <string name="biometric_not_available_message">Your device has no fingerprint reader available</string>
+    <string name="biometric_ok">Got it</string>
+    <string name="biometric_error">Couldn\'t verify your fingerprint</string>
+
+    <!-- Cambiar contraseña -->
+    <string name="change_password_title">Change password</string>
+    <string name="change_password_current">Current password</string>
+    <string name="change_password_new">New password</string>
+    <string name="change_password_confirm">Confirm new password</string>
+    <string name="change_password_hint">Between 8 and 100 characters</string>
+    <string name="change_password_save">Save</string>
+    <string name="change_password_error_wrong_current">The current password is incorrect</string>
+    <string name="change_password_error_same">The new password must be different from the current one</string>
+    <string name="change_password_error_length">The password must be between 8 and 100 characters</string>
+    <string name="change_password_error_mismatch">Passwords don\'t match</string>
+    <string name="change_password_error_network">No connection. Try again</string>
+    <string name="change_password_error_unknown">Something went wrong. Try again</string>
+
+    <!-- Configuración -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_igv">Prices include IGV</string>
+    <string name="settings_igv_subtitle">The prices customers see already include IGV</string>
+    <string name="settings_igv_read_only">Only the store owner can change this</string>
+    <string name="settings_store_error">We couldn\'t load the store settings</string>
+    <string name="settings_igv_save_error">Couldn\'t save the change. Try again.</string>
+</resources>

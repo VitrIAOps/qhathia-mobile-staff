@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="profile_retry">Reintentar</string>
+    <string name="profile_cancel">Cancelar</string>
+    <string name="profile_missing_value">—</string>
+
+    <!-- Mi perfil -->
+    <string name="profile_title">Mi perfil</string>
+    <string name="profile_bell_cd">Ver solicitudes</string>
+    <string name="profile_edit_cd">Ver datos personales</string>
+    <string name="profile_load_error_retry">No pudimos actualizar tu perfil. Toca para reintentar.</string>
+    <string name="profile_role_owner">Dueño(a)</string>
+    <string name="profile_role_seller">Vendedor(a)</string>
+    <string name="profile_role_admin">Administrador(a)</string>
+    <string name="profile_role_unknown">Usuario</string>
+    <!-- %1$s is the role label, %2$d the number of stores. -->
+    <plurals name="profile_role_stores">
+        <item quantity="one">%1$s · %2$d tienda</item>
+        <item quantity="other">%1$s · %2$d tiendas</item>
+    </plurals>
+    <string name="profile_logout">Cerrar sesión</string>
+    <string name="profile_logout_confirm_title">Cerrar sesión</string>
+    <string name="profile_logout_confirm_message">¿Seguro que quieres cerrar sesión? Dejarás de recibir notificaciones de pedidos en este equipo.</string>
+
+    <!-- Menu -->
+    <string name="menu_personal_title">Datos personales</string>
+    <string name="menu_personal_subtitle">Tu cuenta y los datos de tu tienda</string>
+    <string name="menu_notifications_title">Notificaciones</string>
+    <!-- Plural chosen by the total; %1$d active, %2$d total. -->
+    <plurals name="menu_notifications_active">
+        <item quantity="one">%1$d de %2$d alerta activa</item>
+        <item quantity="other">%1$d de %2$d alertas activas</item>
+    </plurals>
+    <string name="menu_notifications_fallback">Alertas de pedidos y tablet</string>
+    <string name="menu_security_title">Seguridad</string>
+    <string name="menu_security_subtitle">Contraseña, huella y sesiones</string>
+    <string name="menu_settings_title">Configuración</string>
+    <string name="menu_settings_subtitle">Idioma y precios</string>
+    <string name="menu_devices_title">Dispositivos</string>
+    <plurals name="menu_devices_connected">
+        <item quantity="one">%d tablet conectada</item>
+        <item quantity="other">%d tablets conectadas</item>
+    </plurals>
+    <string name="menu_devices_fallback">Tus tablets vitrina</string>
+    <string name="menu_help_title">Ayuda</string>
+    <string name="menu_help_subtitle">Soporte por WhatsApp y guías</string>
+
+    <!-- Subscription -->
+    <string name="subscription_title">Mi suscripción</string>
+    <string name="subscription_plan_badge">PLAN %1$s</string>
+    <string name="subscription_status_active">Activo</string>
+    <string name="subscription_status_cancelled">Cancelada</string>
+    <string name="subscription_status_expired">Vencida</string>
+    <string name="subscription_price_monthly">%1$s al mes</string>
+    <string name="subscription_per_month">al mes</string>
+    <string name="subscription_renews_on">Se renueva el %1$s</string>
+    <string name="subscription_started_on">Inicio: %1$s</string>
+    <string name="subscription_renewal_on">Renovación: %1$s</string>
+    <string name="subscription_none">No tienes una suscripción activa</string>
+    <string name="subscription_error">No pudimos cargar tu suscripción</string>
+    <plurals name="subscription_feature_product_limit">
+        <item quantity="one">Hasta %d producto</item>
+        <item quantity="other">Hasta %d productos</item>
+    </plurals>
+    <string name="subscription_feature_unlimited">Productos ilimitados</string>
+    <string name="subscription_feature_analytics">Estadísticas avanzadas</string>
+    <string name="subscription_feature_video">Productos con video</string>
+    <string name="subscription_feature_bulk_price">Actualización masiva de precios</string>
+    <string name="subscription_feature_support">Soporte prioritario</string>
+    <string name="subscription_payment_method">Método de pago</string>
+    <string name="subscription_payment_method_row">Tarjeta registrada</string>
+    <string name="subscription_payment_history">Historial de pago</string>
+    <string name="subscription_payment_history_row">Pagos anteriores</string>
+    <string name="subscription_cancel">Cancelar mi suscripción</string>
+    <string name="subscription_cancel_cd">Cancelar mi suscripción, próximamente</string>
+
+    <!-- Datos personales -->
+    <string name="personal_title">Datos personales</string>
+    <string name="personal_change_photo">Cambiar foto</string>
+    <string name="personal_change_photo_cd">Cambiar foto, próximamente</string>
+    <string name="personal_full_name">Nombre completo</string>
+    <string name="personal_email">Correo</string>
+    <string name="personal_phone">Teléfono</string>
+    <string name="personal_error">No pudimos cargar tus datos</string>
+
+    <!-- Ayuda -->
+    <string name="help_title">Ayuda</string>
+    <string name="help_faq_title">Preguntas frecuentes</string>
+    <string name="help_faq_expanded">Expandida</string>
+    <string name="help_faq_collapsed">Contraída</string>
+    <string name="help_faq_link_tablet_q">¿Cómo vinculo una tablet nueva?</string>
+    <string name="help_faq_link_tablet_a">En Perfil → Dispositivos toca «Vincular otro dispositivo» e ingresa el código de 5 caracteres que muestra la tablet. El código vence a los 5 minutos.</string>
+    <string name="help_faq_ai_suggestions_q">¿De dónde salen las sugerencias de IA?</string>
+    <string name="help_faq_ai_suggestions_a">Salen de lo que tus clientes buscan en la tablet y de tus ventas recientes: productos que no encontraron y productos que se están agotando.</string>
+    <string name="help_faq_offline_q">¿Puedo usar la app sin internet?</string>
+    <string name="help_faq_offline_a">Necesitas internet para ver pedidos y actualizar tu inventario. La tablet guarda su catálogo y lo sigue mostrando si pierde la conexión por un rato.</string>
+    <string name="help_faq_prices_q">¿Cómo cambio los precios que ve el cliente?</string>
+    <string name="help_faq_prices_a">Edita el producto desde Inventario. La tablet recibe el nuevo precio en su siguiente sincronización, o de inmediato con «Actualizar catálogo» en Dispositivos.</string>
+    <string name="help_guides_title">Guías rápidas</string>
+    <string name="help_guide_first_steps">Primeros pasos con tu tablet vitrina</string>
+    <string name="help_guide_combos">Cómo armar combos que se venden</string>
+    <string name="help_guide_sales_report">Leer tu reporte de ventas</string>
+    <string name="help_version">Versión %1$s</string>
+    <string name="help_terms">Términos y privacidad</string>
+    <string name="help_terms_cd">Términos y privacidad, próximamente</string>
+
+    <!-- Notificaciones -->
+    <string name="notifications_title">Notificaciones</string>
+    <string name="notifications_group_orders">Pedidos</string>
+    <string name="notifications_group_tablet">Tablet</string>
+    <string name="notifications_group_business">Tu negocio</string>
+    <string name="notifications_new_order">Nuevo pedido</string>
+    <string name="notifications_order_expiring">Pedido por expirar</string>
+    <string name="notifications_order_expiring_subtitle">Aviso cuando queden 2 min</string>
+    <string name="notifications_tablet_disconnected">Tablet desconectada</string>
+    <string name="notifications_out_of_stock">Producto agotado en vitrina</string>
+    <string name="notifications_low_battery">Batería baja</string>
+    <string name="notifications_weekly_report">Reporte semanal</string>
+    <string name="notifications_weekly_report_subtitle">Cada lunes por WhatsApp</string>
+    <string name="notifications_selling_suggestions">Sugerencias para vender más</string>
+    <string name="notifications_error">No pudimos cargar tus notificaciones</string>
+    <string name="notifications_save_error">No se pudo guardar el cambio. Inténtalo de nuevo.</string>
+
+    <!-- Seguridad -->
+    <string name="security_title">Seguridad</string>
+    <string name="security_change_password">Cambiar contraseña</string>
+    <!-- %1$s is a relative time, e.g. "hace 4 meses". -->
+    <string name="security_password_updated">Actualizada %1$s</string>
+    <string name="security_password_never">Nunca actualizada</string>
+    <string name="security_password_changed">Contraseña actualizada</string>
+    <string name="security_biometric">Ingresar con huella</string>
+    <string name="security_biometric_subtitle">Entra sin escribir tu contraseña</string>
+    <string name="security_sessions_title">Sesiones activas</string>
+    <string name="security_session_current">%1$s · este equipo</string>
+    <string name="security_session_unknown_device">Dispositivo desconocido</string>
+    <string name="security_session_last_used">Activa %1$s</string>
+    <string name="security_session_close">Cerrar</string>
+    <string name="security_session_close_cd">Cerrar sesión en %1$s</string>
+    <string name="security_sessions_error">No pudimos cargar tus sesiones</string>
+    <string name="security_revoke_others">Cerrar sesión en otros equipos</string>
+    <string name="security_revoke_title">Cerrar sesión</string>
+    <string name="security_revoke_message">Se cerrará la sesión en %1$s.</string>
+    <string name="security_revoke_others_message">Se cerrará la sesión en todos tus otros equipos. Este equipo seguirá conectado.</string>
+    <string name="security_revoke_confirm">Cerrar sesión</string>
+    <string name="security_revoke_error">No se pudo cerrar la sesión. Inténtalo de nuevo.</string>
+    <string name="biometric_prompt_title">Activar ingreso con huella</string>
+    <string name="biometric_prompt_subtitle">Confirma con la huella registrada en este equipo</string>
+    <string name="biometric_prompt_negative">Cancelar</string>
+    <string name="biometric_not_enrolled_title">Configura tu huella</string>
+    <string name="biometric_not_enrolled_message">Configura tu huella en los ajustes del equipo para usar esta opción</string>
+    <string name="biometric_open_settings">Abrir ajustes</string>
+    <string name="biometric_not_now">Ahora no</string>
+    <string name="biometric_not_available_message">Tu equipo no tiene lector de huella disponible</string>
+    <string name="biometric_ok">Entendido</string>
+    <string name="biometric_error">No se pudo verificar tu huella</string>
+
+    <!-- Cambiar contraseña -->
+    <string name="change_password_title">Cambiar contraseña</string>
+    <string name="change_password_current">Contraseña actual</string>
+    <string name="change_password_new">Nueva contraseña</string>
+    <string name="change_password_confirm">Confirmar nueva contraseña</string>
+    <string name="change_password_hint">Entre 8 y 100 caracteres</string>
+    <string name="change_password_save">Guardar</string>
+    <string name="change_password_error_wrong_current">La contraseña actual no es correcta</string>
+    <string name="change_password_error_same">La nueva contraseña debe ser distinta a la actual</string>
+    <string name="change_password_error_length">La contraseña debe tener entre 8 y 100 caracteres</string>
+    <string name="change_password_error_mismatch">Las contraseñas no coinciden</string>
+    <string name="change_password_error_network">Sin conexión. Inténtalo de nuevo</string>
+    <string name="change_password_error_unknown">Algo salió mal. Inténtalo de nuevo</string>
+
+    <!-- Configuración -->
+    <string name="settings_title">Configuración</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_spanish" translatable="false">Español</string>
+    <string name="settings_language_english" translatable="false">English</string>
+    <string name="settings_igv">Precios con IGV incluido</string>
+    <string name="settings_igv_subtitle">Los precios que ve el cliente ya incluyen IGV</string>
+    <string name="settings_igv_read_only">Solo el dueño de la tienda puede cambiarlo</string>
+    <string name="settings_store_error">No pudimos cargar la configuración de la tienda</string>
+    <string name="settings_igv_save_error">No se pudo guardar el cambio. Inténtalo de nuevo.</string>
+</resources>

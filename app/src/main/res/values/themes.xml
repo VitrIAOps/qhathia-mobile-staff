@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.QhathiaStaff" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- AppCompat parent: per-app locales (API < 33) and BiometricPrompt need an AppCompatActivity.
+         Compose draws every surface, so the parent only affects the window itself. -->
+    <style name="Theme.QhathiaStaff" parent="Theme.AppCompat.DayNight.NoActionBar" />
 </resources>

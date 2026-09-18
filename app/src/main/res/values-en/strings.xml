@@ -1,0 +1,11 @@
+<resources>
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_inventory">Inventory</string>
+    <string name="nav_requests">Requests</string>
+    <plurals name="nav_requests_pending_cd">
+        <item quantity="one">Requests, %1$d pending</item>
+        <item quantity="other">Requests, %1$d pending</item>
+    </plurals>
+    <string name="nav_profile">Profile</string>
+</resources>

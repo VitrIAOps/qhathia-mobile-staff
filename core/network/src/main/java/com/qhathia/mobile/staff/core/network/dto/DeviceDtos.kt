@@ -3,19 +3,24 @@ package com.qhathia.mobile.staff.core.network.dto
 import kotlinx.serialization.Serializable
 
 /**
- * Row of `GET /api/v1/devices`. All fields but [id] are optional because the list endpoint returns
- * provisioning fields that may be null (e.g. an unlinked device has no `linkedAt`). This endpoint
- * exposes no friendly device name — [serialNumber] is the closest identifier.
+ * Row of `GET /api/v1/devices` (§18 shape). All fields but [id] are optional because the list mixes
+ * provisioning fields that may be null (an unlinked device has no `linkedAt`). [batteryLevel] and
+ * [networkStatus] come from the tablet's last heartbeat, so they must be read with [lastPingAt].
  */
 @Serializable
 data class DeviceDto(
     val id: String,
     val storeId: String? = null,
+    val name: String? = null,
+    val storeName: String? = null,
     val serialNumber: String? = null,
     val status: String? = null,
+    val batteryLevel: Int? = null,
+    val networkStatus: String? = null,
     val androidVersion: String? = null,
     val appVersion: String? = null,
     val lastPingAt: String? = null,
+    val lastSyncAt: String? = null,
     val linkedAt: String? = null,
     val createdAt: String? = null,
 )
@@ -45,4 +50,24 @@ data class PairDeviceResponseDto(
     val deviceId: String? = null,
     val deviceName: String? = null,
     val platform: String? = null,
+)
+
+/** Body of `POST /api/v1/devices/{deviceId}/commands`: `REFRESH_CATALOG` or `RESTART_APP`. */
+@Serializable
+data class SendDeviceCommandRequestDto(
+    val command: String,
+)
+
+/** A remote command as returned by the commands endpoints (§23). */
+@Serializable
+data class DeviceCommandDto(
+    val id: String,
+    val deviceId: String? = null,
+    val command: String? = null,
+    val status: String? = null,
+    val requestedAt: String? = null,
+    val expiresAt: String? = null,
+    val deliveredAt: String? = null,
+    val ackedAt: String? = null,
+    val resultDetail: String? = null,
 )

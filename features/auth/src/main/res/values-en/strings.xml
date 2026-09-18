@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_brand">Qhathia</string>
+    <string name="login_email_placeholder">Email</string>
+    <string name="login_password_placeholder">Password</string>
+    <string name="login_submit">Sign in</string>
+
+    <string name="login_email_icon_cd">Email icon</string>
+    <string name="login_password_icon_cd">Password icon</string>
+
+    <string name="login_error_invalid_email">Enter a valid email</string>
+    <string name="login_error_empty_password">Enter your password</string>
+    <string name="login_error_invalid_credentials">Incorrect email or password</string>
+    <string name="login_error_validation">Check the details you entered</string>
+    <string name="login_error_network">No connection. Try again</string>
+    <string name="login_error_unknown">Something went wrong. Try again</string>
+
+    <!-- Biometric unlock gate -->
+    <string name="unlock_greeting_named">Hi, %1$s</string>
+    <string name="unlock_greeting_anonymous">Hi</string>
+    <string name="unlock_subtitle">Use your fingerprint to open your store.</string>
+    <string name="unlock_action">Unlock with fingerprint</string>
+    <string name="unlock_use_password">Sign in with password</string>
+    <string name="unlock_continue">Continue</string>
+    <string name="unlock_biometric_gone">Your fingerprint is no longer set up on this device. Sign in with your password.</string>
+    <string name="unlock_prompt_title">Sign in to Qhathia</string>
+    <string name="unlock_prompt_subtitle">Confirm it\'s you</string>
+    <string name="unlock_prompt_negative">Cancel</string>
+</resources>

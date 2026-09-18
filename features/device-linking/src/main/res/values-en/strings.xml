@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_linking_title">Devices</string>
+    <string name="device_linking_add">Link another device</string>
+    <string name="device_linking_empty">You have no linked tablets yet. Tap “Link another device” to add one.</string>
+    <string name="device_linking_error">Couldn\'t load your devices</string>
+    <string name="device_linking_retry">Retry</string>
+    <string name="device_cancel">Cancel</string>
+
+    <!-- Device card -->
+    <string name="device_unnamed">Tablet</string>
+    <string name="device_missing">—</string>
+    <string name="device_connected">Connected</string>
+    <string name="device_disconnected">Disconnected</string>
+    <string name="device_catalog_label">Visible catalog</string>
+    <plurals name="device_catalog_products">
+        <item quantity="one">%d product</item>
+        <item quantity="other">%d products</item>
+    </plurals>
+    <string name="device_catalog_updated">Updated %1$s</string>
+    <string name="device_last_report">Last report %1$s</string>
+    <string name="device_battery">Battery</string>
+    <string name="device_connection">Connection</string>
+    <string name="device_store">Store</string>
+    <string name="device_customers_today">Customers today</string>
+    <string name="device_network_wifi">Wi-Fi</string>
+    <string name="device_network_mobile">Mobile data</string>
+    <string name="device_network_online">Online</string>
+    <string name="device_network_limited">Limited</string>
+
+    <!-- Remote commands -->
+    <string name="device_refresh_catalog">Refresh catalog</string>
+    <string name="device_restart">Restart</string>
+    <string name="device_restart_title">Restart the tablet</string>
+    <string name="device_restart_message">The showcase app on %1$s will restart. The tablet may take a few minutes to receive the command.</string>
+    <string name="device_command_refresh_label">Catalog</string>
+    <string name="device_command_restart_label">Restart</string>
+    <string name="device_command_status_line">%1$s: %2$s</string>
+    <string name="device_command_sent">Sent</string>
+    <string name="device_command_ready">Done</string>
+    <string name="device_command_failed">Failed</string>
+    <string name="device_command_failed_detail">Failed: %1$s</string>
+    <string name="device_command_expired">Couldn\'t be delivered</string>
+    <string name="device_command_error">Couldn\'t send the command. Try again.</string>
+
+    <!-- Pair dialog -->
+    <string name="device_pair_title">Link tablet</string>
+    <string name="device_pair_close_cd">Close</string>
+    <string name="device_pair_code_placeholder">Pairing code</string>
+    <string name="device_pair_submit">Link</string>
+    <string name="device_pair_error_generic">Couldn\'t link the tablet. Try again.</string>
+    <string name="device_pair_error_invalid_code">Invalid or expired code.</string>
+</resources>

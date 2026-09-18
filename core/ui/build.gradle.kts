@@ -31,6 +31,8 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.kotlinx.immutable)
+    // Fingerprint prompt helper; BiometricPrompt brings FragmentActivity with it.
+    implementation(libs.androidx.biometric)
 
     testImplementation(libs.junit5.api)
     testRuntimeOnly(libs.junit5.engine)

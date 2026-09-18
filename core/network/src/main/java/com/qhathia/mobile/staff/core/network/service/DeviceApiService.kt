@@ -1,9 +1,11 @@
 package com.qhathia.mobile.staff.core.network.service
 
 import com.qhathia.mobile.staff.core.network.NetworkResult
+import com.qhathia.mobile.staff.core.network.dto.DeviceCommandDto
 import com.qhathia.mobile.staff.core.network.dto.DeviceDto
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceRequestDto
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceResponseDto
+import com.qhathia.mobile.staff.core.network.dto.SendDeviceCommandRequestDto
 import com.qhathia.mobile.staff.core.network.toNetworkResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -25,5 +27,21 @@ class DeviceApiService(private val client: HttpClient) {
     suspend fun pairDevice(body: PairDeviceRequestDto): NetworkResult<PairDeviceResponseDto> =
         runCatching {
             client.post("api/v1/devices/pair") { setBody(body) }.body<PairDeviceResponseDto>()
+        }.toNetworkResult()
+
+    /** Queues a command (`202`). Idempotent while one of the same type is still in flight. */
+    suspend fun sendCommand(
+        deviceId: String,
+        body: SendDeviceCommandRequestDto,
+    ): NetworkResult<DeviceCommandDto> =
+        runCatching {
+            client.post("api/v1/devices/$deviceId/commands") { setBody(body) }
+                .body<DeviceCommandDto>()
+        }.toNetworkResult()
+
+    /** The device's last 20 commands, newest first. */
+    suspend fun getCommands(deviceId: String): NetworkResult<List<DeviceCommandDto>> =
+        runCatching {
+            client.get("api/v1/devices/$deviceId/commands").body<List<DeviceCommandDto>>()
         }.toNetworkResult()
 }

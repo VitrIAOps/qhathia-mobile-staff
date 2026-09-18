@@ -2,16 +2,21 @@ package com.qhathia.mobile.staff
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
+import com.qhathia.mobile.staff.feature.auth.ui.BiometricUnlockScreen
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -21,8 +26,12 @@ import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.navigation.QhathiaNavHost
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Single activity. It is an [AppCompatActivity] (a `FragmentActivity`) because per-app locales below
+ * API 33 and `BiometricPrompt` both require one; Compose still draws everything.
+ */
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     // Same instance hiltViewModel() resolves inside setContent — both use this Activity as the
     // ViewModelStoreOwner — so the destination recorded here reaches the composables below.
@@ -57,12 +66,26 @@ private fun QhathiaRoot(viewModel: MainViewModel = hiltViewModel()) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val pendingDestination by viewModel.pendingDestination.collectAsStateWithLifecycle()
 
+    val processLifecycle = ProcessLifecycleOwner.get().lifecycle
+    DisposableEffect(processLifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> viewModel.onAppBackgrounded()
+                Lifecycle.Event.ON_START -> viewModel.onAppForegrounded()
+                else -> Unit
+            }
+        }
+        processLifecycle.addObserver(observer)
+        onDispose { processLifecycle.removeObserver(observer) }
+    }
+
     when (authState) {
         AuthState.Loading -> Surface(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         }
+        AuthState.Locked -> BiometricUnlockScreen(onUnlocked = viewModel::onUnlocked)
         AuthState.Authenticated -> QhathiaNavHost(
             startAuthenticated = true,
             pendingDestination = pendingDestination,
