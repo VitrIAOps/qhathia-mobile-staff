@@ -32,14 +32,19 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      # packages: '' desactiva el default de la acción (`tools platform-tools`). El paquete `tools`
+      # ya no existe en el repo de Google y `sdkmanager tools` falla con exit 1. Los paquetes que
+      # realmente necesitamos se instalan en el step siguiente.
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: ''
 
       # Ensure the compileSdk platform + build-tools are present.
       - name: Install SDK packages
         run: |
           yes | sdkmanager --licenses > /dev/null
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
