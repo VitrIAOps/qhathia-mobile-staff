@@ -23,6 +23,9 @@
     <string name="detail_tags_label">Tags</string>
     <string name="detail_tags_placeholder">Ej: Importado, Reacondicionado, Premium …</string>
 
+    <string name="detail_preview">Vista previa</string>
+    <string name="detail_preview_hint">La vista previa necesita un nombre, un precio y al menos una foto.</string>
+
     <string name="detail_save">Guardar</string>
     <string name="detail_cancel">Cancelar</string>
     <string name="detail_retry">Reintentar</string>

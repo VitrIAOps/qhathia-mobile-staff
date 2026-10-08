@@ -22,7 +22,8 @@ import kotlinx.collections.immutable.persistentListOf
  *
  * The discount is a form field like the rest: [loadedDiscount] is what the product has stored,
  * [discount] is what the form shows, and the difference is only persisted on save.
- * [discountDraft] is non-null while the "Aplicar descuento" dialog is open.
+ * [discountDraft] is non-null while the "Aplicar descuento" dialog is open. [showPreview] is true
+ * while the "Vista previa" dialog is open; it reads the form but never changes it.
  */
 data class ProductDetailUiState(
     val name: String = "",
@@ -51,6 +52,7 @@ data class ProductDetailUiState(
     val isAiLoading: Boolean = false,
     val isDirty: Boolean = false,
     val showDiscardDialog: Boolean = false,
+    val showPreview: Boolean = false,
 ) {
     /**
      * The save gate: the product must be loaded and every required field valid (tags are
@@ -85,6 +87,18 @@ data class ProductDetailUiState(
      */
     val isDiscountToggleEnabled: Boolean
         get() = !isSaving && !isDiscountLoading && !isDiscountError && isValidPrice(price)
+
+    /**
+     * A preview needs something to show: a name, a price and a photo. Photos are read-only here, so
+     * a product registered without any cannot be previewed from this screen.
+     */
+    val isPreviewEnabled: Boolean
+        get() = !isLoading &&
+            !isError &&
+            !isSaving &&
+            isValidProductName(name) &&
+            isValidPrice(price) &&
+            imageUrls.isNotEmpty()
 
     /** The AI assist optimizes the existing description, so it needs one and no request in flight. */
     val isAiActionEnabled: Boolean

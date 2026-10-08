@@ -59,6 +59,19 @@
     <string name="discount_error_amount">Enter a valid amount</string>
     <string name="discount_error_amount_above_price">The amount can\'t exceed the price</string>
 
+    <!-- Product preview dialog -->
+    <string name="preview_title">Preview</string>
+    <string name="preview_close_cd">Close preview</string>
+    <string name="preview_tab_item">Item</string>
+    <string name="preview_tab_detail">Detail</string>
+    <string name="preview_orientation_vertical">Vertical</string>
+    <string name="preview_orientation_horizontal">Horizontal</string>
+    <string name="preview_zoom_hint">Pinch to zoom and drag to move around</string>
+    <string name="preview_rotate_hint">Rotate your phone for a better view of the detail</string>
+    <string name="preview_cd_item_vertical">Vertical item preview: %1$s, %2$s</string>
+    <string name="preview_cd_item_horizontal">Horizontal item preview: %1$s, %2$s</string>
+    <string name="preview_cd_detail">Product detail preview: %1$s, %2$s</string>
+
     <!-- Relative time -->
     <string name="time_just_now">just now</string>
     <plurals name="time_minutes_ago">

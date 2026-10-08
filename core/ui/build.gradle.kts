@@ -31,6 +31,9 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.kotlinx.immutable)
+    // Product photos inside the Discovery previews; okhttp fetches the remote ones.
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
     // Fingerprint prompt helper; BiometricPrompt brings FragmentActivity with it.
     implementation(libs.androidx.biometric)
 
