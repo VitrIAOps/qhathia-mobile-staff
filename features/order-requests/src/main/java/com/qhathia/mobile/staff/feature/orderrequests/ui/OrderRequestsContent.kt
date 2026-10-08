@@ -223,6 +223,15 @@ private fun OrderRequestsContentPreview() {
     }
 }
 
+@Preview(name = "Solicitudes — searching", showBackground = true)
+@Preview(name = "Solicitudes — searching dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun OrderRequestsContentSearchingPreview() {
+    QhathiaTheme {
+        OrderRequestsContent(uiState = previewState().copy(searchQuery = "Mari"), onEvent = {})
+    }
+}
+
 @Preview(name = "Solicitudes — empty", showBackground = true)
 @Composable
 private fun OrderRequestsContentEmptyPreview() {

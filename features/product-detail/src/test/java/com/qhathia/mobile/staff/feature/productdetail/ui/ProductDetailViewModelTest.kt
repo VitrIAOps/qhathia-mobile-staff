@@ -2,16 +2,25 @@ package com.qhathia.mobile.staff.feature.productdetail.ui
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.qhathia.mobile.staff.core.domain.model.Discount
+import com.qhathia.mobile.staff.core.domain.model.DiscountError
+import com.qhathia.mobile.staff.core.domain.model.DiscountException
+import com.qhathia.mobile.staff.core.domain.model.DiscountType
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductException
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductDetailUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.GetProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.OptimizeDescriptionUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.RemoveProductDiscountUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.SaveProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.UpdateProductUseCase
 import com.qhathia.mobile.staff.core.testing.FakeCategoryRepository
 import com.qhathia.mobile.staff.core.testing.FakeProductAiRepository
+import com.qhathia.mobile.staff.core.testing.FakeProductDiscountRepository
 import com.qhathia.mobile.staff.core.testing.FakeProductRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
+import com.qhathia.mobile.staff.core.testing.MutableClock
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEffect
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
@@ -35,12 +44,15 @@ class ProductDetailViewModelTest {
     private lateinit var categoryRepository: FakeCategoryRepository
     private lateinit var productRepository: FakeProductRepository
     private lateinit var aiRepository: FakeProductAiRepository
+    private lateinit var discountRepository: FakeProductDiscountRepository
+    private val clock = MutableClock()
 
     @BeforeEach
     fun setUp() {
         categoryRepository = FakeCategoryRepository()
         productRepository = FakeProductRepository()
         aiRepository = FakeProductAiRepository()
+        discountRepository = FakeProductDiscountRepository()
     }
 
     private fun createViewModel(productId: String = PRODUCT_ID) = ProductDetailViewModel(
@@ -49,7 +61,21 @@ class ProductDetailViewModelTest {
         getCategoriesUseCase = GetCategoriesUseCase(categoryRepository),
         updateProductUseCase = UpdateProductUseCase(productRepository),
         optimizeDescriptionUseCase = OptimizeDescriptionUseCase(aiRepository),
+        getProductDiscountUseCase = GetProductDiscountUseCase(discountRepository, clock),
+        saveProductDiscountUseCase = SaveProductDiscountUseCase(discountRepository, clock),
+        removeProductDiscountUseCase = RemoveProductDiscountUseCase(discountRepository),
     )
+
+    /** Opens the dialog, types [input] in [type] mode and applies it to the form. */
+    private fun ProductDetailViewModel.applyDiscount(input: String, type: DiscountType = DiscountType.PERCENTAGE) {
+        onEvent(ProductDetailUiEvent.DiscountToggled(true))
+        val draft = checkNotNull(uiState.value.discountDraft).withType(type).withInput(input)
+        onEvent(ProductDetailUiEvent.DiscountDraftChanged(draft))
+        onEvent(ProductDetailUiEvent.DiscountApplied)
+    }
+
+    /** The discount requests issued after the initial load. */
+    private fun discountCallsAfterLoad() = discountRepository.calls.drop(1)
 
     @Test
     fun `on init loads the product for the route id and seeds the form`() = runTest {
@@ -208,6 +234,265 @@ class ProductDetailViewModelTest {
 
         assertNull(viewModel.uiState.value.description.ifEmpty { null })
         assertFalse(viewModel.uiState.value.isAiActionEnabled)
+    }
+
+
+    @Test
+    fun `on init seeds the discount the product currently has`() = runTest {
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.PERCENTAGE, 20.0),
+        )
+
+        val state = createViewModel().uiState.value
+
+        assertEquals(Discount(DiscountType.PERCENTAGE, 20.0), state.discount)
+        assertFalse(state.isDiscountChanged)
+        assertTrue(state.isDiscountToggleEnabled)
+        assertFalse(state.isDirty)
+    }
+
+    @Test
+    fun `a product without a discount loads with the toggle off`() = runTest {
+        val state = createViewModel().uiState.value
+
+        assertNull(state.discount)
+        assertFalse(state.isDiscountError)
+    }
+
+    @Test
+    fun `a discount that fails to load does not block the form and can be retried`() = runTest {
+        discountRepository.getFailure = DiscountException(DiscountError.Network)
+        val viewModel = createViewModel()
+
+        assertFalse(viewModel.uiState.value.isError)
+        assertTrue(viewModel.uiState.value.isDiscountError)
+        assertFalse(viewModel.uiState.value.isDiscountToggleEnabled)
+
+        discountRepository.getFailure = null
+        discountRepository.discounts += TestFixtures.productDiscount()
+        viewModel.onEvent(ProductDetailUiEvent.RetryDiscount)
+
+        assertFalse(viewModel.uiState.value.isDiscountError)
+        assertNotNull(viewModel.uiState.value.discount)
+    }
+
+    @Test
+    fun `applying a discount only changes the form`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.applyDiscount("20")
+
+        val state = viewModel.uiState.value
+        assertEquals(Discount(DiscountType.PERCENTAGE, 20.0), state.discount)
+        assertNull(state.discountDraft)
+        assertTrue(state.isDirty)
+        assertTrue(state.isSaveEnabled)
+        assertTrue(discountCallsAfterLoad().isEmpty())
+    }
+
+    @Test
+    fun `the dialog opens prefilled with the discount on the form and previews the form price`() = runTest {
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+        )
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.PriceChanged("200"))
+
+        viewModel.onEvent(ProductDetailUiEvent.DiscountSummaryClicked)
+
+        val draft = viewModel.uiState.value.discountDraft
+        assertEquals(DiscountType.FIXED_AMOUNT, draft?.type)
+        assertEquals("15", draft?.input)
+        assertEquals(185.0, draft?.resultingPrice)
+    }
+
+    @Test
+    fun `turning the toggle off only changes the form`() = runTest {
+        discountRepository.discounts += TestFixtures.productDiscount()
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.DiscountToggled(false))
+
+        assertNull(viewModel.uiState.value.discount)
+        assertTrue(viewModel.uiState.value.isDirty)
+        assertTrue(discountCallsAfterLoad().isEmpty())
+        assertEquals(1, discountRepository.discounts.size)
+    }
+
+    @Test
+    fun `dismissing the dialog leaves the form as it was`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.DiscountToggled(true))
+
+        viewModel.onEvent(ProductDetailUiEvent.DiscountDismissed)
+
+        assertNull(viewModel.uiState.value.discountDraft)
+        assertNull(viewModel.uiState.value.discount)
+        assertFalse(viewModel.uiState.value.isDirty)
+    }
+
+    @Test
+    fun `a price change that no longer fits the discount removes it from the form`() = runTest {
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 100.0),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.PriceChanged("80"))
+
+        assertNull(viewModel.uiState.value.discount)
+        assertTrue(viewModel.uiState.value.isDiscountChanged)
+    }
+
+    @Test
+    fun `saving a changed discount replaces it after the product update`() = runTest {
+        discountRepository.discounts += TestFixtures.productDiscount(id = "old")
+        val viewModel = createViewModel()
+        viewModel.applyDiscount("50")
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(1, productRepository.updateCallCount)
+        assertEquals(
+            listOf("get:$PRODUCT_ID", "delete:old", "create:$PRODUCT_ID"),
+            discountCallsAfterLoad(),
+        )
+        assertEquals(Discount(DiscountType.PERCENTAGE, 50.0), discountRepository.discounts.single().discount)
+    }
+
+    @Test
+    fun `saving with the discount turned off removes it`() = runTest {
+        discountRepository.discounts += TestFixtures.productDiscount(id = "old")
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.DiscountToggled(false))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(listOf("get:$PRODUCT_ID", "delete:old"), discountCallsAfterLoad())
+        assertTrue(discountRepository.discounts.isEmpty())
+    }
+
+    @Test
+    fun `saving without touching the discount issues no discount request`() = runTest {
+        discountRepository.discounts += TestFixtures.productDiscount()
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro nuevo"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertTrue(discountCallsAfterLoad().isEmpty())
+    }
+
+    @Test
+    fun `a failed product update issues no discount request and keeps the pending discount`() = runTest {
+        productRepository.updateResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+        val viewModel = createViewModel()
+        viewModel.applyDiscount("20")
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertTrue(awaitItem() is ProductDetailUiEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertTrue(discountCallsAfterLoad().isEmpty())
+        assertEquals(Discount(DiscountType.PERCENTAGE, 20.0), viewModel.uiState.value.discount)
+    }
+
+    @Test
+    fun `a discount that fails after the product is saved keeps the form dirty for a retry`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.applyDiscount("20")
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertTrue(awaitItem() is ProductDetailUiEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+        val failed = viewModel.uiState.value
+        assertFalse(failed.isSaving)
+        assertTrue(failed.isDirty)
+        assertTrue(failed.isSaveEnabled)
+
+        discountRepository.createFailure = null
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(2, productRepository.updateCallCount)
+        assertEquals(1, discountRepository.discounts.size)
+    }
+
+    @Test
+    fun `saving does not touch discounts when they could not be loaded`() = runTest {
+        discountRepository.getFailure = DiscountException(DiscountError.Network)
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro nuevo"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertTrue(discountCallsAfterLoad().isEmpty())
+    }
+
+    @Test
+    fun `leaving with only a discount change asks to discard and discarding sends nothing`() = runTest {
+        discountRepository.discounts += TestFixtures.productDiscount()
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.DiscountToggled(false))
+
+        viewModel.onEvent(ProductDetailUiEvent.CancelRequested)
+        assertTrue(viewModel.uiState.value.showDiscardDialog)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.ConfirmDiscard)
+            assertEquals(ProductDetailUiEffect.NavigateBackCancelled, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertTrue(discountCallsAfterLoad().isEmpty())
+        assertEquals(1, discountRepository.discounts.size)
+    }
+
+    @Test
+    fun `the final price is the form price with the discount applied`() = runTest {
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+        )
+        val viewModel = createViewModel()
+        assertEquals(174.0, viewModel.uiState.value.discountedPrice)
+
+        viewModel.onEvent(ProductDetailUiEvent.PriceChanged("100"))
+        assertEquals(85.0, viewModel.uiState.value.discountedPrice)
+
+        viewModel.onEvent(ProductDetailUiEvent.DiscountToggled(false))
+        assertNull(viewModel.uiState.value.discountedPrice)
+    }
+
+    @Test
+    fun `tags are optional and clearing them saves the product with none`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.TagsChanged(""))
+        assertTrue(viewModel.uiState.value.isSaveEnabled)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(emptyList<String>(), productRepository.updatedProduct?.tags)
     }
 
     private companion object {

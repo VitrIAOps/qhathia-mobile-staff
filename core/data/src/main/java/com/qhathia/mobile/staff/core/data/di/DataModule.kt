@@ -29,6 +29,7 @@ import com.qhathia.mobile.staff.core.data.repository.DeviceRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.NotificationTokenRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.OrderRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.ProductAiRepositoryImpl
+import com.qhathia.mobile.staff.core.data.repository.ProductDiscountRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.ProductRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.SessionAuthTokenProvider
 import com.qhathia.mobile.staff.core.data.repository.SessionRepositoryImpl
@@ -39,6 +40,7 @@ import com.qhathia.mobile.staff.core.domain.repository.DeviceRepository
 import com.qhathia.mobile.staff.core.domain.repository.NotificationTokenRepository
 import com.qhathia.mobile.staff.core.domain.repository.OrderRepository
 import com.qhathia.mobile.staff.core.domain.repository.ProductAiRepository
+import com.qhathia.mobile.staff.core.domain.repository.ProductDiscountRepository
 import com.qhathia.mobile.staff.core.domain.repository.ProductRepository
 import com.qhathia.mobile.staff.core.domain.repository.SessionRepository
 import com.qhathia.mobile.staff.core.domain.repository.StoreInsightsRepository
@@ -66,6 +68,10 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindProductRepository(impl: ProductRepositoryImpl): ProductRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindProductDiscountRepository(impl: ProductDiscountRepositoryImpl): ProductDiscountRepository
 
     @Binds
     @Singleton

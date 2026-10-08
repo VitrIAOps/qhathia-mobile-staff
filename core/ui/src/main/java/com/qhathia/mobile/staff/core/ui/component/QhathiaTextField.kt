@@ -38,6 +38,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 
+/** Placeholders are a hint, not content: faded so an empty field never reads as a filled one. */
+private const val PlaceholderAlpha = 0.5f
+
 /**
  * Design-system text field: placeholder-only (no label), optional leading icon, 8dp radius,
  * with `Empty / Filled / Focused / Error / Disabled` border states from the Qhathia DS.
@@ -126,7 +129,7 @@ fun QhathiaTextField(
                                 Text(
                                     text = placeholder,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = colors.onSurfaceVariant.copy(alpha = contentAlpha),
+                                    color = colors.onSurfaceVariant.copy(alpha = PlaceholderAlpha * contentAlpha),
                                 )
                             }
                             innerTextField()

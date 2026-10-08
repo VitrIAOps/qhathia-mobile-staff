@@ -36,4 +36,16 @@
     <string name="inventory_register_success">Producto registrado correctamente</string>
     <string name="inventory_register_plan_limit">Alcanzaste el límite de productos de tu plan</string>
     <string name="inventory_product_updated">Producto actualizado correctamente</string>
+    <string name="inventory_register_discount_failed">Producto registrado, pero no se pudo aplicar el descuento</string>
+
+    <string name="inventory_search_clear_cd">Borrar búsqueda</string>
+
+    <!-- Per-row actions menu -->
+    <string name="inventory_row_actions_cd">Más acciones</string>
+    <string name="inventory_action_edit_product">Editar producto</string>
+    <string name="inventory_action_edit_discount">Editar descuento</string>
+    <string name="inventory_action_register_discount">Registrar descuento</string>
+    <string name="inventory_discount_updated">Descuento actualizado correctamente</string>
+    <string name="inventory_discount_load_error">No se pudo cargar el descuento</string>
+    <string name="inventory_discount_save_error">No se pudo guardar el descuento. Inténtalo de nuevo</string>
 </resources>

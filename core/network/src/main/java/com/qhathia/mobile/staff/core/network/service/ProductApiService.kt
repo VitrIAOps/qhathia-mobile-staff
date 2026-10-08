@@ -1,7 +1,9 @@
 package com.qhathia.mobile.staff.core.network.service
 
 import com.qhathia.mobile.staff.core.network.NetworkResult
+import com.qhathia.mobile.staff.core.network.dto.CreateDiscountRequestDto
 import com.qhathia.mobile.staff.core.network.dto.CreateProductRequestDto
+import com.qhathia.mobile.staff.core.network.dto.DiscountDto
 import com.qhathia.mobile.staff.core.network.dto.DraftFromImageResponseDto
 import com.qhathia.mobile.staff.core.network.dto.MultipartImage
 import com.qhathia.mobile.staff.core.network.dto.ProductDetailDto
@@ -12,6 +14,7 @@ import com.qhathia.mobile.staff.core.network.dto.RegenerateDescriptionResponseDt
 import com.qhathia.mobile.staff.core.network.toNetworkResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.delete
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.get
@@ -127,5 +130,29 @@ class ProductApiService(
             client.post("api/v1/products/regenerate-description") {
                 setBody(body)
             }.body<RegenerateDescriptionResponseDto>()
+        }.toNetworkResult()
+
+    /** Lists every discount of a product, active or not. */
+    suspend fun getDiscounts(productId: String): NetworkResult<List<DiscountDto>> =
+        runCatching {
+            client.get("api/v1/products/$productId/discounts").body<List<DiscountDto>>()
+        }.toNetworkResult()
+
+    /** Adds a discount to a product. The API has no update call: replacing means delete + create. */
+    suspend fun createDiscount(
+        productId: String,
+        body: CreateDiscountRequestDto,
+    ): NetworkResult<DiscountDto> =
+        runCatching {
+            client.post("api/v1/products/$productId/discounts") {
+                setBody(body)
+            }.body<DiscountDto>()
+        }.toNetworkResult()
+
+    /** Removes one discount of a product (204, no body). */
+    suspend fun deleteDiscount(productId: String, discountId: String): NetworkResult<Unit> =
+        runCatching {
+            client.delete("api/v1/products/$productId/discounts/$discountId")
+            Unit
         }.toNetworkResult()
 }

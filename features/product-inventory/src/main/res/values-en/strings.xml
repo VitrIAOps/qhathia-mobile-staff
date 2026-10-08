@@ -35,4 +35,16 @@
     <string name="inventory_register_success">Product registered successfully</string>
     <string name="inventory_register_plan_limit">You reached your plan\'s product limit</string>
     <string name="inventory_product_updated">Product updated successfully</string>
+    <string name="inventory_register_discount_failed">Product registered, but the discount couldn\'t be applied</string>
+
+    <string name="inventory_search_clear_cd">Clear search</string>
+
+    <!-- Per-row actions menu -->
+    <string name="inventory_row_actions_cd">More actions</string>
+    <string name="inventory_action_edit_product">Edit product</string>
+    <string name="inventory_action_edit_discount">Edit discount</string>
+    <string name="inventory_action_register_discount">Add discount</string>
+    <string name="inventory_discount_updated">Discount updated successfully</string>
+    <string name="inventory_discount_load_error">Couldn\'t load the discount</string>
+    <string name="inventory_discount_save_error">Couldn\'t save the discount. Try again</string>
 </resources>

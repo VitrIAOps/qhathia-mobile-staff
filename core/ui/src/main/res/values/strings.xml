@@ -42,6 +42,30 @@
     <string name="coming_soon_cd">%1$s, próximamente</string>
     <string name="navigate_back_cd">Volver</string>
 
+    <!-- Product discount: toggle row and "Aplicar descuento" dialog -->
+    <string name="discount_toggle_label">Descuento</string>
+    <!-- %1$s is the percentage ("20") or the amount in soles ("15", "15.50"). -->
+    <string name="discount_summary_percentage">Descuento de %1$s%%</string>
+    <string name="discount_summary_amount">Descuento de %1$s soles</string>
+    <string name="discount_edit_cd">Editar descuento</string>
+    <string name="discount_dialog_title">Aplicar descuento</string>
+    <string name="discount_mode_percentage">Porcentaje</string>
+    <string name="discount_mode_amount">Monto</string>
+    <string name="discount_percentage_label">Porcentaje de descuento</string>
+    <string name="discount_percentage_placeholder">20%</string>
+    <string name="discount_amount_label">Monto de descuento</string>
+    <string name="discount_amount_placeholder">S/ 0.00</string>
+    <string name="discount_quick_option">%1$d%%</string>
+    <string name="discount_original_price_format">%1$.2f</string>
+    <string name="discount_price_format">S/ %1$.2f</string>
+    <string name="discount_original_price_cd">Precio original: S/ %1$.2f</string>
+    <string name="discount_resulting_price_cd">Precio con descuento: S/ %1$.2f</string>
+    <string name="discount_cancel">Cancelar</string>
+    <string name="discount_apply">Aplicar</string>
+    <string name="discount_error_percentage">Ingresa un porcentaje entero entre 1 y 100</string>
+    <string name="discount_error_amount">Ingresa un monto válido</string>
+    <string name="discount_error_amount_above_price">El monto no puede superar el precio</string>
+
     <!-- Relative time -->
     <string name="time_just_now">hace un momento</string>
     <plurals name="time_minutes_ago">

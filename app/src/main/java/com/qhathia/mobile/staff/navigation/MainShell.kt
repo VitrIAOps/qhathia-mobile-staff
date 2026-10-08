@@ -31,6 +31,7 @@ import com.qhathia.mobile.staff.R
 import com.qhathia.mobile.staff.core.common.navigation.DESTINATION_ORDER_REQUESTS
 import com.qhathia.mobile.staff.core.ui.R as CoreUiR
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_KEY
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_PLAN_LIMIT
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_SUCCESS
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_UPDATED
@@ -198,6 +199,11 @@ fun MainShell(
                 onPlanLimit = {
                     navController.previousBackStackEntry?.savedStateHandle
                         ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_REGISTER_RESULT_PLAN_LIMIT)
+                    navController.popBackStack()
+                },
+                onDiscountFailed = {
+                    navController.previousBackStackEntry?.savedStateHandle
+                        ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED)
                     navController.popBackStack()
                 },
                 onCancelled = { navController.popBackStack() },

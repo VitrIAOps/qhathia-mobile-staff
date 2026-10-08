@@ -10,17 +10,20 @@ const val PRODUCT_REGISTER_ROUTE = "product_register"
 
 /**
  * Registers the product registration destination. [onRegistered] and [onPlanLimit] fire on a
- * successful registration and a plan-limit rejection respectively; [onCancelled] on discard/cancel.
+ * successful registration and a plan-limit rejection respectively; [onDiscountFailed] when the
+ * product was registered but its discount could not be applied; [onCancelled] on discard/cancel.
  */
 fun NavGraphBuilder.productRegisterGraph(
     onRegistered: () -> Unit,
     onPlanLimit: () -> Unit,
+    onDiscountFailed: () -> Unit,
     onCancelled: () -> Unit,
 ) {
     composable(route = PRODUCT_REGISTER_ROUTE) {
         ProductRegisterScreen(
             onRegistered = onRegistered,
             onPlanLimit = onPlanLimit,
+            onDiscountFailed = onDiscountFailed,
             onCancelled = onCancelled,
         )
     }

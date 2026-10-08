@@ -13,7 +13,7 @@
     <string name="detail_price_label">Precio</string>
     <string name="detail_price_placeholder">S/ 0.00</string>
     <string name="detail_price_prefix">S/</string>
-    <string name="detail_quantity_label">Cantidad</string>
+    <string name="detail_quantity_label">Stock</string>
     <string name="detail_quantity_placeholder">0</string>
     <string name="detail_description_label">Descripción</string>
     <string name="detail_description_placeholder">Ej: Describe materiales, usos y características</string>
@@ -35,6 +35,8 @@
     <string name="detail_error_network">Sin conexión. Inténtalo de nuevo</string>
     <string name="detail_error_validation">Revisa los datos ingresados</string>
     <string name="detail_error_unknown">Algo salió mal. Inténtalo de nuevo</string>
+    <string name="detail_error_discount_save">El producto se guardó, pero no se pudo actualizar el descuento. Guarda de nuevo para reintentar</string>
+    <string name="detail_discount_load_error">No se pudo cargar el descuento</string>
     <string name="detail_error_ai">No se pudo optimizar con IA. Inténtalo de nuevo</string>
 
     <string name="detail_discard_title">¿Descartar cambios?</string>

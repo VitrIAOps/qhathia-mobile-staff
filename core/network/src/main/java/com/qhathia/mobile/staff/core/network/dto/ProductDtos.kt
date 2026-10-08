@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.core.network.dto
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 /**
@@ -58,7 +60,11 @@ data class ProductDetailDto(
  * omitted so the backend derives it from [stock] (`0 → OUT_OF_STOCK`, `>0 → AVAILABLE`) per the
  * contract's `stock ↔ availability` sync. Reused verbatim as the body of `PUT /api/v1/products/{id}`,
  * which the contract defines as taking the same shape as the create request.
+ *
+ * [tags] is always written, even when empty: tags are optional, and on the full-replace `PUT` an
+ * explicit `[]` is what clears a product's tags — an omitted field would not say so.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class CreateProductRequestDto(
     val name: String,
@@ -67,7 +73,7 @@ data class CreateProductRequestDto(
     val stock: Int,
     val allowDiscountInquiry: Boolean = false,
     val categoryId: String? = null,
-    val tags: List<String> = emptyList(),
+    @EncodeDefault val tags: List<String> = emptyList(),
     val position: Int = 0,
 )
 
@@ -107,4 +113,27 @@ data class RegenerateDescriptionRequestDto(
 @Serializable
 data class RegenerateDescriptionResponseDto(
     val description: String = "",
+)
+
+/**
+ * One row of `GET /api/v1/products/{id}/discounts`, also the response of the create call.
+ * [discountType] is `PERCENTAGE` or `FIXED_AMOUNT`; [startsAt] / [endsAt] are ISO-8601 UTC instants.
+ */
+@Serializable
+data class DiscountDto(
+    val id: String,
+    val discountType: String,
+    val value: Double = 0.0,
+    val startsAt: String,
+    val endsAt: String,
+    val active: Boolean = true,
+)
+
+/** Body of `POST /api/v1/products/{id}/discounts`. Every field is required by the contract. */
+@Serializable
+data class CreateDiscountRequestDto(
+    val discountType: String,
+    val value: Double,
+    val startsAt: String,
+    val endsAt: String,
 )

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.parsePrice
 import com.qhathia.mobile.staff.core.common.validation.parseQuantity
+import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.ProductDraft
 import com.qhathia.mobile.staff.core.domain.model.RegisterProductError
@@ -14,6 +15,7 @@ import com.qhathia.mobile.staff.core.domain.usecase.DraftProductFromImageUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.OptimizeDescriptionUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RegisterProductUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.SaveProductDiscountUseCase
 import com.qhathia.mobile.staff.feature.productregister.R
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEffect
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEvent
@@ -37,6 +39,9 @@ import javax.inject.Inject
  * merchant edits it, and on submit orchestrates registration through [RegisterProductUseCase],
  * branching the result into success / plan-limit / error effects. Tags are entered as free text
  * (comma-separated). A dirty form routes cancel/back through the discard-confirmation dialog.
+ *
+ * An optional discount is kept on the form and only sent once registration returns the new
+ * product's id, since a discount cannot exist before its product does.
  */
 @HiltViewModel
 class ProductRegisterViewModel @Inject constructor(
@@ -44,6 +49,7 @@ class ProductRegisterViewModel @Inject constructor(
     private val registerProductUseCase: RegisterProductUseCase,
     private val draftProductFromImageUseCase: DraftProductFromImageUseCase,
     private val optimizeDescriptionUseCase: OptimizeDescriptionUseCase,
+    private val saveProductDiscountUseCase: SaveProductDiscountUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductRegisterUiState())
@@ -64,6 +70,13 @@ class ProductRegisterViewModel @Inject constructor(
             is ProductRegisterUiEvent.NameChanged -> onNameChanged(event.value)
             is ProductRegisterUiEvent.PriceChanged -> onPriceChanged(event.value)
             is ProductRegisterUiEvent.QuantityChanged -> onQuantityChanged(event.value)
+            is ProductRegisterUiEvent.DiscountToggled -> onDiscountToggled(event.enabled)
+            ProductRegisterUiEvent.DiscountSummaryClicked -> openDiscountDraft()
+            is ProductRegisterUiEvent.DiscountDraftChanged ->
+                _uiState.update { if (it.discountDraft == null) it else it.copy(discountDraft = event.draft) }
+            ProductRegisterUiEvent.DiscountApplied -> onDiscountApplied()
+            ProductRegisterUiEvent.DiscountDismissed ->
+                _uiState.update { it.copy(discountDraft = null) }
             is ProductRegisterUiEvent.DescriptionChanged ->
                 _uiState.update { it.copy(description = event.value, isDirty = true) }
             ProductRegisterUiEvent.GenerateDescriptionWithAi -> onGenerateWithAi()
@@ -98,7 +111,37 @@ class ProductRegisterViewModel @Inject constructor(
 
     private fun onPriceChanged(value: String) {
         val error = if (value.isNotBlank() && parsePrice(value) == null) R.string.register_error_price else null
-        _uiState.update { it.copy(price = value, priceError = error, isDirty = true) }
+        val newPrice = parsePrice(value)
+        _uiState.update { state ->
+            state.copy(
+                price = value,
+                priceError = error,
+                // A discount that no longer fits the price (or has no price to apply to) is dropped.
+                discount = state.discount?.takeIf { newPrice != null && it.fits(newPrice) },
+                isDirty = true,
+            )
+        }
+    }
+
+    private fun onDiscountToggled(enabled: Boolean) {
+        if (enabled) {
+            openDiscountDraft()
+        } else {
+            _uiState.update { it.copy(discount = null, discountDraft = null, isDirty = true) }
+        }
+    }
+
+    /** Opens the discount dialog for the entered price, prefilled with the applied discount if any. */
+    private fun openDiscountDraft() {
+        val current = _uiState.value
+        if (!current.isDiscountToggleEnabled) return
+        val price = parsePrice(current.price) ?: return
+        _uiState.update { it.copy(discountDraft = DiscountDraft.from(price, it.discount)) }
+    }
+
+    private fun onDiscountApplied() {
+        val discount = _uiState.value.discountDraft?.toDiscount() ?: return
+        _uiState.update { it.copy(discount = discount, discountDraft = null, isDirty = true) }
     }
 
     private fun onQuantityChanged(value: String) {
@@ -219,9 +262,20 @@ class ProductRegisterViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
             registerProductUseCase(product)
-                .onSuccess {
+                .onSuccess { productId ->
+                    val discountSaved = current.discount
+                        ?.let { saveProductDiscountUseCase(productId, it).isSuccess }
+                        ?: true
                     _uiState.update { it.copy(isSubmitting = false) }
-                    emit(ProductRegisterUiEffect.NavigateBackWithSuccess)
+                    emit(
+                        if (discountSaved) {
+                            ProductRegisterUiEffect.NavigateBackWithSuccess
+                        } else {
+                            // The product exists now, so staying on the form would invite a
+                            // duplicate; the discount can be retried from the inventory.
+                            ProductRegisterUiEffect.NavigateBackWithDiscountFailed
+                        },
+                    )
                 }
                 .onFailure { throwable ->
                     _uiState.update { it.copy(isSubmitting = false) }

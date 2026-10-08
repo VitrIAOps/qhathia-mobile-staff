@@ -6,6 +6,9 @@ import androidx.annotation.StringRes
 sealed interface InventoryUiEffect {
     data class ShowError(@param:StringRes val messageRes: Int) : InventoryUiEffect
 
+    /** Confirms an action that completed on this screen, e.g. a saved discount. */
+    data class ShowMessage(@param:StringRes val messageRes: Int) : InventoryUiEffect
+
     /** Navigate to the product registration screen (from the registration FAB). */
     data object NavigateToRegister : InventoryUiEffect
 

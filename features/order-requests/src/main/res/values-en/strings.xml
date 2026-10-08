@@ -6,6 +6,7 @@
     <string name="order_requests_back_cd">Back</string>
     <string name="order_requests_refresh_cd">Refresh requests</string>
     <string name="order_requests_search_placeholder">Search by name or code</string>
+    <string name="order_requests_search_clear_cd">Clear search</string>
 
     <!-- Status filters -->
     <string name="order_filter_pending">Pending (%1$d)</string>

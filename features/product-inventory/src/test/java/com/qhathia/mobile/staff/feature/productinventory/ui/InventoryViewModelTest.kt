@@ -2,17 +2,27 @@ package com.qhathia.mobile.staff.feature.productinventory.ui
 
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.model.Availability
+import com.qhathia.mobile.staff.core.domain.model.Discount
+import com.qhathia.mobile.staff.core.domain.model.DiscountError
+import com.qhathia.mobile.staff.core.domain.model.DiscountException
+import com.qhathia.mobile.staff.core.domain.model.DiscountType
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.GetProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductsUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.SaveProductDiscountUseCase
 import com.qhathia.mobile.staff.core.testing.FakeCategoryRepository
+import com.qhathia.mobile.staff.core.testing.FakeProductDiscountRepository
 import com.qhathia.mobile.staff.core.testing.FakeProductRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
+import com.qhathia.mobile.staff.core.testing.MutableClock
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEffect
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEvent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -27,16 +37,21 @@ class InventoryViewModelTest {
 
     private lateinit var productRepository: FakeProductRepository
     private lateinit var categoryRepository: FakeCategoryRepository
+    private lateinit var discountRepository: FakeProductDiscountRepository
+    private val clock = MutableClock()
 
     @BeforeEach
     fun setUp() {
         productRepository = FakeProductRepository()
         categoryRepository = FakeCategoryRepository()
+        discountRepository = FakeProductDiscountRepository()
     }
 
     private fun createViewModel() = InventoryViewModel(
         getProductsUseCase = GetProductsUseCase(productRepository),
         getCategoriesUseCase = GetCategoriesUseCase(categoryRepository),
+        getProductDiscountUseCase = GetProductDiscountUseCase(discountRepository, clock),
+        saveProductDiscountUseCase = SaveProductDiscountUseCase(discountRepository, clock),
     )
 
     @Test
@@ -150,5 +165,189 @@ class InventoryViewModelTest {
 
             assertEquals(InventoryUiEffect.NavigateToProductDetail("p7"), awaitItem())
         }
+    }
+
+    @Test
+    fun `edit discount opens the dialog prefilled with the product's discount and row price`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1", price = 189.0)))
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.PERCENTAGE, 20.0),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+
+        val state = viewModel.uiState.value
+        assertEquals("p1", state.discountProductId)
+        assertEquals(189.0, state.discountDraft?.price)
+        assertEquals("20", state.discountDraft?.input)
+        assertEquals(151.2, state.discountDraft?.resultingPrice)
+        assertFalse(state.isDiscountLoading)
+    }
+
+    @Test
+    fun `edit discount on a product without one opens an empty dialog`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+
+        assertEquals("", viewModel.uiState.value.discountDraft?.input)
+    }
+
+    @Test
+    fun `when the discount cannot be loaded the dialog stays closed and an error is shown`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        discountRepository.getFailure = DiscountException(DiscountError.Network)
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+            assertTrue(awaitItem() is InventoryUiEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertNull(viewModel.uiState.value.discountDraft)
+        assertFalse(viewModel.uiState.value.isDiscountLoading)
+    }
+
+    @Test
+    fun `applying saves the discount with replace semantics and confirms`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        discountRepository.discounts += TestFixtures.productDiscount(id = "old")
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+        val draft = checkNotNull(viewModel.uiState.value.discountDraft)
+        viewModel.onEvent(InventoryUiEvent.DiscountDraftChanged(draft.withQuickPercentage(50)))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+            assertTrue(awaitItem() is InventoryUiEffect.ShowMessage)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(listOf("get:p1", "get:p1", "delete:old", "create:p1"), discountRepository.calls)
+        assertEquals(Discount(DiscountType.PERCENTAGE, 50.0), discountRepository.discounts.single().discount)
+        assertNull(viewModel.uiState.value.discountDraft)
+        assertNull(viewModel.uiState.value.discountProductId)
+    }
+
+    @Test
+    fun `a failed save keeps the dialog open with what was typed`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+        val draft = checkNotNull(viewModel.uiState.value.discountDraft)
+        viewModel.onEvent(InventoryUiEvent.DiscountDraftChanged(draft.withInput("35")))
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+            assertTrue(awaitItem() is InventoryUiEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals("35", viewModel.uiState.value.discountDraft?.input)
+        assertFalse(viewModel.uiState.value.isDiscountSaving)
+    }
+
+    @Test
+    fun `an invalid value is not saved and dismissing closes the dialog`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+
+        viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+        assertNotNull(viewModel.uiState.value.discountDraft)
+        assertEquals(listOf("get:p1"), discountRepository.calls)
+
+        viewModel.onEvent(InventoryUiEvent.DiscountDismissed)
+        assertNull(viewModel.uiState.value.discountDraft)
+    }
+
+    @Test
+    fun `whether a product has a discount is unknown until its menu is opened`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+
+        assertNull(viewModel.uiState.value.hasDiscount("p1"))
+        assertTrue(discountRepository.calls.isEmpty())
+    }
+
+    @Test
+    fun `opening the menu of a product without a discount resolves to register`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(InventoryUiEvent.RowActionsOpened("p1"))
+
+        assertEquals(false, viewModel.uiState.value.hasDiscount("p1"))
+        assertNull(viewModel.uiState.value.discountLookupProductId)
+    }
+
+    @Test
+    fun `opening the menu of a product with a discount resolves to edit`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        discountRepository.discounts += TestFixtures.productDiscount()
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(InventoryUiEvent.RowActionsOpened("p1"))
+
+        assertEquals(true, viewModel.uiState.value.hasDiscount("p1"))
+    }
+
+    @Test
+    fun `the lookup happens once and the dialog reuses it instead of loading again`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.PERCENTAGE, 20.0),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(InventoryUiEvent.RowActionsOpened("p1"))
+        viewModel.onEvent(InventoryUiEvent.RowActionsOpened("p1"))
+        viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+
+        assertEquals(listOf("get:p1"), discountRepository.calls)
+        assertEquals("20", viewModel.uiState.value.discountDraft?.input)
+    }
+
+    @Test
+    fun `a failed lookup stays unknown and the option still loads the discount when chosen`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        discountRepository.getFailure = DiscountException(DiscountError.Network)
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(InventoryUiEvent.RowActionsOpened("p1"))
+        assertNull(viewModel.uiState.value.hasDiscount("p1"))
+        assertNull(viewModel.uiState.value.discountLookupProductId)
+
+        discountRepository.getFailure = null
+        viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+        assertNotNull(viewModel.uiState.value.discountDraft)
+        assertEquals(false, viewModel.uiState.value.hasDiscount("p1"))
+    }
+
+    @Test
+    fun `registering a discount from the menu turns the option into edit`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.RowActionsOpened("p1"))
+        viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+        val draft = checkNotNull(viewModel.uiState.value.discountDraft)
+        viewModel.onEvent(InventoryUiEvent.DiscountDraftChanged(draft.withQuickPercentage(10)))
+
+        viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+
+        assertEquals(true, viewModel.uiState.value.hasDiscount("p1"))
+    }
+
+    @Test
+    fun `reloading the products forgets what was known about their discounts`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.RowActionsOpened("p1"))
+        assertEquals(false, viewModel.uiState.value.hasDiscount("p1"))
+
+        viewModel.refresh()
+
+        assertNull(viewModel.uiState.value.hasDiscount("p1"))
     }
 }

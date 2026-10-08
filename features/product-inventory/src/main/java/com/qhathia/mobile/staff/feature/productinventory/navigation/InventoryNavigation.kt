@@ -17,6 +17,9 @@ const val INVENTORY_ROUTE = "inventory"
 const val INVENTORY_REGISTER_RESULT_KEY = "inventory_register_result"
 const val INVENTORY_REGISTER_RESULT_SUCCESS = "success"
 const val INVENTORY_REGISTER_RESULT_PLAN_LIMIT = "plan_limit"
+
+/** The product was registered, but the discount chosen on the form could not be created. */
+const val INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED = "discount_failed"
 const val INVENTORY_RESULT_PRODUCT_UPDATED = "product_updated"
 
 /**

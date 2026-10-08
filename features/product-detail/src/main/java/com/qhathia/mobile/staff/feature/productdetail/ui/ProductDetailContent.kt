@@ -29,6 +29,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.Category
+import com.qhathia.mobile.staff.core.domain.model.Discount
+import com.qhathia.mobile.staff.core.domain.model.DiscountType
+import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscountToggleRow
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.productdetail.R
@@ -101,6 +104,15 @@ fun ProductDetailContent(
             }
         }
 
+        uiState.discountDraft?.let { draft ->
+            DiscountDialog(
+                draft = draft,
+                onDraftChange = { onEvent(ProductDetailUiEvent.DiscountDraftChanged(it)) },
+                onApply = { onEvent(ProductDetailUiEvent.DiscountApplied) },
+                onDismiss = { onEvent(ProductDetailUiEvent.DiscountDismissed) },
+            )
+        }
+
         if (uiState.showDiscardDialog) {
             DiscardChangesDialog(
                 onConfirm = { onEvent(ProductDetailUiEvent.ConfirmDiscard) },
@@ -158,6 +170,23 @@ private fun EditForm(
             enabled = enabled,
             errorRes = uiState.priceError,
         )
+        Column {
+            QhathiaDiscountToggleRow(
+                checked = uiState.discount != null || uiState.discountDraft != null,
+                onCheckedChange = { onEvent(ProductDetailUiEvent.DiscountToggled(it)) },
+                enabled = uiState.isDiscountToggleEnabled,
+                isLoading = uiState.isDiscountLoading,
+                summary = uiState.discount?.summaryText(),
+                finalPrice = uiState.discountedPrice,
+                onSummaryClick = { onEvent(ProductDetailUiEvent.DiscountSummaryClicked) },
+            )
+            if (uiState.isDiscountError) {
+                DiscountLoadError(
+                    enabled = enabled,
+                    onRetry = { onEvent(ProductDetailUiEvent.RetryDiscount) },
+                )
+            }
+        }
         DetailQuantityField(
             value = uiState.quantity,
             onValueChange = { onEvent(ProductDetailUiEvent.QuantityChanged(it)) },
@@ -178,6 +207,29 @@ private fun EditForm(
             onCancel = { onEvent(ProductDetailUiEvent.CancelRequested) },
             onSave = { onEvent(ProductDetailUiEvent.Save) },
         )
+    }
+}
+
+/** Shown under the disabled discount toggle when the product's discount could not be loaded. */
+@Composable
+private fun DiscountLoadError(
+    enabled: Boolean,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.detail_discount_load_error),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onRetry, enabled = enabled) {
+            Text(stringResource(R.string.detail_retry))
+        }
     }
 }
 
@@ -281,6 +333,29 @@ private fun loadedState() = ProductDetailUiState(
     imageUrls = persistentListOf("https://cdn.qhathia.test/1.jpg"),
     isLoading = false,
 )
+
+@Preview(name = "Detail — with discount", showBackground = true)
+@Preview(name = "Detail — with discount dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun ProductDetailContentDiscountPreview() {
+    QhathiaTheme {
+        ProductDetailContent(
+            uiState = loadedState().copy(
+                loadedDiscount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+                discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+            ),
+            onEvent = {},
+        )
+    }
+}
+
+@Preview(name = "Detail — discount load error", showBackground = true)
+@Composable
+private fun ProductDetailContentDiscountErrorPreview() {
+    QhathiaTheme {
+        ProductDetailContent(uiState = loadedState().copy(isDiscountError = true), onEvent = {})
+    }
+}
 
 @Preview(name = "Detail — loading", showBackground = true)
 @Composable
