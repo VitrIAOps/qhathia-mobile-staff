@@ -13,7 +13,7 @@
     <string name="detail_price_label">Price</string>
     <string name="detail_price_placeholder">S/ 0.00</string>
     <string name="detail_price_prefix">S/</string>
-    <string name="detail_quantity_label">Quantity</string>
+    <string name="detail_quantity_label">Stock</string>
     <string name="detail_quantity_placeholder">0</string>
     <string name="detail_description_label">Description</string>
     <string name="detail_description_placeholder">E.g. Describe materials, uses and features</string>
@@ -35,6 +35,8 @@
     <string name="detail_error_network">No connection. Try again</string>
     <string name="detail_error_validation">Check the details you entered</string>
     <string name="detail_error_unknown">Something went wrong. Try again</string>
+    <string name="detail_error_discount_save">The product was saved, but the discount couldn\'t be updated. Save again to retry</string>
+    <string name="detail_discount_load_error">Couldn\'t load the discount</string>
     <string name="detail_error_ai">Couldn\'t optimize with AI. Try again</string>
 
     <string name="detail_discard_title">Discard changes?</string>

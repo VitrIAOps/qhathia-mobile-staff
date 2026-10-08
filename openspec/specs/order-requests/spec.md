@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines how a merchant works purchase orders in the Solicitudes tab of the Qhathia staff app: browsing orders by status (Pendientes, Aceptados, Rechazados) against `GET /api/v1/orders`, searching them by customer name or order code through the backend `q` parameter, surfacing the app-wide pending-order count on the Solicitudes tab, the Inicio bell and the `Pendientes (N)` filter, reading each order's identity, total and live expiry countdown derived from `expiresAt`, opening the order detail as a dialog with per-item low-stock warnings, confirming or rejecting an order with its snackbar feedback and conflict handling (`STOCK_INSUFFICIENT`, `INVALID_STATE_TRANSITION`), and refreshing the list on demand with a visible last-update time.
-
 ## Requirements
-
 ### Requirement: Browse purchase orders by status
 
 The system SHALL present purchase orders in the Solicitudes tab, grouped by three status filters backed by `GET /api/v1/orders`: **Pendientes** (`status=PENDING`), **Aceptados** (`status=CONFIRMED`) and **Rechazados** (`status=REJECTED,EXPIRED`). **Pendientes** MUST be selected when the screen opens. Only the Pendientes filter SHALL display a count; that count MUST be read from the application-wide pending-order count rather than from state private to this screen. Selecting a filter MUST re-query the backend rather than filter an already-loaded list.
@@ -209,3 +207,18 @@ The screen SHALL provide a manual refresh action in its header and SHALL display
 #### Scenario: Failed refresh keeps the previous data
 - **WHEN** a refresh fails
 - **THEN** the previously loaded orders and the previous last-update time remain displayed alongside the error message
+
+### Requirement: Search clear action
+
+The order search box SHALL show a trailing clear (`x`) button whenever it contains text. Tapping it SHALL remove all the entered text, which restores the list for the active status filter. The button SHALL NOT be shown while the search box is empty.
+
+#### Scenario: Clear button appears with text
+
+- **WHEN** the merchant has typed text in the search box
+- **THEN** a clear button is shown at the end of the search box
+
+#### Scenario: Clearing the text
+
+- **WHEN** the merchant taps the clear button
+- **THEN** the search box becomes empty, the clear button disappears and the orders are re-queried with the active status filter and no search text
+

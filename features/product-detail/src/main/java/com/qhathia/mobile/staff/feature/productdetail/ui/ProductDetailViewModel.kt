@@ -6,13 +6,17 @@ import androidx.lifecycle.viewModelScope
 import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.parsePrice
 import com.qhathia.mobile.staff.core.common.validation.parseQuantity
+import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductException
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductDetailUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.GetProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.OptimizeDescriptionUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.RemoveProductDiscountUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.SaveProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.UpdateProductUseCase
 import com.qhathia.mobile.staff.feature.productdetail.R
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEffect
@@ -40,6 +44,10 @@ import javax.inject.Inject
  * replaces the product through [UpdateProductUseCase]. A dirty form routes cancel/back through the
  * discard-confirmation dialog.
  *
+ * The product's discount is loaded alongside it and edited as one more form field: applying or
+ * removing it only changes the form, and the change is sent after the product update when the
+ * merchant saves.
+ *
  * The product id arrives as a route argument via [SavedStateHandle], so the screen never receives
  * the product itself across the navigation boundary.
  */
@@ -50,6 +58,9 @@ class ProductDetailViewModel @Inject constructor(
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val updateProductUseCase: UpdateProductUseCase,
     private val optimizeDescriptionUseCase: OptimizeDescriptionUseCase,
+    private val getProductDiscountUseCase: GetProductDiscountUseCase,
+    private val saveProductDiscountUseCase: SaveProductDiscountUseCase,
+    private val removeProductDiscountUseCase: RemoveProductDiscountUseCase,
 ) : ViewModel() {
 
     private val productId: String = checkNotNull(savedStateHandle[PRODUCT_DETAIL_ARG_ID]) {
@@ -82,6 +93,14 @@ class ProductDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(tags = event.value, isDirty = true) }
             is ProductDetailUiEvent.SelectCategory ->
                 _uiState.update { it.copy(selectedCategoryId = event.categoryId, isDirty = true) }
+            ProductDetailUiEvent.RetryDiscount -> loadDiscount()
+            is ProductDetailUiEvent.DiscountToggled -> onDiscountToggled(event.enabled)
+            ProductDetailUiEvent.DiscountSummaryClicked -> openDiscountDraft()
+            is ProductDetailUiEvent.DiscountDraftChanged ->
+                _uiState.update { if (it.discountDraft == null) it else it.copy(discountDraft = event.draft) }
+            ProductDetailUiEvent.DiscountApplied -> onDiscountApplied()
+            ProductDetailUiEvent.DiscountDismissed ->
+                _uiState.update { it.copy(discountDraft = null) }
             ProductDetailUiEvent.OptimizeDescriptionWithAi -> optimizeDescription()
             ProductDetailUiEvent.Save -> save()
             ProductDetailUiEvent.CancelRequested -> onCancelRequested()
@@ -95,9 +114,9 @@ class ProductDetailViewModel @Inject constructor(
     }
 
     /**
-     * Loads the product and the catalog concurrently. A catalog failure is non-fatal — it only
-     * disables the category chips, whose own retry is wired separately — but a product failure puts
-     * the whole screen in its error state.
+     * Loads the product, the catalog and the product's discount concurrently. A catalog or discount
+     * failure is non-fatal — it only disables that control, whose own retry is wired separately —
+     * but a product failure puts the whole screen in its error state.
      */
     private fun load() {
         viewModelScope.launch {
@@ -105,14 +124,21 @@ class ProductDetailViewModel @Inject constructor(
                 it.copy(isLoading = true, isError = false, isCategoriesLoading = true, isCategoriesError = false)
             }
             val categoriesDeferred = async { getCategoriesUseCase() }
+            val discountDeferred = async { getProductDiscountUseCase(productId) }
             val productResult = getProductDetailUseCase(productId)
             val categoriesResult = categoriesDeferred.await()
+            val discountResult = discountDeferred.await()
 
             _uiState.update { state ->
                 val withCatalog = state.copy(
                     isCategoriesLoading = false,
                     categories = categoriesResult.getOrDefault(emptyList()).toImmutableList(),
                     isCategoriesError = categoriesResult.isFailure,
+                    loadedDiscount = discountResult.getOrNull()?.discount,
+                    discount = discountResult.getOrNull()?.discount,
+                    discountDraft = null,
+                    isDiscountLoading = false,
+                    isDiscountError = discountResult.isFailure,
                 )
                 productResult.fold(
                     onSuccess = { product -> withCatalog.seededFrom(product) },
@@ -131,6 +157,21 @@ class ProductDetailViewModel @Inject constructor(
                     isCategoriesLoading = false,
                     categories = categories.getOrDefault(emptyList()).toImmutableList(),
                     isCategoriesError = categories.isFailure,
+                )
+            }
+        }
+    }
+
+    private fun loadDiscount() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDiscountLoading = true, isDiscountError = false) }
+            val result = getProductDiscountUseCase(productId)
+            _uiState.update { state ->
+                state.copy(
+                    isDiscountLoading = false,
+                    isDiscountError = result.isFailure,
+                    loadedDiscount = result.getOrNull()?.discount,
+                    discount = result.getOrNull()?.discount,
                 )
             }
         }
@@ -165,7 +206,38 @@ class ProductDetailViewModel @Inject constructor(
 
     private fun onPriceChanged(value: String) {
         val error = if (value.isNotBlank() && parsePrice(value) == null) R.string.detail_error_price else null
-        _uiState.update { it.copy(price = value, priceError = error, isDirty = true) }
+        val newPrice = parsePrice(value)
+        _uiState.update { state ->
+            state.copy(
+                price = value,
+                priceError = error,
+                // A discount that no longer fits the price (or has no price to apply to) is dropped.
+                discount = state.discount?.takeIf { newPrice != null && it.fits(newPrice) },
+                isDirty = true,
+            )
+        }
+    }
+
+    private fun onDiscountToggled(enabled: Boolean) {
+        if (enabled) {
+            openDiscountDraft()
+        } else {
+            _uiState.update { it.copy(discount = null, discountDraft = null, isDirty = true) }
+        }
+    }
+
+    /** Opens the discount dialog for the price on the form, prefilled with the form's discount. */
+    private fun openDiscountDraft() {
+        val current = _uiState.value
+        if (!current.isDiscountToggleEnabled) return
+        val price = parsePrice(current.price) ?: return
+        _uiState.update { it.copy(discountDraft = DiscountDraft.from(price, it.discount)) }
+    }
+
+    /** Applying only changes the form; the discount is persisted when the merchant saves. */
+    private fun onDiscountApplied() {
+        val discount = _uiState.value.discountDraft?.toDiscount() ?: return
+        _uiState.update { it.copy(discount = discount, discountDraft = null, isDirty = true) }
     }
 
     private fun onQuantityChanged(value: String) {
@@ -223,14 +295,46 @@ class ProductDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true) }
             updateProductUseCase(productId, product)
                 .onSuccess {
-                    _uiState.update { it.copy(isSaving = false, isDirty = false) }
-                    emit(ProductDetailUiEffect.NavigateBackSaved)
+                    if (persistDiscountChange(current).isSuccess) {
+                        _uiState.update { it.copy(isSaving = false, isDirty = false) }
+                        emit(ProductDetailUiEffect.NavigateBackSaved)
+                    } else {
+                        // The product is saved; the form stays dirty so saving again retries the
+                        // discount. A failed replace may have left the product with no discount,
+                        // so what is stored is read again rather than assumed.
+                        val stored = getProductDiscountUseCase(productId)
+                        _uiState.update { state ->
+                            state.copy(
+                                isSaving = false,
+                                loadedDiscount = stored.fold(
+                                    onSuccess = { it?.discount },
+                                    onFailure = { state.loadedDiscount },
+                                ),
+                            )
+                        }
+                        emit(ProductDetailUiEffect.ShowError(R.string.detail_error_discount_save))
+                    }
                 }
                 .onFailure { throwable ->
                     _uiState.update { it.copy(isSaving = false) }
                     val error = (throwable as? UpdateProductException)?.error
                     emit(ProductDetailUiEffect.ShowError(error.toMessageRes()))
                 }
+        }
+    }
+
+    /**
+     * Sends the form's discount change, if there is one: a set discount replaces whatever the
+     * product had, a cleared one removes it. Nothing is sent when the discount was not touched or
+     * could not be loaded in the first place.
+     */
+    private suspend fun persistDiscountChange(state: ProductDetailUiState): Result<Unit> {
+        if (state.isDiscountError || !state.isDiscountChanged) return Result.success(Unit)
+        val discount = state.discount
+        return if (discount != null) {
+            saveProductDiscountUseCase(productId, discount).map { }
+        } else {
+            removeProductDiscountUseCase(productId)
         }
     }
 

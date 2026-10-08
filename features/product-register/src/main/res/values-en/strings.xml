@@ -12,7 +12,7 @@
     <string name="register_price_label">Price</string>
     <string name="register_price_placeholder">S/ 0.00</string>
     <string name="register_price_prefix">S/</string>
-    <string name="register_quantity_label">Quantity</string>
+    <string name="register_quantity_label">Stock</string>
     <string name="register_quantity_placeholder">0</string>
     <string name="register_description_label">Description</string>
     <string name="register_description_placeholder">E.g. Describe materials, uses and features</string>

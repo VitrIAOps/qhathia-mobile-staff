@@ -6,6 +6,7 @@
     <string name="order_requests_back_cd">Volver</string>
     <string name="order_requests_refresh_cd">Actualizar solicitudes</string>
     <string name="order_requests_search_placeholder">Buscar por nombre o código</string>
+    <string name="order_requests_search_clear_cd">Borrar búsqueda</string>
 
     <!-- Status filters. Only Pendientes carries a count. -->
     <string name="order_filter_pending">Pendientes (%1$d)</string>

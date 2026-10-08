@@ -36,6 +36,29 @@
     <string name="coming_soon_cd">%1$s, coming soon</string>
     <string name="navigate_back_cd">Back</string>
 
+    <!-- Product discount: toggle row and "Apply discount" dialog -->
+    <string name="discount_toggle_label">Discount</string>
+    <string name="discount_summary_percentage">%1$s%% discount</string>
+    <string name="discount_summary_amount">%1$s soles discount</string>
+    <string name="discount_edit_cd">Edit discount</string>
+    <string name="discount_dialog_title">Apply discount</string>
+    <string name="discount_mode_percentage">Percentage</string>
+    <string name="discount_mode_amount">Amount</string>
+    <string name="discount_percentage_label">Discount percentage</string>
+    <string name="discount_percentage_placeholder">20%</string>
+    <string name="discount_amount_label">Discount amount</string>
+    <string name="discount_amount_placeholder">S/ 0.00</string>
+    <string name="discount_quick_option">%1$d%%</string>
+    <string name="discount_original_price_format">%1$.2f</string>
+    <string name="discount_price_format">S/ %1$.2f</string>
+    <string name="discount_original_price_cd">Original price: S/ %1$.2f</string>
+    <string name="discount_resulting_price_cd">Discounted price: S/ %1$.2f</string>
+    <string name="discount_cancel">Cancel</string>
+    <string name="discount_apply">Apply</string>
+    <string name="discount_error_percentage">Enter a whole percentage between 1 and 100</string>
+    <string name="discount_error_amount">Enter a valid amount</string>
+    <string name="discount_error_amount_above_price">The amount can\'t exceed the price</string>
+
     <!-- Relative time -->
     <string name="time_just_now">just now</string>
     <plurals name="time_minutes_ago">

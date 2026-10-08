@@ -41,7 +41,11 @@ import com.qhathia.mobile.staff.core.domain.model.StoreSettings
 import com.qhathia.mobile.staff.core.domain.model.Subscription
 import com.qhathia.mobile.staff.core.domain.model.SubscriptionStatus
 import com.qhathia.mobile.staff.core.domain.model.UserProfile
+import com.qhathia.mobile.staff.core.domain.model.Discount
+import com.qhathia.mobile.staff.core.domain.model.DiscountType
+import com.qhathia.mobile.staff.core.domain.model.ProductDiscount
 import java.math.BigDecimal
+import java.time.Duration
 import java.time.Instant
 
 /** Shared domain fixtures for tests. */
@@ -112,6 +116,20 @@ object TestFixtures {
         allowDiscountInquiry = allowDiscountInquiry,
         position = position,
     )
+
+    fun discount(
+        type: DiscountType = DiscountType.PERCENTAGE,
+        value: Double = 20.0,
+    ) = Discount(type, value)
+
+    /** A stored discount that is active and still running at [NOW] unless told otherwise. */
+    fun productDiscount(
+        id: String = "discount-1",
+        discount: Discount = discount(),
+        startsAt: Instant = NOW.minus(Duration.ofDays(1)),
+        endsAt: Instant = NOW.plus(Duration.ofDays(6)),
+        active: Boolean = true,
+    ) = ProductDiscount(id, discount, startsAt, endsAt, active)
 
     fun productUpdate(
         name: String = "Taladro Percutor Bosch GSB 13 RE",

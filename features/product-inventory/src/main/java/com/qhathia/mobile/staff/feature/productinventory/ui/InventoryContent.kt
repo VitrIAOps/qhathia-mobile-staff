@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
+import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
@@ -94,6 +95,10 @@ fun InventoryContent(
                         ProductListCard(
                             products = uiState.visibleProducts,
                             onProductClick = { onEvent(InventoryUiEvent.ProductClicked(it)) },
+                            onEditDiscount = { onEvent(InventoryUiEvent.EditDiscountClicked(it)) },
+                            onActionsOpened = { onEvent(InventoryUiEvent.RowActionsOpened(it)) },
+                            hasDiscount = uiState::hasDiscount,
+                            discountLookupProductId = uiState.discountLookupProductId,
                         )
                 }
             }
@@ -115,6 +120,27 @@ fun InventoryContent(
                 contentDescription = stringResource(R.string.inventory_register_cd),
             )
         }
+
+        if (uiState.isDiscountLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
+        uiState.discountDraft?.let { draft ->
+            DiscountDialog(
+                draft = draft,
+                isSaving = uiState.isDiscountSaving,
+                onDraftChange = { onEvent(InventoryUiEvent.DiscountDraftChanged(it)) },
+                onApply = { onEvent(InventoryUiEvent.DiscountApplied) },
+                onDismiss = { onEvent(InventoryUiEvent.DiscountDismissed) },
+            )
+        }
     }
 }
 
@@ -127,6 +153,10 @@ fun InventoryContent(
 private fun ProductListCard(
     products: ImmutableList<Product>,
     onProductClick: (String) -> Unit,
+    onEditDiscount: (String) -> Unit,
+    onActionsOpened: (String) -> Unit,
+    hasDiscount: (String) -> Boolean?,
+    discountLookupProductId: String?,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -140,7 +170,14 @@ private fun ProductListCard(
             contentPadding = PaddingValues(Dimens.SpaceMd),
         ) {
             items(products, key = { product -> product.id }) { product ->
-                ProductRow(product = product, onClick = { onProductClick(product.id) })
+                ProductRow(
+                    product = product,
+                    onClick = { onProductClick(product.id) },
+                    onEditDiscount = { onEditDiscount(product.id) },
+                    onActionsOpened = { onActionsOpened(product.id) },
+                    hasDiscount = hasDiscount(product.id),
+                    isDiscountLookupLoading = discountLookupProductId == product.id,
+                )
                 HorizontalDivider(color = QhathiaColors.rowDivider)
             }
         }
@@ -221,6 +258,25 @@ private fun InventoryContentPreview() {
                 loadedProducts = sampleProducts(),
                 visibleProducts = sampleProducts(),
                 categories = sampleCategories(),
+            ),
+            onEvent = {},
+        )
+    }
+}
+
+@Preview(name = "Inventory — search and discount dialog", showBackground = true)
+@Preview(name = "Inventory — search and discount dialog dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun InventoryContentDiscountDialogPreview() {
+    QhathiaTheme {
+        InventoryContent(
+            uiState = InventoryUiState(
+                loadedProducts = sampleProducts(),
+                visibleProducts = sampleProducts(),
+                categories = sampleCategories(),
+                searchQuery = "Taladro",
+                discountProductId = sampleProducts().first().id,
+                discountDraft = DiscountDraft(price = sampleProducts().first().price, input = "20"),
             ),
             onEvent = {},
         )

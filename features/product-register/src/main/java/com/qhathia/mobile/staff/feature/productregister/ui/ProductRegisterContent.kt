@@ -29,7 +29,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.Category
+import com.qhathia.mobile.staff.core.domain.model.Discount
+import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
+import com.qhathia.mobile.staff.core.domain.model.DiscountType
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
+import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscountToggleRow
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.productregister.R
@@ -118,6 +122,14 @@ fun ProductRegisterContent(
                         enabled = enabled,
                         errorRes = uiState.priceError,
                     )
+                    QhathiaDiscountToggleRow(
+                        checked = uiState.discount != null || uiState.discountDraft != null,
+                        onCheckedChange = { onEvent(ProductRegisterUiEvent.DiscountToggled(it)) },
+                        enabled = uiState.isDiscountToggleEnabled,
+                        summary = uiState.discount?.summaryText(),
+                        finalPrice = uiState.discountedPrice,
+                        onSummaryClick = { onEvent(ProductRegisterUiEvent.DiscountSummaryClicked) },
+                    )
                     RegisterQuantityField(
                         value = uiState.quantity,
                         onValueChange = { onEvent(ProductRegisterUiEvent.QuantityChanged(it)) },
@@ -157,6 +169,15 @@ fun ProductRegisterContent(
             DiscardChangesDialog(
                 onConfirm = { onEvent(ProductRegisterUiEvent.ConfirmDiscard) },
                 onDismiss = { onEvent(ProductRegisterUiEvent.DismissDiscard) },
+            )
+        }
+
+        uiState.discountDraft?.let { draft ->
+            DiscountDialog(
+                draft = draft,
+                onDraftChange = { onEvent(ProductRegisterUiEvent.DiscountDraftChanged(it)) },
+                onApply = { onEvent(ProductRegisterUiEvent.DiscountApplied) },
+                onDismiss = { onEvent(ProductRegisterUiEvent.DiscountDismissed) },
             )
         }
 
@@ -298,6 +319,29 @@ private fun ProductRegisterContentEmptyPreview() {
 private fun ProductRegisterContentFilledPreview() {
     QhathiaTheme {
         ProductRegisterContent(uiState = filledState(), onEvent = {})
+    }
+}
+
+@Preview(name = "Register — discount applied", showBackground = true)
+@Preview(name = "Register — discount applied dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun ProductRegisterContentDiscountPreview() {
+    QhathiaTheme {
+        ProductRegisterContent(
+            uiState = filledState().copy(discount = Discount(DiscountType.PERCENTAGE, 20.0)),
+            onEvent = {},
+        )
+    }
+}
+
+@Preview(name = "Register — discount dialog", showBackground = true)
+@Composable
+private fun ProductRegisterContentDiscountDialogPreview() {
+    QhathiaTheme {
+        ProductRegisterContent(
+            uiState = filledState().copy(discountDraft = DiscountDraft(price = 189.9, input = "20")),
+            onEvent = {},
+        )
     }
 }
 

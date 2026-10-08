@@ -15,6 +15,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qhathia.mobile.staff.feature.productinventory.R
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEffect
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_PLAN_LIMIT
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_SUCCESS
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_UPDATED
@@ -23,8 +24,8 @@ import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RE
  * Stateful inventory entry point: binds [InventoryViewModel], renders [InventoryContent] and
  * surfaces one-shot errors as a snackbar. Reacts to a [registerResult] handed back from a screen it
  * pushed: a successful registration or edit refreshes the list and confirms with a snackbar; a
- * plan-limit result shows the plan-limit message. The app shell's Scaffold provides the window
- * insets.
+ * plan-limit result shows the plan-limit message; a registration whose discount failed refreshes
+ * and says so. The app shell's Scaffold provides the window insets.
  */
 @Composable
 fun InventoryScreen(
@@ -44,6 +45,8 @@ fun InventoryScreen(
             when (effect) {
                 is InventoryUiEffect.ShowError ->
                     snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
+                is InventoryUiEffect.ShowMessage ->
+                    snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
                 InventoryUiEffect.NavigateToRegister -> onNavigateToRegister()
                 is InventoryUiEffect.NavigateToProductDetail ->
                     onNavigateToProductDetail(effect.productId)
@@ -60,6 +63,13 @@ fun InventoryScreen(
             }
             INVENTORY_REGISTER_RESULT_PLAN_LIMIT -> {
                 snackbarHostState.showSnackbar(resources.getString(R.string.inventory_register_plan_limit))
+                onRegisterResultConsumed()
+            }
+            INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED -> {
+                viewModel.refresh()
+                snackbarHostState.showSnackbar(
+                    resources.getString(R.string.inventory_register_discount_failed),
+                )
                 onRegisterResultConsumed()
             }
             INVENTORY_RESULT_PRODUCT_UPDATED -> {

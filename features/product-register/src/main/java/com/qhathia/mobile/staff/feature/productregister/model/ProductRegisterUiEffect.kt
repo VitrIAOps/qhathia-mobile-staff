@@ -7,6 +7,12 @@ sealed interface ProductRegisterUiEffect {
     /** Registration succeeded — return to inventory and show the success snackbar there. */
     data object NavigateBackWithSuccess : ProductRegisterUiEffect
 
+    /**
+     * The product was registered but its discount could not be created — return to inventory, where
+     * the product now exists, with a message saying so.
+     */
+    data object NavigateBackWithDiscountFailed : ProductRegisterUiEffect
+
     /** Create was rejected for exceeding the plan limit — return to inventory with that message. */
     data object NavigateBackWithPlanLimit : ProductRegisterUiEffect
 

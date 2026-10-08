@@ -15,10 +15,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,13 +50,21 @@ import kotlin.math.abs
 
 /**
  * A single inventory product (DS "Product-cards"): 59dp thumbnail, name over a price/stock row, and
- * a trailing overflow affordance. Tapping the row opens the product's detail/edit screen.
+ * a trailing "⋮" that opens the per-product actions menu. Tapping the row itself opens the
+ * product's detail/edit screen, the same destination as the menu's "Editar producto".
+ *
+ * [hasDiscount] is only known once the menu has been opened ([onActionsOpened] triggers the
+ * lookup): it picks between "Registrar descuento" and "Editar descuento".
  * The "N stock" value is mocked via [mockedStock] until backend exposes a real stock quantity.
  */
 @Composable
 internal fun ProductRow(
     product: Product,
     onClick: () -> Unit,
+    onEditDiscount: () -> Unit,
+    onActionsOpened: () -> Unit,
+    hasDiscount: Boolean?,
+    isDiscountLookupLoading: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -117,14 +135,89 @@ internal fun ProductRow(
             }
         }
 
-        // Visual-only for this slice: the DS row ends in a "⋮" that will open the per-product
-        // actions menu once those actions exist.
-        Icon(
-            imageVector = Icons.Filled.MoreVert,
-            contentDescription = null,
-            tint = QhathiaColors.iconMuted,
-            modifier = Modifier.size(Dimens.IconSm),
+        ProductRowActions(
+            onEditProduct = onClick,
+            onEditDiscount = onEditDiscount,
+            onOpened = onActionsOpened,
+            hasDiscount = hasDiscount,
+            isDiscountLookupLoading = isDiscountLookupLoading,
         )
+    }
+}
+
+/**
+ * The row's "⋮" button and the menu it anchors, so the options are drawn from the icon itself.
+ * Whether the menu is open is plain UI state and stays here.
+ *
+ * The discount option reads "Registrar descuento" when the product is known to have none and
+ * "Editar descuento" otherwise; while that is being looked up it shows a spinner and waits.
+ */
+@Composable
+private fun ProductRowActions(
+    onEditProduct: () -> Unit,
+    onEditDiscount: () -> Unit,
+    onOpened: () -> Unit,
+    hasDiscount: Boolean?,
+    isDiscountLookupLoading: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        IconButton(
+            onClick = {
+                expanded = true
+                onOpened()
+            },
+        ) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = stringResource(R.string.inventory_row_actions_cd),
+                tint = QhathiaColors.iconMuted,
+                modifier = Modifier.size(Dimens.IconSm),
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            shape = RoundedCornerShape(Dimens.CardRadius),
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.inventory_action_edit_product)) },
+                leadingIcon = { Icon(imageVector = Icons.Outlined.Edit, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onEditProduct()
+                },
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(
+                            if (hasDiscount == false) {
+                                R.string.inventory_action_register_discount
+                            } else {
+                                R.string.inventory_action_edit_discount
+                            },
+                        ),
+                    )
+                },
+                leadingIcon = { Icon(imageVector = Icons.Outlined.LocalOffer, contentDescription = null) },
+                trailingIcon = {
+                    if (isDiscountLookupLoading) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(Dimens.IconSm),
+                        )
+                    }
+                },
+                enabled = !isDiscountLookupLoading,
+                onClick = {
+                    expanded = false
+                    onEditDiscount()
+                },
+            )
+        }
     }
 }
 

@@ -3,15 +3,21 @@ package com.qhathia.mobile.staff.feature.productinventory.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qhathia.mobile.staff.core.domain.model.Availability
+import com.qhathia.mobile.staff.core.domain.model.Discount
+import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.GetProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductsUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.SaveProductDiscountUseCase
 import com.qhathia.mobile.staff.feature.productinventory.R
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEffect
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEvent
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,11 +33,17 @@ import javax.inject.Inject
  * Drives the inventory screen. Category and availability filters are applied server-side (each
  * change re-queries products); the name search filters the already-loaded list client-side. The
  * product count is derived from the visible list in [InventoryUiState].
+ *
+ * A row's actions menu edits that product's discount in place. Opening the menu looks up whether
+ * the product has one, so the option reads "Registrar descuento" or "Editar descuento"; choosing
+ * it opens the dialog prefilled, and applying saves it straight away.
  */
 @HiltViewModel
 class InventoryViewModel @Inject constructor(
     private val getProductsUseCase: GetProductsUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val getProductDiscountUseCase: GetProductDiscountUseCase,
+    private val saveProductDiscountUseCase: SaveProductDiscountUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(InventoryUiState())
@@ -79,6 +91,111 @@ class InventoryViewModel @Inject constructor(
                 viewModelScope.launch {
                     _uiEffect.emit(InventoryUiEffect.NavigateToProductDetail(event.productId))
                 }
+            is InventoryUiEvent.RowActionsOpened -> lookUpDiscount(event.productId)
+            is InventoryUiEvent.EditDiscountClicked -> openDiscountEditor(event.productId)
+            is InventoryUiEvent.DiscountDraftChanged ->
+                _uiState.update {
+                    if (it.discountDraft == null || it.isDiscountSaving) it else it.copy(discountDraft = event.draft)
+                }
+            InventoryUiEvent.DiscountApplied -> saveDiscount()
+            InventoryUiEvent.DiscountDismissed ->
+                _uiState.update {
+                    if (it.isDiscountSaving) it else it.copy(discountDraft = null, discountProductId = null)
+                }
+        }
+    }
+
+    /**
+     * Learns whether the product has a discount, once, so its menu can offer to register or to edit
+     * one. A failure is silent: the menu keeps its default wording and the option still works,
+     * loading the discount itself when chosen.
+     */
+    private fun lookUpDiscount(productId: String) {
+        val current = _uiState.value
+        if (current.knownDiscounts.containsKey(productId) || current.discountLookupProductId == productId) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(discountLookupProductId = productId) }
+            val result = getProductDiscountUseCase(productId)
+            _uiState.update { state ->
+                val settled = if (state.discountLookupProductId == productId) {
+                    state.copy(discountLookupProductId = null)
+                } else {
+                    state
+                }
+                result.fold(
+                    onSuccess = { settled.withKnownDiscount(productId, it?.discount) },
+                    onFailure = { settled },
+                )
+            }
+        }
+    }
+
+    private fun InventoryUiState.withKnownDiscount(productId: String, discount: Discount?) =
+        copy(knownDiscounts = knownDiscounts.toPersistentMap().put(productId, discount))
+
+    /**
+     * Opens the dialog prefilled with the product's current discount (or empty when it has none),
+     * previewing against the price shown on the row. The discount is loaded first unless opening the
+     * menu already looked it up.
+     */
+    private fun openDiscountEditor(productId: String) {
+        val current = _uiState.value
+        if (current.isDiscountLoading || current.discountDraft != null) return
+        val product = current.loadedProducts.firstOrNull { it.id == productId } ?: return
+        if (current.knownDiscounts.containsKey(productId)) {
+            _uiState.update {
+                it.copy(
+                    discountProductId = productId,
+                    discountDraft = DiscountDraft.from(product.price, it.knownDiscounts[productId]),
+                )
+            }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDiscountLoading = true) }
+            getProductDiscountUseCase(productId)
+                .onSuccess { stored ->
+                    _uiState.update {
+                        it.withKnownDiscount(productId, stored?.discount).copy(
+                            isDiscountLoading = false,
+                            discountProductId = productId,
+                            discountDraft = DiscountDraft.from(product.price, stored?.discount),
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update { it.copy(isDiscountLoading = false) }
+                    _uiEffect.emit(InventoryUiEffect.ShowError(R.string.inventory_discount_load_error))
+                }
+        }
+    }
+
+    private fun saveDiscount() {
+        val current = _uiState.value
+        if (current.isDiscountSaving) return
+        val productId = current.discountProductId ?: return
+        val discount = current.discountDraft?.toDiscount() ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDiscountSaving = true) }
+            saveProductDiscountUseCase(productId, discount)
+                .onSuccess {
+                    _uiState.update {
+                        it.withKnownDiscount(productId, discount)
+                            .copy(isDiscountSaving = false, discountDraft = null, discountProductId = null)
+                    }
+                    _uiEffect.emit(InventoryUiEffect.ShowMessage(R.string.inventory_discount_updated))
+                }
+                .onFailure {
+                    // The dialog stays open with what was typed so the merchant can try again. A
+                    // failed replace may have removed the old discount, so what is known is dropped.
+                    _uiState.update {
+                        it.copy(
+                            isDiscountSaving = false,
+                            knownDiscounts = it.knownDiscounts.toPersistentMap().remove(productId),
+                        )
+                    }
+                    _uiEffect.emit(InventoryUiEffect.ShowError(R.string.inventory_discount_save_error))
+                }
         }
     }
 
@@ -88,7 +205,9 @@ class InventoryViewModel @Inject constructor(
     private fun loadProducts() {
         val current = _uiState.value
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, isError = false) }
+            // A reload follows edits made elsewhere (detail, registration), so what was learned
+            // about each product's discount may be stale.
+            _uiState.update { it.copy(isLoading = true, isError = false, knownDiscounts = persistentMapOf()) }
             getProductsUseCase(current.selectedCategoryId, current.selectedAvailability)
                 .onSuccess { products ->
                     _uiState.update { state ->

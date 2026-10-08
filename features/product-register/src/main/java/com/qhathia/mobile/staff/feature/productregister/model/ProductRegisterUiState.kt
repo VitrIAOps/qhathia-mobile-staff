@@ -4,7 +4,10 @@ import androidx.annotation.StringRes
 import com.qhathia.mobile.staff.core.common.validation.isValidPrice
 import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.isValidQuantity
+import com.qhathia.mobile.staff.core.common.validation.parsePrice
 import com.qhathia.mobile.staff.core.domain.model.Category
+import com.qhathia.mobile.staff.core.domain.model.Discount
+import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -13,7 +16,11 @@ import kotlinx.collections.immutable.persistentListOf
  * Immutable snapshot of the product registration form. Field errors are string-resource ids so all
  * user-facing text stays externalized. Tags are entered as a free-text, comma-separated string (per
  * the Figma mockup). [isSubmitEnabled] derives the submit gate from the raw field values (name,
- * price > 0, quantity ≥ 0, a category, ≥ 1 tag, ≥ 1 image) regardless of which errors are surfaced.
+ * price > 0, quantity ≥ 0, a category, ≥ 1 image) regardless of which errors are surfaced. Tags are
+ * optional: an empty field registers the product with no tags.
+ *
+ * [discount] is the optional discount the merchant applied; it is only sent once the product exists.
+ * [discountDraft] is non-null while the "Aplicar descuento" dialog is open.
  */
 data class ProductRegisterUiState(
     val name: String = "",
@@ -24,6 +31,8 @@ data class ProductRegisterUiState(
     val categories: ImmutableList<Category> = persistentListOf(),
     val selectedCategoryId: String? = null,
     val images: ImmutableList<SelectedImage> = persistentListOf(),
+    val discount: Discount? = null,
+    val discountDraft: DiscountDraft? = null,
     @param:StringRes val nameError: Int? = null,
     @param:StringRes val priceError: Int? = null,
     @param:StringRes val quantityError: Int? = null,
@@ -41,8 +50,18 @@ data class ProductRegisterUiState(
             isValidPrice(price) &&
             isValidQuantity(quantity) &&
             selectedCategoryId != null &&
-            parseTags(tags).isNotEmpty() &&
             images.isNotEmpty()
+
+    /** What the product costs with [discount] applied; null without a discount or a valid price. */
+    val discountedPrice: Double?
+        get() {
+            val applied = discount ?: return null
+            return parsePrice(price)?.let { applied.applyTo(it) }
+        }
+
+    /** A discount needs a price to be taken off, so the toggle stays locked until one is entered. */
+    val isDiscountToggleEnabled: Boolean
+        get() = !isSubmitting && isValidPrice(price)
 
     /** The AI assist action is available once an image is present and no request is in flight. */
     val isAiActionEnabled: Boolean
