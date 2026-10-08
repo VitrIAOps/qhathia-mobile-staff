@@ -66,6 +66,40 @@
     <string name="discount_error_amount">Ingresa un monto válido</string>
     <string name="discount_error_amount_above_price">El monto no puede superar el precio</string>
 
+    <!-- Product preview dialog -->
+    <string name="preview_title">Vista previa</string>
+    <string name="preview_close_cd">Cerrar vista previa</string>
+    <string name="preview_tab_item">Item</string>
+    <string name="preview_tab_detail">Detalle</string>
+    <string name="preview_orientation_vertical">Vertical</string>
+    <string name="preview_orientation_horizontal">Horizontal</string>
+    <string name="preview_zoom_hint">Pellizca para hacer zoom y arrastra para moverte</string>
+    <string name="preview_rotate_hint">Gira tu teléfono para ver mejor el detalle</string>
+    <!-- %1$s is the product name, %2$s its price ("S/ 380.00"). -->
+    <string name="preview_cd_item_vertical">Vista previa del item vertical: %1$s, %2$s</string>
+    <string name="preview_cd_item_horizontal">Vista previa del item horizontal: %1$s, %2$s</string>
+    <string name="preview_cd_detail">Vista previa del detalle de producto: %1$s, %2$s</string>
+
+    <!-- What the previews draw. This is Qhathia Discovery's own copy, shown exactly as shoppers
+         read it, so it is not translated with the staff app. -->
+    <string name="preview_price_format" translatable="false">S/ %1$.2f</string>
+    <string name="preview_missing_data" translatable="false">DATO NO INGRESADO</string>
+    <plurals name="preview_stock_available" translatable="false">
+        <item quantity="one">%d disponible</item>
+        <item quantity="other">%d disponibles</item>
+    </plurals>
+    <string name="preview_discovery_back" translatable="false">Volver</string>
+    <string name="preview_discovery_new_search" translatable="false">Nueva busqueda</string>
+    <string name="preview_discovery_go_to_cart" translatable="false">Ir al carrito</string>
+    <string name="preview_discovery_detail_heading" translatable="false">Este es el detalle</string>
+    <string name="preview_discovery_quantity" translatable="false">1</string>
+    <string name="preview_discovery_quantity_plus" translatable="false">+</string>
+    <string name="preview_discovery_add_to_cart" translatable="false">Agregar al carrito</string>
+    <string name="preview_discovery_share" translatable="false">Compartir</string>
+    <string name="preview_discovery_related_heading" translatable="false">Podrías acompañar este producto con...</string>
+    <string name="preview_discovery_project_question" translatable="false">¿En que tipo de proyecto lo usarás?</string>
+    <string name="preview_discovery_project_placeholder" translatable="false">Describe lo que buscas Ej: hacer huecos en concreto, armar muebles...</string>
+
     <!-- Relative time -->
     <string name="time_just_now">hace un momento</string>
     <plurals name="time_minutes_ago">

@@ -23,6 +23,7 @@ import com.qhathia.mobile.staff.core.testing.MutableClock
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEffect
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEvent
+import com.qhathia.mobile.staff.feature.productregister.model.toPreviewData
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -523,5 +524,145 @@ class ProductRegisterViewModelTest {
 
         viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("200"))
         assertEquals(160.0, viewModel.uiState.value.discountedPrice)
+    }
+
+    /** The least a preview needs: a name, a price and a photo — nothing else on the form. */
+    private fun ProductRegisterViewModel.fillPreviewMinimum() {
+        onEvent(ProductRegisterUiEvent.NameChanged("Lámpara"))
+        onEvent(ProductRegisterUiEvent.PriceChanged("89.90"))
+        onEvent(ProductRegisterUiEvent.ImagesPicked(listOf(SelectedImage("content://1", "image/jpeg"))))
+    }
+
+    @Test
+    fun `preview is unavailable on an empty form`() = runTest {
+        assertFalse(createViewModel().uiState.value.isPreviewEnabled)
+    }
+
+    @Test
+    fun `preview needs only a name, a price and a photo`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.fillPreviewMinimum()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isPreviewEnabled)
+        // No category, stock or tags yet: the product can be previewed before it can be registered.
+        assertFalse(state.isSubmitEnabled)
+    }
+
+    @Test
+    fun `preview is unavailable without a name, a valid price or a photo`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fillPreviewMinimum()
+
+        viewModel.onEvent(ProductRegisterUiEvent.NameChanged("  "))
+        assertFalse(viewModel.uiState.value.isPreviewEnabled)
+        viewModel.onEvent(ProductRegisterUiEvent.NameChanged("Lámpara"))
+
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("0"))
+        assertFalse(viewModel.uiState.value.isPreviewEnabled)
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("89.90"))
+
+        viewModel.onEvent(ProductRegisterUiEvent.RemoveImage("content://1"))
+        assertFalse(viewModel.uiState.value.isPreviewEnabled)
+    }
+
+    @Test
+    fun `preview is unavailable while registration is in progress`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fillPreviewMinimum()
+
+        assertFalse(viewModel.uiState.value.copy(isSubmitting = true).isPreviewEnabled)
+    }
+
+    @Test
+    fun `requesting the preview opens it and dismissing closes it`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fillPreviewMinimum()
+
+        viewModel.onEvent(ProductRegisterUiEvent.PreviewRequested)
+        assertTrue(viewModel.uiState.value.showPreview)
+
+        viewModel.onEvent(ProductRegisterUiEvent.PreviewDismissed)
+        assertFalse(viewModel.uiState.value.showPreview)
+    }
+
+    @Test
+    fun `requesting the preview without the minimum data does nothing`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductRegisterUiEvent.PreviewRequested)
+
+        assertFalse(viewModel.uiState.value.showPreview)
+    }
+
+    @Test
+    fun `the preview neither changes the form nor registers anything`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductRegisterUiEvent.PreviewRequested)
+        viewModel.onEvent(ProductRegisterUiEvent.PreviewDismissed)
+        assertFalse(viewModel.uiState.value.isDirty)
+
+        viewModel.fillPreviewMinimum()
+        val before = viewModel.uiState.value
+        viewModel.onEvent(ProductRegisterUiEvent.PreviewRequested)
+        viewModel.onEvent(ProductRegisterUiEvent.PreviewDismissed)
+
+        assertEquals(before, viewModel.uiState.value)
+        assertEquals(0, productRepository.registerCallCount)
+        assertTrue(discountRepository.calls.isEmpty())
+    }
+
+    @Test
+    fun `preview data carries the complete form`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fillValidForm()
+        viewModel.onEvent(ProductRegisterUiEvent.DescriptionChanged("  Luz cálida  "))
+        viewModel.onEvent(
+            ProductRegisterUiEvent.ImagesPicked(listOf(SelectedImage("content://2", "image/png"))),
+        )
+
+        val data = checkNotNull(viewModel.uiState.value.toPreviewData())
+
+        assertEquals("Lámpara", data.name)
+        assertEquals(89.9, data.price)
+        assertEquals("Luz cálida", data.description)
+        assertEquals(TestFixtures.category().name, data.categoryName)
+        assertEquals(10, data.stock)
+        // In the order they were added: the first photo is the primary one.
+        assertEquals(listOf("content://1", "content://2"), data.imageModels)
+    }
+
+    @Test
+    fun `preview data leaves out what the merchant has not entered`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fillPreviewMinimum()
+        viewModel.onEvent(ProductRegisterUiEvent.DescriptionChanged("   "))
+        viewModel.onEvent(ProductRegisterUiEvent.QuantityChanged("-3"))
+
+        val data = checkNotNull(viewModel.uiState.value.toPreviewData())
+
+        assertNull(data.description)
+        assertNull(data.categoryName)
+        assertNull(data.stock)
+    }
+
+    @Test
+    fun `preview data shows the price with the discount applied`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fillPreviewMinimum()
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("189"))
+        viewModel.applyDiscount("20")
+
+        assertEquals(151.2, viewModel.uiState.value.toPreviewData()?.price)
+    }
+
+    @Test
+    fun `there is no preview data without a valid price`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fillPreviewMinimum()
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged(""))
+
+        assertNull(viewModel.uiState.value.toPreviewData())
     }
 }

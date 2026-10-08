@@ -92,6 +92,11 @@ class ProductRegisterViewModel @Inject constructor(
                 _uiState.update { it.copy(selectedCategoryId = event.categoryId, isDirty = true) }
             is ProductRegisterUiEvent.ImagesPicked -> onImagesPicked(event.images)
             is ProductRegisterUiEvent.RemoveImage -> onRemoveImage(event.uri)
+            // The preview only reads the form, so opening or closing it never marks it dirty.
+            ProductRegisterUiEvent.PreviewRequested ->
+                _uiState.update { if (it.isPreviewEnabled) it.copy(showPreview = true) else it }
+            ProductRegisterUiEvent.PreviewDismissed ->
+                _uiState.update { it.copy(showPreview = false) }
             ProductRegisterUiEvent.Submit -> submit()
             ProductRegisterUiEvent.CancelRequested -> onCancelRequested()
             ProductRegisterUiEvent.ConfirmDiscard -> {

@@ -24,6 +24,7 @@ import com.qhathia.mobile.staff.core.testing.MutableClock
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEffect
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
+import com.qhathia.mobile.staff.feature.productdetail.model.toPreviewData
 import com.qhathia.mobile.staff.feature.productdetail.navigation.PRODUCT_DETAIL_ARG_ID
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -493,6 +494,145 @@ class ProductDetailViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(emptyList<String>(), productRepository.updatedProduct?.tags)
+    }
+
+    @Test
+    fun `preview is available for a loaded product with a photo`() = runTest {
+        assertTrue(createViewModel().uiState.value.isPreviewEnabled)
+    }
+
+    @Test
+    fun `preview is unavailable for a product with no photos`() = runTest {
+        productRepository.productDetailResult =
+            Result.success(TestFixtures.productDetail(imageUrls = emptyList()))
+
+        assertFalse(createViewModel().uiState.value.isPreviewEnabled)
+    }
+
+    @Test
+    fun `preview is unavailable when the product failed to load`() = runTest {
+        productRepository.productDetailResult =
+            Result.failure(UpdateProductException(UpdateProductError.Network))
+
+        assertFalse(createViewModel().uiState.value.isPreviewEnabled)
+    }
+
+    @Test
+    fun `preview is unavailable once the name or the price becomes invalid`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged(""))
+        assertFalse(viewModel.uiState.value.isPreviewEnabled)
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro"))
+        assertTrue(viewModel.uiState.value.isPreviewEnabled)
+
+        viewModel.onEvent(ProductDetailUiEvent.PriceChanged("0"))
+        assertFalse(viewModel.uiState.value.isPreviewEnabled)
+    }
+
+    @Test
+    fun `preview is unavailable while loading or saving`() = runTest {
+        val loaded = createViewModel().uiState.value
+
+        assertFalse(loaded.copy(isLoading = true).isPreviewEnabled)
+        assertFalse(loaded.copy(isSaving = true).isPreviewEnabled)
+    }
+
+    @Test
+    fun `requesting the preview opens it and dismissing closes it`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.PreviewRequested)
+        assertTrue(viewModel.uiState.value.showPreview)
+
+        viewModel.onEvent(ProductDetailUiEvent.PreviewDismissed)
+        assertFalse(viewModel.uiState.value.showPreview)
+    }
+
+    @Test
+    fun `requesting the preview without a photo does nothing`() = runTest {
+        productRepository.productDetailResult =
+            Result.success(TestFixtures.productDetail(imageUrls = emptyList()))
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.PreviewRequested)
+
+        assertFalse(viewModel.uiState.value.showPreview)
+    }
+
+    @Test
+    fun `the preview leaves a pristine form pristine and saves nothing`() = runTest {
+        val viewModel = createViewModel()
+        val before = viewModel.uiState.value
+
+        viewModel.onEvent(ProductDetailUiEvent.PreviewRequested)
+        viewModel.onEvent(ProductDetailUiEvent.PreviewDismissed)
+
+        val after = viewModel.uiState.value
+        assertEquals(before, after)
+        assertFalse(after.isDirty)
+        assertFalse(after.isSaveEnabled)
+        assertEquals(0, productRepository.updateCallCount)
+        assertTrue(discountCallsAfterLoad().isEmpty())
+    }
+
+    @Test
+    fun `preview data reflects edits that have not been saved`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(
+                name = "Taladro",
+                price = 189.0,
+                stock = 7,
+                description = "Percutor 650W",
+                categoryId = "category-1",
+                imageUrls = listOf("https://cdn.test/1.jpg", "https://cdn.test/2.jpg"),
+            ),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro percutor"))
+        viewModel.onEvent(ProductDetailUiEvent.PriceChanged("210.50"))
+        val data = checkNotNull(viewModel.uiState.value.toPreviewData())
+
+        assertEquals("Taladro percutor", data.name)
+        assertEquals(210.5, data.price)
+        assertEquals("Percutor 650W", data.description)
+        assertEquals(TestFixtures.category().name, data.categoryName)
+        assertEquals(7, data.stock)
+        assertEquals(listOf("https://cdn.test/1.jpg", "https://cdn.test/2.jpg"), data.imageModels)
+        assertEquals(0, productRepository.updateCallCount)
+    }
+
+    @Test
+    fun `preview data leaves out what the form does not hold`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(description = null, stock = null, categoryId = null),
+        )
+
+        val data = checkNotNull(createViewModel().uiState.value.toPreviewData())
+
+        assertNull(data.description)
+        assertNull(data.categoryName)
+        assertNull(data.stock)
+    }
+
+    @Test
+    fun `preview data shows the price with the form's discount applied`() = runTest {
+        productRepository.productDetailResult = Result.success(TestFixtures.productDetail(price = 189.0))
+        val viewModel = createViewModel()
+
+        viewModel.applyDiscount("20")
+
+        assertEquals(151.2, viewModel.uiState.value.toPreviewData()?.price)
+    }
+
+    @Test
+    fun `there is no preview data without a valid price`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.PriceChanged(""))
+
+        assertNull(viewModel.uiState.value.toPreviewData())
     }
 
     private companion object {

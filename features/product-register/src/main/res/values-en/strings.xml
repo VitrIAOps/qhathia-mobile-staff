@@ -23,6 +23,9 @@
     <string name="register_tags_label">Tags</string>
     <string name="register_tags_placeholder">E.g. Imported, Refurbished, Premium …</string>
 
+    <string name="register_preview">Preview</string>
+    <string name="register_preview_hint">Enter a name, a price and at least one photo to see the preview.</string>
+
     <string name="register_images_label">Photos</string>
     <string name="register_add_image">Add</string>
     <string name="register_add_image_cd">Add photo</string>
