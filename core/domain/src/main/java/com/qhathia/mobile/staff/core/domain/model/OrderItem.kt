@@ -9,6 +9,9 @@ package com.qhathia.mobile.staff.core.domain.model
  * [productStock] means the product is sold in consult mode and has no tracked stock — no warning is
  * shown for it. [productAvailability] is null when the backend reports a value this app does not
  * model.
+ *
+ * [productImageUrl] is live too: the product's current primary photo, not the one it had when the
+ * order was created. Null means the product has no images and the dialog shows its placeholder.
  */
 data class OrderItem(
     val id: String,
@@ -19,4 +22,5 @@ data class OrderItem(
     val lineTotal: Double,
     val productStock: Int?,
     val productAvailability: Availability?,
+    val productImageUrl: String?,
 )

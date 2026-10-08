@@ -35,6 +35,7 @@ class OrderMappersTest {
     private fun itemDto(
         productStock: Int? = 3,
         productAvailability: String? = "LOW_STOCK",
+        productImageUrl: String? = null,
     ) = OrderItemDto(
         id = "item-1",
         productId = "product-1",
@@ -44,6 +45,7 @@ class OrderMappersTest {
         lineTotal = 50.0,
         productStock = productStock,
         productAvailability = productAvailability,
+        productImageUrl = productImageUrl,
     )
 
     @Test
@@ -155,5 +157,26 @@ class OrderMappersTest {
         val item = itemDto(productAvailability = "OUT_OF_STOCK").toDomain()
 
         assertNull(item.productAvailability)
+    }
+
+    @Test
+    fun `item keeps the product image url`() {
+        val item = itemDto(productImageUrl = "https://cdn.test/taladro.jpg").toDomain()
+
+        assertEquals("https://cdn.test/taladro.jpg", item.productImageUrl)
+    }
+
+    @Test
+    fun `null product image url stays null so the dialog shows the placeholder`() {
+        val item = itemDto(productImageUrl = null).toDomain()
+
+        assertNull(item.productImageUrl)
+    }
+
+    @Test
+    fun `blank product image url is treated as absent`() {
+        val item = itemDto(productImageUrl = "   ").toDomain()
+
+        assertNull(item.productImageUrl)
     }
 }

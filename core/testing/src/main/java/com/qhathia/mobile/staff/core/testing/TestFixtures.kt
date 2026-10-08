@@ -416,6 +416,7 @@ object TestFixtures {
         lineTotal: Double = 50.0,
         productStock: Int? = 12,
         productAvailability: Availability? = Availability.AVAILABLE,
+        productImageUrl: String? = null,
     ) = OrderItem(
         id = id,
         productId = productId,
@@ -425,6 +426,7 @@ object TestFixtures {
         lineTotal = lineTotal,
         productStock = productStock,
         productAvailability = productAvailability,
+        productImageUrl = productImageUrl,
     )
 
     fun orderDetail(
