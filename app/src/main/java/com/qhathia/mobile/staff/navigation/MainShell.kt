@@ -30,6 +30,7 @@ import androidx.navigation.compose.rememberNavController
 import com.qhathia.mobile.staff.R
 import com.qhathia.mobile.staff.core.common.navigation.DESTINATION_ORDER_REQUESTS
 import com.qhathia.mobile.staff.core.ui.R as CoreUiR
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTERED_PRODUCT_ID_KEY
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_KEY
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_PLAN_LIMIT
@@ -191,9 +192,11 @@ fun MainShell(
                 onBack = { navController.popBackStack() },
             )
             productRegisterGraph(
-                onRegistered = {
-                    navController.previousBackStackEntry?.savedStateHandle
-                        ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_REGISTER_RESULT_SUCCESS)
+                onRegistered = { productId ->
+                    navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                        handle[INVENTORY_REGISTERED_PRODUCT_ID_KEY] = productId
+                        handle[INVENTORY_REGISTER_RESULT_KEY] = INVENTORY_REGISTER_RESULT_SUCCESS
+                    }
                     navController.popBackStack()
                 },
                 onPlanLimit = {
@@ -201,9 +204,11 @@ fun MainShell(
                         ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_REGISTER_RESULT_PLAN_LIMIT)
                     navController.popBackStack()
                 },
-                onDiscountFailed = {
-                    navController.previousBackStackEntry?.savedStateHandle
-                        ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED)
+                onDiscountFailed = { productId ->
+                    navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                        handle[INVENTORY_REGISTERED_PRODUCT_ID_KEY] = productId
+                        handle[INVENTORY_REGISTER_RESULT_KEY] = INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED
+                    }
                     navController.popBackStack()
                 },
                 onCancelled = { navController.popBackStack() },

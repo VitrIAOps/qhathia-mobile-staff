@@ -25,9 +25,9 @@ import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiE
  */
 @Composable
 fun ProductRegisterScreen(
-    onRegistered: () -> Unit,
+    onRegistered: (String) -> Unit,
     onPlanLimit: () -> Unit,
-    onDiscountFailed: () -> Unit,
+    onDiscountFailed: (String) -> Unit,
     onCancelled: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProductRegisterViewModel = hiltViewModel(),
@@ -39,9 +39,10 @@ fun ProductRegisterScreen(
     LaunchedEffect(Unit) {
         viewModel.uiEffect.collect { effect ->
             when (effect) {
-                ProductRegisterUiEffect.NavigateBackWithSuccess -> onRegistered()
+                is ProductRegisterUiEffect.NavigateBackWithSuccess -> onRegistered(effect.productId)
                 ProductRegisterUiEffect.NavigateBackWithPlanLimit -> onPlanLimit()
-                ProductRegisterUiEffect.NavigateBackWithDiscountFailed -> onDiscountFailed()
+                is ProductRegisterUiEffect.NavigateBackWithDiscountFailed ->
+                    onDiscountFailed(effect.productId)
                 ProductRegisterUiEffect.NavigateBackCancelled -> onCancelled()
                 is ProductRegisterUiEffect.ShowError ->
                     snackbarHostState.showSnackbar(resources.getString(effect.messageRes))

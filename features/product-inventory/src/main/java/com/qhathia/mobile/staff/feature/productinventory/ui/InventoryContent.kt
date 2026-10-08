@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -55,6 +57,7 @@ fun InventoryContent(
     uiState: InventoryUiState,
     onEvent: (InventoryUiEvent) -> Unit,
     modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     Box(
         modifier = modifier
@@ -94,6 +97,7 @@ fun InventoryContent(
                     else ->
                         ProductListCard(
                             products = uiState.visibleProducts,
+                            listState = listState,
                             onProductClick = { onEvent(InventoryUiEvent.ProductClicked(it)) },
                             onEditDiscount = { onEvent(InventoryUiEvent.EditDiscountClicked(it)) },
                             onActionsOpened = { onEvent(InventoryUiEvent.RowActionsOpened(it)) },
@@ -152,6 +156,7 @@ fun InventoryContent(
 @Composable
 private fun ProductListCard(
     products: ImmutableList<Product>,
+    listState: LazyListState,
     onProductClick: (String) -> Unit,
     onEditDiscount: (String) -> Unit,
     onActionsOpened: (String) -> Unit,
@@ -167,6 +172,7 @@ private fun ProductListCard(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            state = listState,
             contentPadding = PaddingValues(Dimens.SpaceMd),
         ) {
             items(products, key = { product -> product.id }) { product ->

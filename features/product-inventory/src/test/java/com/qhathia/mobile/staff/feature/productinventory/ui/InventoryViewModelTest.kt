@@ -16,8 +16,10 @@ import com.qhathia.mobile.staff.core.testing.FakeProductRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
 import com.qhathia.mobile.staff.core.testing.MutableClock
 import com.qhathia.mobile.staff.core.testing.TestFixtures
+import com.qhathia.mobile.staff.feature.productinventory.R
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEffect
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEvent
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -349,5 +351,152 @@ class InventoryViewModelTest {
         viewModel.refresh()
 
         assertNull(viewModel.uiState.value.hasDiscount("p1"))
+    }
+
+    private fun productsWithRegistered() = listOf(
+        TestFixtures.product(id = "p1", name = "Taladro Bosch"),
+        TestFixtures.product(id = "p2", name = "Martillo"),
+        TestFixtures.product(id = "new", name = "Sierra circular"),
+    )
+
+    @Test
+    fun `view registered product scrolls to its row when it is visible`() = runTest {
+        productRepository.productsResult = Result.success(productsWithRegistered())
+        val viewModel = createViewModel()
+        val callsAfterLoad = productRepository.callCount
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ViewRegisteredProductClicked("new"))
+            assertEquals(InventoryUiEffect.ScrollToProduct(2), awaitItem())
+        }
+        assertEquals(callsAfterLoad, productRepository.callCount)
+    }
+
+    @Test
+    fun `view registered product clears a search that hides it and scrolls without re-query`() = runTest {
+        productRepository.productsResult = Result.success(productsWithRegistered())
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.Search("mar"))
+        val callsAfterLoad = productRepository.callCount
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ViewRegisteredProductClicked("new"))
+            assertEquals(InventoryUiEffect.ScrollToProduct(2), awaitItem())
+        }
+        val state = viewModel.uiState.value
+        assertEquals("", state.searchQuery)
+        assertEquals(3, state.visibleProducts.size)
+        assertEquals(callsAfterLoad, productRepository.callCount)
+    }
+
+    @Test
+    fun `view registered product drops a category filter that excludes it, reloads and scrolls`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.SelectCategory("c2"))
+        viewModel.onEvent(InventoryUiEvent.SelectAvailability(Availability.LOW_STOCK))
+        viewModel.onEvent(InventoryUiEvent.Search("tal"))
+        productRepository.productsResult = Result.success(productsWithRegistered())
+        val callsBefore = productRepository.callCount
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ViewRegisteredProductClicked("new"))
+            assertEquals(InventoryUiEffect.ScrollToProduct(2), awaitItem())
+        }
+        val state = viewModel.uiState.value
+        assertNull(state.selectedCategoryId)
+        assertNull(state.selectedAvailability)
+        assertEquals("", state.searchQuery)
+        assertNull(productRepository.lastCategoryId)
+        assertNull(productRepository.lastAvailability)
+        assertEquals(callsBefore + 1, productRepository.callCount)
+    }
+
+    @Test
+    fun `view registered product drops an availability filter that excludes it, reloads and scrolls`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.SelectAvailability(Availability.CONSULT))
+        productRepository.productsResult = Result.success(productsWithRegistered())
+        val callsBefore = productRepository.callCount
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ViewRegisteredProductClicked("new"))
+            assertEquals(InventoryUiEffect.ScrollToProduct(2), awaitItem())
+        }
+        assertNull(viewModel.uiState.value.selectedAvailability)
+        assertNull(productRepository.lastAvailability)
+        assertEquals(callsBefore + 1, productRepository.callCount)
+    }
+
+    @Test
+    fun `view registered product says so when it is not in the unfiltered list`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        val callsAfterLoad = productRepository.callCount
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ViewRegisteredProductClicked("new"))
+            assertEquals(
+                InventoryUiEffect.ShowMessage(R.string.inventory_register_view_product_not_found),
+                awaitItem(),
+            )
+        }
+        assertEquals(callsAfterLoad, productRepository.callCount)
+    }
+
+    @Test
+    fun `view registered product reloads only once when dropping the filters does not find it`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.SelectCategory("c2"))
+        val callsBefore = productRepository.callCount
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ViewRegisteredProductClicked("new"))
+            assertEquals(
+                InventoryUiEffect.ShowMessage(R.string.inventory_register_view_product_not_found),
+                awaitItem(),
+            )
+        }
+        assertNull(viewModel.uiState.value.selectedCategoryId)
+        assertEquals(callsBefore + 1, productRepository.callCount)
+    }
+
+    @Test
+    fun `view registered product during a load scrolls once the list arrives`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        val gate = CompletableDeferred<Unit>()
+        productRepository.productsGate = gate
+        productRepository.productsResult = Result.success(productsWithRegistered())
+        viewModel.refresh()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ViewRegisteredProductClicked("new"))
+            expectNoEvents()
+
+            gate.complete(Unit)
+            assertEquals(InventoryUiEffect.ScrollToProduct(2), awaitItem())
+        }
+    }
+
+    @Test
+    fun `a pending view registered product is dropped when the load fails`() = runTest {
+        val viewModel = createViewModel()
+        val gate = CompletableDeferred<Unit>()
+        productRepository.productsGate = gate
+        productRepository.productsResult = Result.failure(IOException("offline"))
+        viewModel.refresh()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ViewRegisteredProductClicked("new"))
+            gate.complete(Unit)
+            assertEquals(InventoryUiEffect.ShowError(R.string.inventory_error), awaitItem())
+
+            productRepository.productsResult = Result.success(productsWithRegistered())
+            viewModel.refresh()
+            expectNoEvents()
+        }
     }
 }

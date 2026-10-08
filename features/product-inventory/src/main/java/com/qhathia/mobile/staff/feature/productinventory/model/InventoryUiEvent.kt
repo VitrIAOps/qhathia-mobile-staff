@@ -31,4 +31,10 @@ sealed interface InventoryUiEvent {
     /** "Aplicar" in the discount dialog. There is no form here, so this saves the discount. */
     data object DiscountApplied : InventoryUiEvent
     data object DiscountDismissed : InventoryUiEvent
+
+    /**
+     * "Ver producto" on the snackbar shown after a registration; brings the row of the product that
+     * was just created into view, dropping the search and filters if they hide it.
+     */
+    data class ViewRegisteredProductClicked(val productId: String) : InventoryUiEvent
 }

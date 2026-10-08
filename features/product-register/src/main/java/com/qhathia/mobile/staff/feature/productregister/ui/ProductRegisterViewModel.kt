@@ -269,11 +269,11 @@ class ProductRegisterViewModel @Inject constructor(
                     _uiState.update { it.copy(isSubmitting = false) }
                     emit(
                         if (discountSaved) {
-                            ProductRegisterUiEffect.NavigateBackWithSuccess
+                            ProductRegisterUiEffect.NavigateBackWithSuccess(productId)
                         } else {
                             // The product exists now, so staying on the form would invite a
                             // duplicate; the discount can be retried from the inventory.
-                            ProductRegisterUiEffect.NavigateBackWithDiscountFailed
+                            ProductRegisterUiEffect.NavigateBackWithDiscountFailed(productId)
                         },
                     )
                 }

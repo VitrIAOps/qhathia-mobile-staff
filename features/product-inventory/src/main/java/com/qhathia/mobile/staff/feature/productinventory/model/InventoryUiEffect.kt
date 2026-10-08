@@ -14,4 +14,7 @@ sealed interface InventoryUiEffect {
 
     /** Navigate to the detail/edit screen of the tapped product. Only the id crosses the boundary. */
     data class NavigateToProductDetail(val productId: String) : InventoryUiEffect
+
+    /** Scroll the product list to the row at [index] of the visible products. */
+    data class ScrollToProduct(val index: Int) : InventoryUiEffect
 }

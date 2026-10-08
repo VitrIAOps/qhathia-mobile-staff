@@ -106,7 +106,7 @@ class ProductRegisterViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductRegisterUiEvent.Submit)
-            assertEquals(ProductRegisterUiEffect.NavigateBackWithSuccess, awaitItem())
+            assertEquals(ProductRegisterUiEffect.NavigateBackWithSuccess("new-product-1"), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(emptyList<String>(), productRepository.registeredProduct?.tags)
@@ -131,7 +131,7 @@ class ProductRegisterViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductRegisterUiEvent.Submit)
-            assertEquals(ProductRegisterUiEffect.NavigateBackWithSuccess, awaitItem())
+            assertEquals(ProductRegisterUiEffect.NavigateBackWithSuccess("p1"), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(listOf("importado", "premium"), productRepository.registeredProduct?.tags)
@@ -459,7 +459,7 @@ class ProductRegisterViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductRegisterUiEvent.Submit)
-            assertEquals(ProductRegisterUiEffect.NavigateBackWithSuccess, awaitItem())
+            assertEquals(ProductRegisterUiEffect.NavigateBackWithSuccess("new-product-1"), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(listOf("get:new-product-1", "create:new-product-1"), discountRepository.calls)
@@ -473,7 +473,7 @@ class ProductRegisterViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductRegisterUiEvent.Submit)
-            assertEquals(ProductRegisterUiEffect.NavigateBackWithSuccess, awaitItem())
+            assertEquals(ProductRegisterUiEffect.NavigateBackWithSuccess("new-product-1"), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertTrue(discountRepository.calls.isEmpty())
@@ -488,7 +488,7 @@ class ProductRegisterViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductRegisterUiEvent.Submit)
-            assertEquals(ProductRegisterUiEffect.NavigateBackWithDiscountFailed, awaitItem())
+            assertEquals(ProductRegisterUiEffect.NavigateBackWithDiscountFailed("new-product-1"), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(1, productRepository.registerCallCount)
