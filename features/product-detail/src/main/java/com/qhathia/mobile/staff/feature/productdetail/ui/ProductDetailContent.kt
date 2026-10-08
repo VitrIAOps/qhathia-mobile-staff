@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.productdetail.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,10 +20,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -32,11 +35,13 @@ import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountType
 import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscountToggleRow
+import com.qhathia.mobile.staff.core.ui.component.productpreview.QhathiaProductPreviewDialog
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.productdetail.R
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiState
+import com.qhathia.mobile.staff.feature.productdetail.model.toPreviewData
 import kotlinx.collections.immutable.persistentListOf
 
 /**
@@ -119,6 +124,57 @@ fun ProductDetailContent(
                 onDismiss = { onEvent(ProductDetailUiEvent.DismissDiscard) },
             )
         }
+
+        if (uiState.showPreview) {
+            val previewData = remember(uiState) { uiState.toPreviewData() }
+            previewData?.let { data ->
+                QhathiaProductPreviewDialog(
+                    data = data,
+                    onDismiss = { onEvent(ProductDetailUiEvent.PreviewDismissed) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The "Vista previa" button below the tags field, mirroring the registration form. While the form
+ * lacks the name, price or photo a preview needs, the button is disabled and [showHint] says what
+ * is missing.
+ */
+@Composable
+private fun PreviewAction(
+    enabled: Boolean,
+    showHint: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+    ) {
+        OutlinedButton(
+            onClick = onClick,
+            enabled = enabled,
+            shape = RoundedCornerShape(Dimens.ButtonRadius),
+            border = BorderStroke(
+                width = 1.5.dp,
+                color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+            ),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Dimens.ButtonHeight),
+        ) {
+            Text(stringResource(R.string.detail_preview), style = MaterialTheme.typography.labelLarge)
+        }
+        if (showHint) {
+            Text(
+                text = stringResource(R.string.detail_preview_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -197,6 +253,12 @@ private fun EditForm(
             value = uiState.tags,
             onValueChange = { onEvent(ProductDetailUiEvent.TagsChanged(it)) },
             enabled = enabled,
+        )
+        PreviewAction(
+            enabled = uiState.isPreviewEnabled,
+            // While saving the whole form is locked; the hint is about missing data.
+            showHint = !uiState.isPreviewEnabled && enabled,
+            onClick = { onEvent(ProductDetailUiEvent.PreviewRequested) },
         )
 
         Spacer(Modifier.height(Dimens.SpaceSm))
@@ -382,6 +444,33 @@ private fun ProductDetailContentErrorPreview() {
 private fun ProductDetailContentLoadedPreview() {
     QhathiaTheme {
         ProductDetailContent(uiState = loadedState(), onEvent = {})
+    }
+}
+
+// The preview button sits at the bottom of the card, so these are tall enough to show it.
+@Preview(name = "Detail — preview available", showBackground = true, heightDp = 1200)
+@Preview(name = "Detail — preview available dark", showBackground = true, heightDp = 1200, uiMode = 0x20)
+@Composable
+private fun ProductDetailContentPreviewEnabledPreview() {
+    QhathiaTheme {
+        ProductDetailContent(uiState = loadedState(), onEvent = {})
+    }
+}
+
+@Preview(name = "Detail — preview unavailable, no photos", showBackground = true, heightDp = 1200)
+@Preview(
+    name = "Detail — preview unavailable, no photos dark",
+    showBackground = true,
+    heightDp = 1200,
+    uiMode = 0x20,
+)
+@Composable
+private fun ProductDetailContentPreviewDisabledPreview() {
+    QhathiaTheme {
+        ProductDetailContent(
+            uiState = loadedState().copy(imageUrls = persistentListOf()),
+            onEvent = {},
+        )
     }
 }
 

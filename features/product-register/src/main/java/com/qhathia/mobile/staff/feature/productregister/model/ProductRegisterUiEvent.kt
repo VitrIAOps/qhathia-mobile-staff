@@ -26,6 +26,10 @@ sealed interface ProductRegisterUiEvent {
     data class SelectCategory(val categoryId: String) : ProductRegisterUiEvent
     data class ImagesPicked(val images: List<SelectedImage>) : ProductRegisterUiEvent
     data class RemoveImage(val uri: String) : ProductRegisterUiEvent
+
+    /** "Vista previa" was tapped; opens the preview of the form as it stands. */
+    data object PreviewRequested : ProductRegisterUiEvent
+    data object PreviewDismissed : ProductRegisterUiEvent
     data object Submit : ProductRegisterUiEvent
     data object CancelRequested : ProductRegisterUiEvent
     data object ConfirmDiscard : ProductRegisterUiEvent

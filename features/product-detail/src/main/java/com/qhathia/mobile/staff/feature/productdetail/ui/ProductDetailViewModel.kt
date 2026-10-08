@@ -102,6 +102,11 @@ class ProductDetailViewModel @Inject constructor(
             ProductDetailUiEvent.DiscountDismissed ->
                 _uiState.update { it.copy(discountDraft = null) }
             ProductDetailUiEvent.OptimizeDescriptionWithAi -> optimizeDescription()
+            // The preview only reads the form, so opening or closing it never marks it dirty.
+            ProductDetailUiEvent.PreviewRequested ->
+                _uiState.update { if (it.isPreviewEnabled) it.copy(showPreview = true) else it }
+            ProductDetailUiEvent.PreviewDismissed ->
+                _uiState.update { it.copy(showPreview = false) }
             ProductDetailUiEvent.Save -> save()
             ProductDetailUiEvent.CancelRequested -> onCancelRequested()
             ProductDetailUiEvent.ConfirmDiscard -> {

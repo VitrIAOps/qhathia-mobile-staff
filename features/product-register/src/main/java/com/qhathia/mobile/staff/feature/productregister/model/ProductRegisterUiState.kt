@@ -20,7 +20,8 @@ import kotlinx.collections.immutable.persistentListOf
  * optional: an empty field registers the product with no tags.
  *
  * [discount] is the optional discount the merchant applied; it is only sent once the product exists.
- * [discountDraft] is non-null while the "Aplicar descuento" dialog is open.
+ * [discountDraft] is non-null while the "Aplicar descuento" dialog is open. [showPreview] is true
+ * while the "Vista previa" dialog is open; it reads the form but never changes it.
  */
 data class ProductRegisterUiState(
     val name: String = "",
@@ -43,6 +44,7 @@ data class ProductRegisterUiState(
     val isDirty: Boolean = false,
     val showDiscardDialog: Boolean = false,
     val showAiReplaceDialog: Boolean = false,
+    val showPreview: Boolean = false,
 ) {
     val isSubmitEnabled: Boolean
         get() = !isSubmitting &&
@@ -62,6 +64,16 @@ data class ProductRegisterUiState(
     /** A discount needs a price to be taken off, so the toggle stays locked until one is entered. */
     val isDiscountToggleEnabled: Boolean
         get() = !isSubmitting && isValidPrice(price)
+
+    /**
+     * A preview needs something to show: a name, a price and a photo. Everything else is optional,
+     * so the product can be previewed well before the form can be submitted.
+     */
+    val isPreviewEnabled: Boolean
+        get() = !isSubmitting &&
+            isValidProductName(name) &&
+            isValidPrice(price) &&
+            images.isNotEmpty()
 
     /** The AI assist action is available once an image is present and no request is in flight. */
     val isAiActionEnabled: Boolean

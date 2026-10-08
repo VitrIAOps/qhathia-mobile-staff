@@ -34,6 +34,10 @@ sealed interface ProductDetailUiEvent {
     /** Rewrites the existing description through the LLM, preserving its facts. */
     data object OptimizeDescriptionWithAi : ProductDetailUiEvent
 
+    /** "Vista previa" was tapped; opens the preview of the form as it stands. */
+    data object PreviewRequested : ProductDetailUiEvent
+    data object PreviewDismissed : ProductDetailUiEvent
+
     data object Save : ProductDetailUiEvent
 
     /** Back or cancel — routed through the discard dialog when the form is dirty. */

@@ -23,6 +23,9 @@
     <string name="detail_tags_label">Tags</string>
     <string name="detail_tags_placeholder">E.g. Imported, Refurbished, Premium …</string>
 
+    <string name="detail_preview">Preview</string>
+    <string name="detail_preview_hint">The preview needs a name, a price and at least one photo.</string>
+
     <string name="detail_save">Save</string>
     <string name="detail_cancel">Cancel</string>
     <string name="detail_retry">Retry</string>
