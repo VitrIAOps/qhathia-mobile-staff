@@ -38,6 +38,7 @@ internal fun previewOrderItem(
     unitPrice: Double = 50.0,
     quantity: Int = 1,
     productStock: Int? = 12,
+    productImageUrl: String? = null,
 ) = OrderItem(
     id = id,
     productId = "product-$id",
@@ -47,6 +48,7 @@ internal fun previewOrderItem(
     lineTotal = unitPrice * quantity,
     productStock = productStock,
     productAvailability = Availability.AVAILABLE,
+    productImageUrl = productImageUrl,
 )
 
 internal fun previewOrderDetail() = OrderDetail(

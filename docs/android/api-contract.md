@@ -9,7 +9,16 @@
 
 ---
 
-## Cambios recientes (Fase 1-23)
+## Cambios recientes (Fase 1-24)
+
+**Fase 24 — 2026-10-03 (métricas del kiosko y detalle de pedido):** correcciones sobre lo reportado desde la app.
+- **`GET /api/v1/products/{id}` ahora registra la visita** cuando quien consulta es la **tablet** (rol DEVICE). Antes `kiosk_events` solo se llenaba si la app llamaba explícitamente a `/analytics/events`, y mientras no lo hiciera la pestaña Actividad quedaba en cero con gente usando la tablet todo el día.
+- **Nunca cuenta al staff.** Un OWNER/SELLER/ADMIN abriendo la ficha desde su celular **no** suma: contarlo mediría el trabajo del propio comerciante.
+- **Header nuevo `X-Kiosk-Session`** (opcional) en ese GET: identifica a la persona para el conteo de clientes distintos. Sin él la visita igual cuenta, pero no se puede atribuir a nadie.
+- **`uniqueSessions` dejó de exigir `SESSION_START`**: cuenta sesiones distintas con **cualquier** evento. Antes, una tablet que reportaba vistas pero no la apertura de sesión mostraba *0 clientes y N productos consultados*.
+- **`GET /dashboard/activity` suma `confirmedOrders`** (+ su delta): "Clientes" es **todo el que usó la tablet**, no el que compró. Con los dos números juntos el embudo se lee de corrido.
+- **`GET /dashboard/ranking` suma `needsAttention.totalCount`**: cuántos productos no rotaron **en total**, no solo los 3 que devuelve la lista.
+- **`GET /orders/{id}` suma `items[].productImageUrl`**: la miniatura que el modal "Detalle de solicitud" no podía pintar porque el backend nunca la mandaba.
 
 **Fase 23 — 2026-09-13 (change `device-remote-commands`):** los botones "Actualizar catálogo" y "Reiniciar" de la card de Dispositivos.
 - **`POST /api/v1/devices/{deviceId}/commands`** (OWNER/ADMIN) → 202. Encola `REFRESH_CATALOG` o `RESTART_APP`. **Idempotente mientras hay uno en vuelo**: tocar el botón cinco veces encola uno.
@@ -192,6 +201,7 @@ Esta sección resume los cambios contractuales más relevantes desde la versión
 21. [Ajustes remotos de la tablet (Fase 21)](#21-ajustes-remotos-de-la-tablet-fase-21)
 22. [Configuración de la tienda: idioma e IGV (Fase 22)](#22-configuración-de-la-tienda-idioma-e-igv-fase-22)
 23. [Comandos remotos a la tablet (Fase 23)](#23-comandos-remotos-a-la-tablet-fase-23)
+24. [Métricas del kiosko: qué mide cada número (Fase 24)](#24-métricas-del-kiosko-qué-mide-cada-número-fase-24)
 
 ---
 
@@ -2218,7 +2228,7 @@ curl "http://87.99.156.164/api/v1/orders?q=mari" \
 
 ### GET /api/v1/orders/{id}
 
-**Descripción:** Retorna el detalle completo de una orden, con `items[]`, customer fields y totales. Desde la Fase 16 incluye además `orderCode`, `expiresAt`, y por cada item `productStock` + `productAvailability` (stock vivo del producto, para el warning "quedan pocos").
+**Descripción:** Retorna el detalle completo de una orden, con `items[]`, customer fields y totales. Desde la Fase 16 incluye además `orderCode`, `expiresAt`, y por cada item `productStock` + `productAvailability` (stock vivo del producto, para el warning "quedan pocos"). Desde la Fase 24 cada item suma `productImageUrl` (imagen principal vigente del producto, `null` si no tiene imágenes) — ver [§24](#24-métricas-del-kiosko-qué-mide-cada-número-fase-24).
 **Autenticación:** JWT requerido (roles: `OWNER`, `SELLER`, `ADMIN`)
 
 **Response 200:** mismo shape que el response 201 de `POST /orders` (objeto `OrderResponse` completo con `items[]`).
@@ -4048,3 +4058,126 @@ el mismo mecanismo que debía arreglarla. El reintento es un botón, no un job.
 Comandos a varias tablets a la vez, comandos programados, reintentos automáticos, y **ejecutarlos**:
 el backend encola, entrega y guarda el desenlace; ejecutar es la app del kiosko. Mientras no lea
 `pendingCommands`, los comandos se encolan y expiran solos — aditivo, nada se rompe.
+
+---
+
+## 24. Métricas del kiosko: qué mide cada número (Fase 24)
+
+### Cómo se registra una visita
+
+Hasta la Fase 23, `kiosk_events` **solo** se llenaba desde
+`POST /api/v1/analytics/events`, que la tablet tiene que llamar a propósito.
+Mientras la app no lo hiciera, la pestaña Actividad quedaba en cero aunque
+hubiera clientes usando la tablet todo el día.
+
+Ahora el backend aprovecha una llamada que la tablet **ya hace**:
+
+```
+GET /api/v1/products/{id}
+X-Kiosk-Session: <id de la sesión del kiosko>     ← opcional
+```
+
+Si quien consulta tiene rol **DEVICE**, se registra un `PRODUCT_VIEW`. El
+endpoint sigue respondiendo exactamente lo mismo; el registro es un efecto
+lateral.
+
+| Quién llama | ¿Suma a las métricas? |
+|---|---|
+| Tablet (rol `DEVICE`) | **Sí** |
+| App del staff (OWNER / SELLER / ADMIN) | **No** |
+
+El comerciante revisando un precio desde su celular no es un cliente parado
+frente a la vitrina. Contarlo inflaría la métrica con el trabajo del propio
+dueño y la volvería inútil para decidir nada.
+
+**`X-Kiosk-Session`** es el mismo identificador que el kiosko ya manda en
+`POST /orders` y en la búsqueda por voz. Sin el header la visita se cuenta
+igual, pero esa persona no entra en "clientes distintos" — mandalo siempre que
+puedas.
+
+**Nunca rompe la ficha**: si el registro falla, se loguea un warning y el
+producto se devuelve igual. Que falle la analítica no puede impedirle a un
+cliente ver un producto.
+
+`POST /api/v1/analytics/events` **sigue existiendo y sigue siendo necesario**
+para lo que el backend no puede observar: `SESSION_START`, `SESSION_END` y
+`SEARCH_MADE`.
+
+### Qué mide cada número de la pestaña Actividad
+
+`GET /api/v1/dashboard/activity`
+
+```json
+{
+  "granularity": "WEEKLY",
+  "periodStart": "…", "periodEnd": "…",
+  "uniqueSessions": 72,          "uniqueSessionsDeltaPercent": -12.5,
+  "productViews": 264,           "productViewsDeltaPercent": 8.1,
+  "confirmedOrders": 9,          "confirmedOrdersDeltaPercent": 12.5
+}
+```
+
+| Campo | Qué es exactamente |
+|---|---|
+| `uniqueSessions` | **Personas que usaron la tablet**, hayan comprado o no. Sesiones distintas con cualquier evento en el periodo. |
+| `productViews` | Fichas de producto abiertas en la tablet. Una persona puede generar varias. |
+| `confirmedOrders` | **Pedidos confirmados** en el periodo. Este sí es "cliente que concretó". |
+
+> **`uniqueSessions` NO es "clientes confirmados".** Es tráfico. Si la pantalla
+> rotula ese número como "Clientes" a secas, se lee como clientes que
+> compraron, que es otra cosa y mucho menor. Por eso `confirmedOrders` viene en
+> la misma respuesta: los tres juntos son el embudo
+> (*gente → fichas miradas → pedidos*) y por separado se malinterpretan.
+
+`uniqueSessions` cuenta sesiones con **cualquier** evento. Antes exigía un
+`SESSION_START`, lo que ataba la métrica a que la app emitiera ese evento
+concreto: una tablet que reportaba vistas pero no la apertura de sesión
+mostraba *0 clientes y 264 productos consultados*, que es una combinación
+imposible de leer.
+
+### "Lo que necesita atención": qué es y qué no
+
+`GET /api/v1/dashboard/ranking` → `needsAttention`
+
+```json
+"needsAttention": {
+  "totalImmobilized": 2990.00,
+  "totalCount": 17,
+  "items": [ { "name": "…", "stock": 34, "price": 85.00, "immobilizedAmount": 2890.00 } ]
+}
+```
+
+La definición exacta es: **productos activos, con stock mayor a cero, que no
+registraron ninguna venta confirmada dentro del periodo consultado**, ordenados
+de mayor a menor `stock × precio`.
+
+Tres cosas que conviene tener claras:
+
+1. **No es ingreso, es lo contrario.** `immobilizedAmount` es la plata que está
+   quieta en el estante. Rotularlo "generado por" en la pantalla lo vuelve
+   indistinguible de las ventas que están justo al lado.
+2. **`totalImmobilized` es la suma de los `items` devueltos**, no del universo
+   completo. Para eso está `totalCount` — permite decir "3 de 17 sin rotación"
+   en vez de dar a entender que son tres y nada más.
+3. **Depende del periodo elegido.** En una vista semanal, un producto que rota
+   una vez al mes va a aparecer casi siempre. Cuanto más corto el periodo, más
+   ruido: para esta tarjeta, mensual dice más que diario.
+
+### Miniatura en el detalle del pedido
+
+`GET /api/v1/orders/{id}` → cada entrada de `items` suma:
+
+```json
+{ "productId": "…", "productName": "Taladro percutor", "quantity": 1,
+  "unitPriceSnapshot": 50.00, "productImageUrl": "https://pub-….r2.dev/…jpg" }
+```
+
+Es la imagen **principal vigente** del producto, no un snapshot: si el
+comerciante cambia la foto, el pedido viejo muestra la nueva. Mismo criterio
+que `productName`, y el correcto acá — el vendedor mira el pedido para
+reconocer el producto que tiene en el estante hoy.
+
+`null` si el producto no tiene imágenes; la app pinta el placeholder.
+
+Se resuelve con **una consulta por pedido**, no una por línea: `Product.media`
+es `LAZY` y tocarla por ítem sería un N+1 contra `product_media`.

@@ -28,9 +28,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +45,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.size.Size
 import com.qhathia.mobile.staff.core.domain.model.OrderDetail
 import com.qhathia.mobile.staff.core.domain.model.OrderItem
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
@@ -55,6 +65,8 @@ import java.time.Instant
  * threshold is client-side: the contract carries the raw `productStock`, not a low-stock flag.
  */
 private const val LOW_STOCK_THRESHOLD = 5
+
+private val ThumbnailSize = 48.dp
 
 /**
  * The order detail, as a dialog over the list. It always renders from a fresh
@@ -224,9 +236,8 @@ private fun OrderDetailBody(
 }
 
 /**
- * One item: a neutral thumbnail placeholder (the order-detail contract carries no product image, and
- * fetching one per item would be an N+1 on dialog open), the product name, unit price, quantity and
- * line total — plus the low-stock warning when the product still tracks stock and is running out.
+ * One item: the product thumbnail, the product name, unit price, quantity and line total — plus the
+ * low-stock warning when the product still tracks stock and is running out.
  */
 @Composable
 private fun OrderItemRow(
@@ -247,20 +258,7 @@ private fun OrderItemRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(Dimens.FieldRadius))
-                    .background(colors.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Image,
-                    contentDescription = null,
-                    tint = colors.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
+            OrderItemThumbnail(imageUrl = item.productImageUrl)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.productName,
@@ -294,6 +292,52 @@ private fun OrderItemRow(
         val stock = item.productStock
         if (stock != null && stock <= LOW_STOCK_THRESHOLD) {
             LowStockWarning()
+        }
+    }
+}
+
+/**
+ * The product photo, which arrives with the order detail itself — no per-item request. The neutral
+ * placeholder stays up until the photo is actually on screen, so a product without images, a slow
+ * load and a failed one all read the same instead of leaving a blank hole.
+ */
+@Composable
+private fun OrderItemThumbnail(
+    imageUrl: String?,
+    modifier: Modifier = Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    var isLoaded by remember(imageUrl) { mutableStateOf(false) }
+    Box(
+        modifier = modifier
+            .size(ThumbnailSize)
+            .clip(RoundedCornerShape(Dimens.FieldRadius))
+            .background(colors.surfaceVariant),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (!isLoaded) {
+            Icon(
+                imageVector = Icons.Filled.Image,
+                contentDescription = null,
+                tint = colors.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+        if (imageUrl != null) {
+            // Sized explicitly so Coil never decodes a bitmap larger than the slot.
+            val sizePx = with(LocalDensity.current) { ThumbnailSize.roundToPx() }
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(imageUrl)
+                    .size(Size(sizePx, sizePx))
+                    .build(),
+                // The product name sits right beside it; a description would double it up.
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                onSuccess = { isLoaded = true },
+                onError = { isLoaded = false },
+                modifier = Modifier.size(ThumbnailSize),
+            )
         }
     }
 }

@@ -56,7 +56,8 @@ data class OrderDetailDto(
  * One line of [OrderDetailDto]. `unitPriceSnapshot` is the price frozen at order creation.
  * `productStock` is the product's live stock and is null for consult-mode products;
  * `productAvailability` is its live availability. Both were added in Fase 16 for the low-stock
- * warning.
+ * warning. `productImageUrl` is the product's current primary image — not a snapshot — added in
+ * Fase 24, and is null when the product has no images.
  */
 @Serializable
 data class OrderItemDto(
@@ -68,6 +69,7 @@ data class OrderItemDto(
     val lineTotal: Double = 0.0,
     val productStock: Int? = null,
     val productAvailability: String? = null,
+    val productImageUrl: String? = null,
 )
 
 /**
