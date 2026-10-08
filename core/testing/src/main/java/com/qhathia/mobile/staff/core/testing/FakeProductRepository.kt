@@ -6,6 +6,7 @@ import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.domain.repository.ProductRepository
+import kotlinx.coroutines.CompletableDeferred
 
 /**
  * Controllable [ProductRepository] for tests. Set the `*Result` fields to the value the next call
@@ -18,6 +19,9 @@ class FakeProductRepository : ProductRepository {
     var registerResult: Result<String> = Result.success("new-product-1")
     var productDetailResult: Result<ProductDetail> = Result.success(TestFixtures.productDetail())
     var updateResult: Result<Unit> = Result.success(Unit)
+
+    /** Set to a pending deferred to hold [getProducts] in flight (to observe loading state). */
+    var productsGate: CompletableDeferred<Unit>? = null
 
     var lastCategoryId: String? = null
         private set
@@ -50,6 +54,7 @@ class FakeProductRepository : ProductRepository {
         callCount++
         lastCategoryId = categoryId
         lastAvailability = availability
+        productsGate?.await()
         return productsResult
     }
 

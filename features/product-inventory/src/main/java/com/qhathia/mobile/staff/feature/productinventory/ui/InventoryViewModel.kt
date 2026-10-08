@@ -55,6 +55,9 @@ class InventoryViewModel @Inject constructor(
     )
     val uiEffect: SharedFlow<InventoryUiEffect> = _uiEffect.asSharedFlow()
 
+    /** A product to scroll to once the load in flight delivers the list it should be in. */
+    private var pendingRevealProductId: String? = null
+
     init {
         onEvent(InventoryUiEvent.Load)
     }
@@ -101,6 +104,44 @@ class InventoryViewModel @Inject constructor(
             InventoryUiEvent.DiscountDismissed ->
                 _uiState.update {
                     if (it.isDiscountSaving) it else it.copy(discountDraft = null, discountProductId = null)
+                }
+            is InventoryUiEvent.ViewRegisteredProductClicked -> revealProduct(event.productId)
+        }
+    }
+
+    /**
+     * Brings the row of [productId] into view. A product hidden only by the search is revealed by
+     * clearing it; one the category/availability filters exclude needs the unfiltered list, so they
+     * are dropped and the list reloaded. While a load is in flight the request waits for it.
+     */
+    private fun revealProduct(productId: String) {
+        val current = _uiState.value
+        if (current.isLoading) {
+            pendingRevealProductId = productId
+            return
+        }
+        val visibleIndex = current.visibleProducts.indexOfFirst { it.id == productId }
+        val loadedIndex = current.loadedProducts.indexOfFirst { it.id == productId }
+        when {
+            visibleIndex >= 0 ->
+                viewModelScope.launch { _uiEffect.emit(InventoryUiEffect.ScrollToProduct(visibleIndex)) }
+            loadedIndex >= 0 -> {
+                _uiState.update { it.copy(searchQuery = "", visibleProducts = it.loadedProducts) }
+                viewModelScope.launch { _uiEffect.emit(InventoryUiEffect.ScrollToProduct(loadedIndex)) }
+            }
+            current.selectedCategoryId != null || current.selectedAvailability != null -> {
+                // The reload runs without filters, so it cannot land here again.
+                pendingRevealProductId = productId
+                _uiState.update {
+                    it.copy(selectedCategoryId = null, selectedAvailability = null, searchQuery = "")
+                }
+                loadProducts()
+            }
+            else ->
+                viewModelScope.launch {
+                    _uiEffect.emit(
+                        InventoryUiEffect.ShowMessage(R.string.inventory_register_view_product_not_found),
+                    )
                 }
         }
     }
@@ -218,8 +259,13 @@ class InventoryViewModel @Inject constructor(
                             isError = false,
                         )
                     }
+                    pendingRevealProductId?.let { productId ->
+                        pendingRevealProductId = null
+                        revealProduct(productId)
+                    }
                 }
                 .onFailure {
+                    pendingRevealProductId = null
                     _uiState.update { it.copy(isLoading = false, isError = true) }
                     _uiEffect.emit(InventoryUiEffect.ShowError(R.string.inventory_error))
                 }

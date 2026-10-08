@@ -23,10 +23,16 @@ const val INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED = "discount_failed"
 const val INVENTORY_RESULT_PRODUCT_UPDATED = "product_updated"
 
 /**
+ * Id of the product a registration just created, set alongside a success or discount-failed result
+ * (and before it, so it is there when the result is observed) so inventory can scroll to its row.
+ */
+const val INVENTORY_REGISTERED_PRODUCT_ID_KEY = "inventory_registered_product_id"
+
+/**
  * Registers the inventory destination. [onNavigateToRegister] opens the registration screen and
  * [onNavigateToProductDetail] the detail/edit screen of the tapped product; the destination observes
  * its own `SavedStateHandle` for a result set by either on the way back (success/updated → refresh +
- * snackbar, plan-limit → message).
+ * snackbar, plan-limit → message). A registration also hands back the new product's id.
  */
 fun NavGraphBuilder.inventoryGraph(
     onNavigateToRegister: () -> Unit,
@@ -40,8 +46,10 @@ fun NavGraphBuilder.inventoryGraph(
             onNavigateToRegister = onNavigateToRegister,
             onNavigateToProductDetail = onNavigateToProductDetail,
             registerResult = registerResult,
+            registeredProductId = entry.savedStateHandle[INVENTORY_REGISTERED_PRODUCT_ID_KEY],
             onRegisterResultConsumed = {
                 entry.savedStateHandle[INVENTORY_REGISTER_RESULT_KEY] = null
+                entry.savedStateHandle[INVENTORY_REGISTERED_PRODUCT_ID_KEY] = null
             },
         )
     }

@@ -36,6 +36,8 @@
     <string name="inventory_register_plan_limit">You reached your plan\'s product limit</string>
     <string name="inventory_product_updated">Product updated successfully</string>
     <string name="inventory_register_discount_failed">Product registered, but the discount couldn\'t be applied</string>
+    <string name="inventory_register_view_product">View product</string>
+    <string name="inventory_register_view_product_not_found">The product couldn\'t be found in the list</string>
 
     <string name="inventory_search_clear_cd">Clear search</string>
 
