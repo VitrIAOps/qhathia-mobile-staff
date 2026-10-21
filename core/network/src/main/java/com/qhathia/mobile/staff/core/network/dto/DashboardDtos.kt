@@ -80,10 +80,14 @@ data class TopSellerItemDto(
 /**
  * Active products with stock that sold nothing in the period. `immobilizedAmount` is
  * `stock × price`; consult-mode products (no stock) are excluded by the backend.
+ *
+ * [totalImmobilized] adds up the returned [items] only, not every product without sales; [totalCount]
+ * is how many products are in that whole set (null when an older backend does not send it).
  */
 @Serializable
 data class NeedsAttentionDto(
     val totalImmobilized: Double = 0.0,
+    val totalCount: Int? = null,
     val items: List<StalledItemDto> = emptyList(),
 )
 
@@ -98,8 +102,9 @@ data class StalledItemDto(
 )
 
 /**
- * `GET /api/v1/dashboard/activity` — distinct tablet sessions and product views. A tablet that
- * emits no events yields zeros, not an error.
+ * `GET /api/v1/dashboard/activity` — distinct tablet sessions, product views and confirmed orders:
+ * the funnel from people at the tablet to people who bought. A tablet that emits no events yields
+ * zeros, not an error. [confirmedOrders] is null when an older backend does not send it.
  */
 @Serializable
 data class StoreActivityDto(
@@ -109,4 +114,6 @@ data class StoreActivityDto(
     val uniqueSessionsDeltaPercent: Double? = null,
     val productViews: Int = 0,
     val productViewsDeltaPercent: Double? = null,
+    val confirmedOrders: Int? = null,
+    val confirmedOrdersDeltaPercent: Double? = null,
 )

@@ -327,6 +327,7 @@ object TestFixtures {
         needsAttention: List<StalledProduct> = listOf(stalledProduct()),
         periodStart: Instant? = NOW,
         periodEnd: Instant? = NOW.plusSeconds(WEEK_SECONDS),
+        needsAttentionTotalCount: Int? = needsAttention.size,
     ) = SalesRanking(
         periodStart = periodStart,
         periodEnd = periodEnd,
@@ -336,6 +337,7 @@ object TestFixtures {
             acc + product.immobilizedAmount
         },
         needsAttention = needsAttention,
+        needsAttentionTotalCount = needsAttentionTotalCount,
     )
 
     fun storeActivity(
@@ -343,6 +345,8 @@ object TestFixtures {
         uniqueSessionsDeltaPercent: Double? = 12.5,
         productViews: Int = 148,
         productViewsDeltaPercent: Double? = 8.8,
+        confirmedOrders: Int? = 9,
+        confirmedOrdersDeltaPercent: Double? = 12.5,
         periodStart: Instant? = NOW,
         periodEnd: Instant? = NOW.plusSeconds(WEEK_SECONDS),
     ) = StoreActivity(
@@ -352,6 +356,8 @@ object TestFixtures {
         uniqueSessionsDeltaPercent = uniqueSessionsDeltaPercent,
         productViews = productViews,
         productViewsDeltaPercent = productViewsDeltaPercent,
+        confirmedOrders = confirmedOrders,
+        confirmedOrdersDeltaPercent = confirmedOrdersDeltaPercent,
     )
 
     private const val WEEK_SECONDS = 7 * 24 * 60 * 60L

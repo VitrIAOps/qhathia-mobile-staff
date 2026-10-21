@@ -288,4 +288,49 @@ class StoreInsightsMappersTest {
         assertEquals(0, activity.productViews)
         assertNull(activity.productViewsDeltaPercent)
     }
+
+    @Test
+    fun `activity maps confirmed orders and their variation`() {
+        val activity = StoreActivityDto(confirmedOrders = 9, confirmedOrdersDeltaPercent = 12.5).toStoreActivity()
+
+        assertEquals(9, activity.confirmedOrders)
+        assertEquals(12.5, activity.confirmedOrdersDeltaPercent)
+    }
+
+    @Test
+    fun `missing confirmed orders stay null instead of becoming zero`() {
+        val activity = StoreActivityDto(uniqueSessions = 4).toStoreActivity()
+
+        assertNull(activity.confirmedOrders)
+        assertNull(activity.confirmedOrdersDeltaPercent)
+    }
+
+    @Test
+    fun `zero confirmed orders are kept as a real zero`() {
+        assertEquals(0, StoreActivityDto(confirmedOrders = 0).toStoreActivity().confirmedOrders)
+    }
+
+    @Test
+    fun `a non-finite confirmed-orders variation becomes null`() {
+        val activity = StoreActivityDto(confirmedOrders = 3, confirmedOrdersDeltaPercent = Double.NaN)
+            .toStoreActivity()
+
+        assertNull(activity.confirmedOrdersDeltaPercent)
+    }
+
+    @Test
+    fun `the ranking keeps the total count of products without sales`() {
+        val dto = SalesRankingDto(needsAttention = NeedsAttentionDto(totalImmobilized = 620.0, totalCount = 17))
+
+        assertEquals(17, dto.toSalesRanking().needsAttentionTotalCount)
+    }
+
+    @Test
+    fun `a missing or negative total count becomes null`() {
+        assertNull(SalesRankingDto().toSalesRanking().needsAttentionTotalCount)
+        assertNull(
+            SalesRankingDto(needsAttention = NeedsAttentionDto(totalCount = -1)).toSalesRanking()
+                .needsAttentionTotalCount,
+        )
+    }
 }

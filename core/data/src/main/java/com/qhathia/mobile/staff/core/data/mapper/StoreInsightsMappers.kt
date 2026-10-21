@@ -90,9 +90,13 @@ fun SalesRankingDto.toSalesRanking(): SalesRanking = SalesRanking(
             )
         }
         .sortedByDescending { it.immobilizedAmount },
+    needsAttentionTotalCount = needsAttention.totalCount?.takeIf { it >= 0 },
 )
 
-/** Maps `GET /dashboard/activity`, keeping a missing comparison base as null. */
+/**
+ * Maps `GET /dashboard/activity`, keeping a missing comparison base as null — and a missing
+ * `confirmedOrders` as null rather than 0, so an older backend is not shown as "no orders".
+ */
 fun StoreActivityDto.toStoreActivity(): StoreActivity = StoreActivity(
     periodStart = periodStart.toInstantOrNull(),
     periodEnd = periodEnd.toInstantOrNull(),
@@ -100,6 +104,8 @@ fun StoreActivityDto.toStoreActivity(): StoreActivity = StoreActivity(
     uniqueSessionsDeltaPercent = uniqueSessionsDeltaPercent.finiteOrNull(),
     productViews = productViews,
     productViewsDeltaPercent = productViewsDeltaPercent.finiteOrNull(),
+    confirmedOrders = confirmedOrders,
+    confirmedOrdersDeltaPercent = confirmedOrdersDeltaPercent.finiteOrNull(),
 )
 
 /**
