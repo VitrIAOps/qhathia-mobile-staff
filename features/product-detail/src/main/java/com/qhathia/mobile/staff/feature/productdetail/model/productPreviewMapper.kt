@@ -3,6 +3,7 @@ package com.qhathia.mobile.staff.feature.productdetail.model
 import com.qhathia.mobile.staff.core.common.validation.parsePrice
 import com.qhathia.mobile.staff.core.common.validation.parseQuantity
 import com.qhathia.mobile.staff.core.ui.component.productpreview.ProductPreviewData
+import kotlinx.collections.immutable.toImmutableList
 
 /**
  * What the "Vista previa" dialog draws for the form as it stands — edits included, saved or not —
@@ -18,6 +19,6 @@ fun ProductDetailUiState.toPreviewData(): ProductPreviewData? {
         description = description.trim().ifBlank { null },
         categoryName = categories.firstOrNull { it.id == selectedCategoryId }?.name,
         stock = parseQuantity(quantity),
-        imageModels = imageUrls,
+        imageModels = photos.map { it.model }.toImmutableList(),
     )
 }

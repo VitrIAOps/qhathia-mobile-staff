@@ -31,6 +31,9 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.kotlinx.immutable)
+    // The photo strip launches the camera / gallery and hands the camera a FileProvider uri.
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.ktx)
     // Product photos inside the Discovery previews; okhttp fetches the remote ones.
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

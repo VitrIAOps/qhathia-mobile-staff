@@ -9,6 +9,7 @@ import com.qhathia.mobile.staff.core.common.validation.parseQuantity
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
+import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductException
 import com.qhathia.mobile.staff.core.domain.usecase.DeleteProductUseCase
@@ -18,8 +19,11 @@ import com.qhathia.mobile.staff.core.domain.usecase.GetProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.OptimizeDescriptionUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RemoveProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.SaveProductDiscountUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.UpdateProductPhotosUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.UpdateProductUseCase
 import com.qhathia.mobile.staff.feature.productdetail.R
+import com.qhathia.mobile.staff.feature.productdetail.model.FormPhoto
+import com.qhathia.mobile.staff.feature.productdetail.model.MAX_PHOTOS
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEffect
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiState
@@ -63,6 +67,7 @@ class ProductDetailViewModel @Inject constructor(
     private val saveProductDiscountUseCase: SaveProductDiscountUseCase,
     private val removeProductDiscountUseCase: RemoveProductDiscountUseCase,
     private val deleteProductUseCase: DeleteProductUseCase,
+    private val updateProductPhotosUseCase: UpdateProductPhotosUseCase,
 ) : ViewModel() {
 
     private val productId: String = checkNotNull(savedStateHandle[PRODUCT_DETAIL_ARG_ID]) {
@@ -103,6 +108,8 @@ class ProductDetailViewModel @Inject constructor(
             ProductDetailUiEvent.DiscountApplied -> onDiscountApplied()
             ProductDetailUiEvent.DiscountDismissed ->
                 _uiState.update { it.copy(discountDraft = null) }
+            is ProductDetailUiEvent.PhotosPicked -> onPhotosPicked(event.images)
+            is ProductDetailUiEvent.PhotoRemoved -> onPhotoRemoved(event.key)
             ProductDetailUiEvent.OptimizeDescriptionWithAi -> optimizeDescription()
             // The preview only reads the form, so opening or closing it never marks it dirty.
             ProductDetailUiEvent.PreviewRequested ->
@@ -234,7 +241,8 @@ class ProductDetailViewModel @Inject constructor(
         description = product.description.orEmpty(),
         tags = product.tags.joinToString(", "),
         selectedCategoryId = product.categoryId,
-        imageUrls = product.imageUrls.toImmutableList(),
+        photos = product.images.map { FormPhoto.Saved(it) }.toImmutableList(),
+        loadedImages = product.images.toImmutableList(),
         allowDiscountInquiry = product.allowDiscountInquiry,
         position = product.position,
         nameError = null,
@@ -244,6 +252,42 @@ class ProductDetailViewModel @Inject constructor(
         isError = false,
         isDirty = false,
     )
+
+    /**
+     * Adds picked photos to the form as pending. Only JPG and PNG are kept, a photo already on the
+     * form is ignored, and only as many as fit under [MAX_PHOTOS] are taken; anything left out is
+     * explained with a message. Nothing is sent until save.
+     */
+    private fun onPhotosPicked(picked: List<SelectedImage>) {
+        val current = _uiState.value
+        if (current.isSaving || current.isDeleting) return
+        val (supported, unsupported) = picked.partition { it.mimeType.lowercase() in SUPPORTED_MIME_TYPES }
+        val onForm = current.photos.map { it.key }.toSet()
+        val fresh = supported.filter { it.uri !in onForm }.distinctBy { it.uri }
+        val room = (MAX_PHOTOS - current.photos.size).coerceAtLeast(0)
+        val accepted = fresh.take(room)
+        if (accepted.isNotEmpty()) {
+            _uiState.update { state ->
+                state.copy(
+                    photos = (state.photos + accepted.map { FormPhoto.Pending(it) }).toImmutableList(),
+                    isDirty = true,
+                )
+            }
+        }
+        when {
+            fresh.size > accepted.size -> emit(ProductDetailUiEffect.ShowError(R.string.detail_photos_limit_reached))
+            unsupported.isNotEmpty() -> emit(ProductDetailUiEffect.ShowError(R.string.detail_photos_unsupported))
+        }
+    }
+
+    /** Removes a photo from the form; the last one stays, since a product keeps at least one. */
+    private fun onPhotoRemoved(key: String) {
+        _uiState.update { state ->
+            if (state.isSaving || state.isDeleting || !state.canRemovePhotos) return@update state
+            val remaining = state.photos.filterNot { it.key == key }
+            if (remaining.size == state.photos.size) state else state.copy(photos = remaining.toImmutableList(), isDirty = true)
+        }
+    }
 
     private fun onNameChanged(value: String) {
         val error = if (value.isNotBlank() && !isValidProductName(value)) R.string.detail_error_name else null
@@ -356,6 +400,15 @@ class ProductDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true) }
             updateProductUseCase(productId, product)
                 .onSuccess {
+                    if (persistPhotoChanges(current).isFailure) {
+                        // The product is saved; the photos are re-read so the strip shows what the
+                        // server has, and the form stays dirty so saving again retries what is left.
+                        // The discount is not attempted: one failure, one message.
+                        resyncPhotos(current, uploaded = false)
+                        _uiState.update { it.copy(isSaving = false) }
+                        emit(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save))
+                        return@onSuccess
+                    }
                     if (persistDiscountChange(current).isSuccess) {
                         _uiState.update { it.copy(isSaving = false, isDirty = false) }
                         emit(ProductDetailUiEffect.NavigateBackSaved)
@@ -363,6 +416,8 @@ class ProductDetailViewModel @Inject constructor(
                         // The product is saved; the form stays dirty so saving again retries the
                         // discount. A failed replace may have left the product with no discount,
                         // so what is stored is read again rather than assumed.
+                        // Photos that did go through must not be uploaded again on retry.
+                        if (current.isPhotosChanged) resyncPhotos(current, uploaded = true)
                         val stored = getProductDiscountUseCase(productId)
                         _uiState.update { state ->
                             state.copy(
@@ -384,6 +439,37 @@ class ProductDetailViewModel @Inject constructor(
         }
     }
 
+    /** Deletes the removed photos and uploads the added ones; nothing when photos did not change. */
+    private suspend fun persistPhotoChanges(state: ProductDetailUiState): Result<Unit> {
+        if (!state.isPhotosChanged) return Result.success(Unit)
+        return updateProductPhotosUseCase(
+            productId = productId,
+            removedImageIds = state.removedImageIds,
+            addedImages = state.addedImages.map { it.image },
+        )
+    }
+
+    /**
+     * Rebuilds the photo strip from the server after a save that touched photos did not fully go
+     * through. Saved photos are the server's, minus those the merchant removed that still exist (so
+     * they are deleted on retry). The upload is a single all-or-nothing request, so pending picks
+     * stay pending unless it [uploaded] — then they are on the server already. If the
+     * re-read itself fails the strip is left as it was: a retry deletes what is left (already-gone
+     * photos count as deleted) and uploads again.
+     */
+    private suspend fun resyncPhotos(submitted: ProductDetailUiState, uploaded: Boolean) {
+        val server = getProductDetailUseCase(productId).getOrNull()?.images ?: return
+        val stillToRemove = submitted.removedImageIds.toSet()
+        _uiState.update { state ->
+            val saved = server.filterNot { it.id in stillToRemove }.map { FormPhoto.Saved(it) }
+            val pending = if (uploaded) emptyList() else state.photos.filterIsInstance<FormPhoto.Pending>()
+            state.copy(
+                photos = (saved + pending).toImmutableList(),
+                loadedImages = server.toImmutableList(),
+            )
+        }
+    }
+
     /**
      * Sends the form's discount change, if there is one: a set discount replaces whatever the
      * product had, a cleared one removes it. Nothing is sent when the discount was not touched or
@@ -397,6 +483,10 @@ class ProductDetailViewModel @Inject constructor(
         } else {
             removeProductDiscountUseCase(productId)
         }
+    }
+
+    private companion object {
+        val SUPPORTED_MIME_TYPES = setOf("image/jpeg", "image/jpg", "image/png")
     }
 
     private fun emit(effect: ProductDetailUiEffect) {

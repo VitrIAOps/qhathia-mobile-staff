@@ -5,6 +5,7 @@ import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductDraft
+import com.qhathia.mobile.staff.core.domain.model.ProductImage
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.network.dto.CreateProductRequestDto
 import com.qhathia.mobile.staff.core.network.dto.DraftFromImageResponseDto
@@ -30,9 +31,9 @@ fun ProductDto.toDomain(): Product = Product(
 )
 
 /**
- * Maps a transport [ProductDetailDto] to the domain [ProductDetail]. Media is flattened to image
- * URLs in the order the DS shows them — primary photo first, then by backend position — and
- * non-image media is dropped, since the detail screen only renders photos.
+ * Maps a transport [ProductDetailDto] to the domain [ProductDetail]. Media becomes the product's
+ * photos (id kept, so one can be deleted) in the order the DS shows them — primary photo first, then
+ * by backend position — and non-image media is dropped, since the detail screen only renders photos.
  */
 fun ProductDetailDto.toDomain(): ProductDetail = ProductDetail(
     id = id,
@@ -43,10 +44,10 @@ fun ProductDetailDto.toDomain(): ProductDetail = ProductDetail(
     categoryId = categoryId,
     categoryName = categoryName,
     tags = tags,
-    imageUrls = media
+    images = media
         .filter { it.mediaType == MEDIA_TYPE_IMAGE }
         .sortedWith(compareByDescending<ProductMediaDto> { it.primary }.thenBy { it.position })
-        .map { it.url },
+        .map { ProductImage(id = it.id, url = it.url) },
     allowDiscountInquiry = allowDiscountInquiry,
     position = position,
 )

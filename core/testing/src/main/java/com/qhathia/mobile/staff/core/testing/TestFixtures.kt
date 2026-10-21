@@ -12,6 +12,7 @@ import com.qhathia.mobile.staff.core.domain.model.OrderDetail
 import com.qhathia.mobile.staff.core.domain.model.OrderItem
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.domain.model.ProductImage
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.domain.model.RestockSuggestion
@@ -106,7 +107,7 @@ object TestFixtures {
         categoryId: String? = "category-1",
         categoryName: String? = "Electrónica",
         tags: List<String> = listOf("herramientas", "bosch"),
-        imageUrls: List<String> = listOf("https://cdn.qhathia.test/product-1.jpg"),
+        images: List<ProductImage> = listOf(productImage()),
         allowDiscountInquiry: Boolean = false,
         position: Int = 0,
     ) = ProductDetail(
@@ -118,10 +119,15 @@ object TestFixtures {
         categoryId = categoryId,
         categoryName = categoryName,
         tags = tags,
-        imageUrls = imageUrls,
+        images = images,
         allowDiscountInquiry = allowDiscountInquiry,
         position = position,
     )
+
+    fun productImage(
+        id: String = "media-1",
+        url: String = "https://cdn.qhathia.test/product-1.jpg",
+    ) = ProductImage(id = id, url = url)
 
     fun discount(
         type: DiscountType = DiscountType.PERCENTAGE,

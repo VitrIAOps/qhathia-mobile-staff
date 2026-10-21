@@ -6,7 +6,11 @@
 
     <string name="detail_photos_label">Photos</string>
     <string name="detail_photos_empty">This product has no photos yet</string>
-    <string name="detail_photo_cd">Product photo</string>
+    <string name="detail_photos_max_hint">10 photos maximum</string>
+    <string name="detail_photos_min_hint">The product needs at least one photo</string>
+    <string name="detail_photos_limit_reached">A product can have 10 photos; some were not added</string>
+    <string name="detail_photos_unsupported">Only JPG or PNG photos are accepted</string>
+    <string name="detail_error_photos_save">The product was saved, but the photos could not be updated</string>
 
     <string name="detail_name_label">Name</string>
     <string name="detail_name_placeholder">E.g. Cordless drill</string>

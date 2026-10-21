@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.feature.productdetail.model
 
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
+import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 
 /** Everything the product detail/edit screen can report to its ViewModel. */
 sealed interface ProductDetailUiEvent {
@@ -30,6 +31,12 @@ sealed interface ProductDetailUiEvent {
     data class DiscountDraftChanged(val draft: DiscountDraft) : ProductDetailUiEvent
     data object DiscountApplied : ProductDetailUiEvent
     data object DiscountDismissed : ProductDetailUiEvent
+
+    /** Photos picked from the camera or the gallery; added to the form as pending. */
+    data class PhotosPicked(val images: List<SelectedImage>) : ProductDetailUiEvent
+
+    /** The remove control of the photo [key] (a media id, or the uri of a pending pick). */
+    data class PhotoRemoved(val key: String) : ProductDetailUiEvent
 
     /** Rewrites the existing description through the LLM, preserving its facts. */
     data object OptimizeDescriptionWithAi : ProductDetailUiEvent
