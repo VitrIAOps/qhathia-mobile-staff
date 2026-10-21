@@ -7,11 +7,16 @@ TBD - created by archiving change add-merchant-profile-settings. Update Purpose 
 
 The Configuración screen SHALL show a gradient top bar with back and the title "Configuración", and a card containing:
 - **Idioma**: a two-option selector, "Español" and "English", with the selected option filled in the primary colour.
-- **Precios con IGV incluido**: a toggle with the subtitle "Los precios que ve el cliente ya incluyen IGV".
+
+The screen SHALL NOT show any price or tax setting. The card SHALL NOT depend on the store being loaded: if reading the store fails, the screen SHALL look and behave exactly as when it succeeds, with no error row or retry.
 
 #### Scenario: Screen shown
 - **WHEN** the merchant opens Configuración
-- **THEN** the Idioma selector and the IGV toggle are shown
+- **THEN** the Idioma selector is shown and no IGV toggle is shown
+
+#### Scenario: Store fails to load
+- **WHEN** `GET /api/v1/stores/{storeId}` fails while Configuración is open
+- **THEN** no error or retry is shown and the language selector still works
 
 ### Requirement: Language is owned by the device
 
@@ -62,30 +67,4 @@ Every user-facing string resource in every module SHALL have an English translat
 #### Scenario: Whole app in English
 - **WHEN** English is selected
 - **THEN** the bottom navigation, Inicio, Inventario, Solicitudes, Perfil and their sub-screens show English labels
-
-### Requirement: IGV display setting
-
-The IGV toggle SHALL reflect `pricesIncludeIgv` from `GET /api/v1/stores/{storeId}` for the active store.
-
-For OWNER and ADMIN, changing it SHALL update the toggle immediately and send `PUT /api/v1/stores/{storeId}` with `{ "pricesIncludeIgv": <bool> }`. On failure, the toggle SHALL revert and an error message SHALL be shown. No price SHALL be recalculated by the app.
-
-For SELLER, the toggle SHALL be shown read-only.
-
-While the store is loading, the toggle SHALL be disabled. If the store fails to load, the toggle SHALL be hidden behind an inline retry, and the language selector SHALL remain usable.
-
-#### Scenario: Owner turns IGV off
-- **WHEN** an OWNER turns off "Precios con IGV incluido"
-- **THEN** `PUT /api/v1/stores/{storeId}` is sent with `{ "pricesIncludeIgv": false }`
-
-#### Scenario: Update fails
-- **WHEN** the IGV update fails
-- **THEN** the toggle returns to its previous value and an error message is shown
-
-#### Scenario: Seller sees read-only toggle
-- **WHEN** a SELLER opens Configuración
-- **THEN** the IGV toggle shows the store's value and cannot be changed
-
-#### Scenario: Store fails to load
-- **WHEN** `GET /api/v1/stores/{storeId}` fails
-- **THEN** a retry is shown in place of the IGV toggle and the language selector still works
 
