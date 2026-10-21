@@ -22,6 +22,7 @@ data class Device(
     val storeName: String? = null,
     val lastPingAt: Instant? = null,
     val lastSyncAt: Instant? = null,
+    val model: String? = null,
 ) {
     /**
      * A tablet counts as connected while it is ACTIVE and has sent a heartbeat within

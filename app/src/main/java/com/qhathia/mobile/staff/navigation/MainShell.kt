@@ -48,6 +48,7 @@ import com.qhathia.mobile.staff.feature.productregister.navigation.PRODUCT_REGIS
 import com.qhathia.mobile.staff.feature.productregister.navigation.productRegisterGraph
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.DEVICE_LINKING_ROUTE
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.deviceLinkingGraph
+import com.qhathia.mobile.staff.feature.devicelinking.navigation.tabletSettingsRoute
 import com.qhathia.mobile.staff.feature.orderrequests.navigation.ORDER_REQUESTS_ROUTE
 import com.qhathia.mobile.staff.feature.orderrequests.navigation.orderRequestsGraph
 import com.qhathia.mobile.staff.feature.home.navigation.HOME_ROUTE
@@ -248,7 +249,10 @@ fun MainShell(
                 onNavigateToDevices = { navController.navigate(DEVICE_LINKING_ROUTE) },
                 onNavigateToOrderRequests = { switchTab(ORDER_REQUESTS_ROUTE) },
             )
-            deviceLinkingGraph(onBack = { navController.popBackStack() })
+            deviceLinkingGraph(
+                onBack = { navController.popBackStack() },
+                onOpenTabletSettings = { id -> navController.navigate(tabletSettingsRoute(id)) },
+            )
         }
     }
 }

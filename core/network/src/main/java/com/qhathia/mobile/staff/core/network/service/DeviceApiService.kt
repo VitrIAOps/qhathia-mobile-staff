@@ -3,14 +3,17 @@ package com.qhathia.mobile.staff.core.network.service
 import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.dto.DeviceCommandDto
 import com.qhathia.mobile.staff.core.network.dto.DeviceDto
+import com.qhathia.mobile.staff.core.network.dto.DeviceSettingsDto
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceRequestDto
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceResponseDto
 import com.qhathia.mobile.staff.core.network.dto.SendDeviceCommandRequestDto
+import com.qhathia.mobile.staff.core.network.dto.UpdateDeviceSettingsRequestDto
 import com.qhathia.mobile.staff.core.network.toNetworkResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 
 /**
@@ -43,5 +46,20 @@ class DeviceApiService(private val client: HttpClient) {
     suspend fun getCommands(deviceId: String): NetworkResult<List<DeviceCommandDto>> =
         runCatching {
             client.get("api/v1/devices/$deviceId/commands").body<List<DeviceCommandDto>>()
+        }.toNetworkResult()
+
+    /** The tablet's remote settings (OWNER/ADMIN). The first read creates the defaults. */
+    suspend fun getSettings(deviceId: String): NetworkResult<DeviceSettingsDto> =
+        runCatching {
+            client.get("api/v1/devices/$deviceId/settings").body<DeviceSettingsDto>()
+        }.toNetworkResult()
+
+    /** Partial update: only the non-null fields of [body] change. Answers the full applied set. */
+    suspend fun updateSettings(
+        deviceId: String,
+        body: UpdateDeviceSettingsRequestDto,
+    ): NetworkResult<DeviceSettingsDto> =
+        runCatching {
+            client.put("api/v1/devices/$deviceId/settings") { setBody(body) }.body<DeviceSettingsDto>()
         }.toNetworkResult()
 }

@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.TabletAndroid
 import androidx.compose.material.icons.rounded.Add
@@ -48,6 +49,7 @@ import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommand
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaComingSoonTag
+import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaNavigationRow
 import com.qhathia.mobile.staff.core.ui.component.time.label
 import com.qhathia.mobile.staff.core.ui.component.time.relativeTimeBetween
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
@@ -72,6 +74,7 @@ internal fun DeviceCard(
     onRefreshCatalog: () -> Unit,
     onRestart: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenSettings: () -> Unit = {},
 ) {
     val connected = device.isConnected(now)
     Surface(
@@ -130,6 +133,14 @@ internal fun DeviceCard(
             )
             CommandStatusLine(labelRes = R.string.device_command_refresh_label, command = refreshCommand)
             CommandStatusLine(labelRes = R.string.device_command_restart_label, command = restartCommand)
+            // Always available: settings are stored and applied when the tablet next reports.
+            QhathiaNavigationRow(
+                title = stringResource(R.string.tablet_settings_entry),
+                subtitle = stringResource(R.string.tablet_settings_entry_subtitle),
+                icon = Icons.Outlined.Settings,
+                onClick = onOpenSettings,
+                showDivider = false,
+            )
         }
     }
 }

@@ -23,6 +23,8 @@ data class DeviceDto(
     val lastSyncAt: String? = null,
     val linkedAt: String? = null,
     val createdAt: String? = null,
+    /** Commercial model ("Lenovo Tab M11"), reported by the tablet in its heartbeat. */
+    val model: String? = null,
 )
 
 /**
@@ -70,4 +72,36 @@ data class DeviceCommandDto(
     val deliveredAt: String? = null,
     val ackedAt: String? = null,
     val resultDetail: String? = null,
+)
+
+/**
+ * Body of `GET` / `PUT /api/v1/devices/{deviceId}/settings`. The PIN never comes back, only whether
+ * one is set ([exitPinSet]).
+ */
+@Serializable
+data class DeviceSettingsDto(
+    val deviceId: String? = null,
+    val idleShowcaseEnabled: Boolean = true,
+    val voiceAssistantEnabled: Boolean = true,
+    val brightnessMode: String? = null,
+    val kioskMode: Boolean = true,
+    val exitPinSet: Boolean = false,
+    val autoSyncEnabled: Boolean = true,
+    val settingsVersion: Long? = null,
+)
+
+/**
+ * Body of the partial `PUT /api/v1/devices/{deviceId}/settings`: a null field is not encoded, and an
+ * absent field is left untouched by the backend. Removing the PIN needs an explicit
+ * [removeExitPin] — an absent [exitPin] means "do not touch it".
+ */
+@Serializable
+data class UpdateDeviceSettingsRequestDto(
+    val idleShowcaseEnabled: Boolean? = null,
+    val voiceAssistantEnabled: Boolean? = null,
+    val brightnessMode: String? = null,
+    val kioskMode: Boolean? = null,
+    val exitPin: String? = null,
+    val removeExitPin: Boolean? = null,
+    val autoSyncEnabled: Boolean? = null,
 )

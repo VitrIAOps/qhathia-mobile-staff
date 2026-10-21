@@ -1,13 +1,19 @@
 package com.qhathia.mobile.staff.core.data.repository
 
 import com.qhathia.mobile.staff.core.data.mapper.toDomain
+import com.qhathia.mobile.staff.core.data.mapper.toRequestDto
 import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommand
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandType
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettings
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsChange
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsError
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsException
 import com.qhathia.mobile.staff.core.domain.model.PairDeviceError
 import com.qhathia.mobile.staff.core.domain.model.PairDeviceException
 import com.qhathia.mobile.staff.core.domain.repository.DeviceRepository
 import com.qhathia.mobile.staff.core.network.NetworkResult
+import com.qhathia.mobile.staff.core.network.dto.DeviceSettingsDto
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceRequestDto
 import com.qhathia.mobile.staff.core.network.dto.SendDeviceCommandRequestDto
 import com.qhathia.mobile.staff.core.network.service.CatalogApiService
@@ -63,6 +69,26 @@ class DeviceRepositoryImpl @Inject constructor(
         apiService.getCommands(deviceId).asDomainResult { commands ->
             commands.mapNotNull { it.toDomain() }
         }
+
+    override suspend fun getSettings(deviceId: String): Result<DeviceSettings> =
+        apiService.getSettings(deviceId).toSettingsResult()
+
+    override suspend fun updateSettings(deviceId: String, change: DeviceSettingsChange): Result<DeviceSettings> =
+        apiService.updateSettings(deviceId, change.toRequestDto()).toSettingsResult()
+
+    private fun NetworkResult<DeviceSettingsDto>.toSettingsResult():
+        Result<DeviceSettings> = when (this) {
+        is NetworkResult.Success -> Result.success(data.toDomain())
+        is NetworkResult.HttpError -> Result.failure(DeviceSettingsException(code.toSettingsError()))
+        is NetworkResult.NetworkError -> Result.failure(DeviceSettingsException(DeviceSettingsError.Network))
+    }
+
+    private fun Int.toSettingsError(): DeviceSettingsError = when (this) {
+        404 -> DeviceSettingsError.NotFound
+        400, 422 -> DeviceSettingsError.InvalidInput
+        503 -> DeviceSettingsError.Network
+        else -> DeviceSettingsError.Unknown("HTTP $this")
+    }
 
     private fun Int.toPairError(): PairDeviceError = when (this) {
         400 -> PairDeviceError.InvalidCode

@@ -27,6 +27,7 @@ import com.qhathia.mobile.staff.feature.devicelinking.model.DeviceLinkingUiEvent
 @Composable
 fun DeviceLinkingScreen(
     onBack: () -> Unit,
+    onOpenTabletSettings: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DeviceLinkingViewModel = hiltViewModel(),
 ) {
@@ -48,7 +49,12 @@ fun DeviceLinkingScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        DeviceLinkingContent(uiState = uiState, onEvent = viewModel::onEvent, onBack = onBack)
+        DeviceLinkingContent(
+            uiState = uiState,
+            onEvent = viewModel::onEvent,
+            onBack = onBack,
+            onOpenTabletSettings = onOpenTabletSettings,
+        )
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),

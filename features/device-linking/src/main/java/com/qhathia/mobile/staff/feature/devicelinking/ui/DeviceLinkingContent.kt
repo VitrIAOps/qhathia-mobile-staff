@@ -50,6 +50,7 @@ fun DeviceLinkingContent(
     onEvent: (DeviceLinkingUiEvent) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenTabletSettings: (String) -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         QhathiaGradientTopBar(title = stringResource(R.string.device_linking_title), onBack = onBack)
@@ -59,7 +60,7 @@ fun DeviceLinkingContent(
                 contentAlignment = Alignment.Center,
             ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary) }
             uiState.isError && !uiState.hasDevices -> ErrorState(onRetry = { onEvent(DeviceLinkingUiEvent.Retry) })
-            else -> DeviceList(uiState = uiState, onEvent = onEvent)
+            else -> DeviceList(uiState = uiState, onEvent = onEvent, onOpenTabletSettings = onOpenTabletSettings)
         }
     }
 
@@ -97,7 +98,11 @@ fun DeviceLinkingContent(
 }
 
 @Composable
-private fun DeviceList(uiState: DeviceLinkingUiState, onEvent: (DeviceLinkingUiEvent) -> Unit) {
+private fun DeviceList(
+    uiState: DeviceLinkingUiState,
+    onEvent: (DeviceLinkingUiEvent) -> Unit,
+    onOpenTabletSettings: (String) -> Unit,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(Dimens.SpaceMd),
@@ -125,6 +130,7 @@ private fun DeviceList(uiState: DeviceLinkingUiState, onEvent: (DeviceLinkingUiE
                 isRestartBusy = uiState.isCommandBusy(device.id, DeviceCommandType.RESTART_APP),
                 onRefreshCatalog = { onEvent(DeviceLinkingUiEvent.RefreshCatalog(device.id)) },
                 onRestart = { onEvent(DeviceLinkingUiEvent.RestartRequested(device.id)) },
+                onOpenSettings = { onOpenTabletSettings(device.id) },
             )
         }
         item(key = "link") {
