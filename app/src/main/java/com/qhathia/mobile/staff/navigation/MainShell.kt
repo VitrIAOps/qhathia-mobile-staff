@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -108,6 +110,10 @@ fun MainShell(
     viewModel: MainShellViewModel = hiltViewModel(),
 ) {
     RequestNotificationPermissionOnce()
+
+    // Also fires when the shell first appears (and after unlocking), since a new observer of a
+    // started lifecycle receives ON_START.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onForegrounded() }
 
     val pendingOrderCount by viewModel.pendingOrderCount.collectAsStateWithLifecycle()
     val navController = rememberNavController()
