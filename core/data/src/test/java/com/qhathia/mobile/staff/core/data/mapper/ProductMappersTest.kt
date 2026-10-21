@@ -70,7 +70,7 @@ class ProductMappersTest {
 
         val detail = dto.toDomain()
 
-        assertEquals(listOf("primary.jpg", "second.jpg", "third.jpg"), detail.imageUrls)
+        assertEquals(listOf("primary.jpg", "second.jpg", "third.jpg"), detail.images.map { it.url })
         assertEquals(3, detail.stock)
         assertEquals(listOf("bosch"), detail.tags)
     }
@@ -86,7 +86,7 @@ class ProductMappersTest {
             ),
         )
 
-        assertEquals(listOf("photo.jpg"), dto.toDomain().imageUrls)
+        assertEquals(listOf("photo.jpg"), dto.toDomain().images.map { it.url })
     }
 
     @Test

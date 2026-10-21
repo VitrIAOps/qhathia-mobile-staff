@@ -12,6 +12,7 @@ import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.domain.model.RegisterProductError
 import com.qhathia.mobile.staff.core.domain.model.RegisterProductException
+import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductException
 import com.qhathia.mobile.staff.core.domain.repository.ProductRepository
@@ -102,6 +103,32 @@ class ProductRepositoryImpl @Inject constructor(
             is NetworkResult.NetworkError ->
                 Result.failure(UpdateProductException(UpdateProductError.Network))
         }
+
+    override suspend fun addProductImages(id: String, images: List<SelectedImage>): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            val parts = images.mapIndexed { index, image ->
+                val compressed = imageCompressor.compress(image).getOrElse {
+                    return@withContext Result.failure(
+                        UpdateProductException(UpdateProductError.Unknown(it.message)),
+                    )
+                }
+                MultipartImage(
+                    bytes = compressed.bytes,
+                    contentType = compressed.contentType,
+                    filename = "image_$index.jpg",
+                )
+            }
+            apiService.addProductImages(id, parts).toUpdateResult()
+        }
+
+    override suspend fun deleteProductImage(id: String, mediaId: String): Result<Unit> =
+        apiService.deleteProductMedia(id, mediaId).toUpdateResult()
+
+    private fun NetworkResult<Unit>.toUpdateResult(): Result<Unit> = when (this) {
+        is NetworkResult.Success -> Result.success(Unit)
+        is NetworkResult.HttpError -> Result.failure(UpdateProductException(code.toUpdateError()))
+        is NetworkResult.NetworkError -> Result.failure(UpdateProductException(UpdateProductError.Network))
+    }
 
     private fun Int.toRegisterError(): RegisterProductError = when (this) {
         402, 403 -> RegisterProductError.PlanLimitReached

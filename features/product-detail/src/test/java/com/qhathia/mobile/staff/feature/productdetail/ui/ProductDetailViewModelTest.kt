@@ -15,6 +15,7 @@ import com.qhathia.mobile.staff.core.domain.usecase.GetProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.OptimizeDescriptionUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RemoveProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.SaveProductDiscountUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.UpdateProductPhotosUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.UpdateProductUseCase
 import com.qhathia.mobile.staff.core.testing.FakeCategoryRepository
 import com.qhathia.mobile.staff.core.testing.FakeProductAiRepository
@@ -69,6 +70,7 @@ class ProductDetailViewModelTest {
         saveProductDiscountUseCase = SaveProductDiscountUseCase(discountRepository, clock),
         removeProductDiscountUseCase = RemoveProductDiscountUseCase(discountRepository),
         deleteProductUseCase = DeleteProductUseCase(productRepository),
+        updateProductPhotosUseCase = UpdateProductPhotosUseCase(productRepository),
     )
 
     /** Opens the dialog, types [input] in [type] mode and applies it to the form. */
@@ -92,7 +94,7 @@ class ProductDetailViewModelTest {
                 description = "Percutor 650W",
                 categoryId = "category-1",
                 tags = listOf("herramientas", "bosch"),
-                imageUrls = listOf("https://cdn.test/1.jpg"),
+                images = listOf(TestFixtures.productImage(url = "https://cdn.test/1.jpg")),
             ),
         )
 
@@ -107,7 +109,7 @@ class ProductDetailViewModelTest {
         assertEquals("Percutor 650W", state.description)
         assertEquals("herramientas, bosch", state.tags)
         assertEquals("category-1", state.selectedCategoryId)
-        assertEquals(listOf("https://cdn.test/1.jpg"), state.imageUrls)
+        assertEquals(listOf("https://cdn.test/1.jpg"), state.photos.map { it.model })
         // A freshly loaded product has nothing to save yet.
         assertFalse(state.isDirty)
         assertFalse(state.isSaveEnabled)
@@ -508,7 +510,7 @@ class ProductDetailViewModelTest {
     @Test
     fun `preview is unavailable for a product with no photos`() = runTest {
         productRepository.productDetailResult =
-            Result.success(TestFixtures.productDetail(imageUrls = emptyList()))
+            Result.success(TestFixtures.productDetail(images = emptyList()))
 
         assertFalse(createViewModel().uiState.value.isPreviewEnabled)
     }
@@ -556,7 +558,7 @@ class ProductDetailViewModelTest {
     @Test
     fun `requesting the preview without a photo does nothing`() = runTest {
         productRepository.productDetailResult =
-            Result.success(TestFixtures.productDetail(imageUrls = emptyList()))
+            Result.success(TestFixtures.productDetail(images = emptyList()))
         val viewModel = createViewModel()
 
         viewModel.onEvent(ProductDetailUiEvent.PreviewRequested)
@@ -589,7 +591,10 @@ class ProductDetailViewModelTest {
                 stock = 7,
                 description = "Percutor 650W",
                 categoryId = "category-1",
-                imageUrls = listOf("https://cdn.test/1.jpg", "https://cdn.test/2.jpg"),
+                images = listOf(
+                    TestFixtures.productImage(id = "m1", url = "https://cdn.test/1.jpg"),
+                    TestFixtures.productImage(id = "m2", url = "https://cdn.test/2.jpg"),
+                ),
             ),
         )
         val viewModel = createViewModel()
@@ -794,5 +799,211 @@ class ProductDetailViewModelTest {
         viewModel.onEvent(ProductDetailUiEvent.DeleteRequested)
 
         assertFalse(viewModel.uiState.value.showDeleteDialog)
+    }
+
+    // ---- Photos ----
+
+    private fun threePhotos() {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(
+                images = listOf(
+                    TestFixtures.productImage(id = "m1", url = "https://cdn.test/1.jpg"),
+                    TestFixtures.productImage(id = "m2", url = "https://cdn.test/2.jpg"),
+                    TestFixtures.productImage(id = "m3", url = "https://cdn.test/3.jpg"),
+                ),
+            ),
+        )
+    }
+
+    private fun picked(n: Int, mimeType: String = "image/jpeg") =
+        (1..n).map { TestFixtures.selectedImage(uri = "content://pick/$it", mimeType = mimeType) }
+
+    @Test
+    fun `picked photos are added at the end as pending and mark the form dirty`() = runTest {
+        threePhotos()
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(2)))
+
+        val state = viewModel.uiState.value
+        assertEquals(listOf("m1", "m2", "m3", "content://pick/1", "content://pick/2"), state.photos.map { it.key })
+        assertEquals(2, state.addedImages.size)
+        assertTrue(state.isDirty)
+        assertTrue(state.isSaveEnabled)
+        assertTrue(productRepository.writeLog.isEmpty())
+    }
+
+    @Test
+    fun `unsupported formats are left out with a message`() = runTest {
+        threePhotos()
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(1, mimeType = "image/heic")))
+            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_photos_unsupported), awaitItem())
+        }
+        assertEquals(3, viewModel.uiState.value.photos.size)
+    }
+
+    @Test
+    fun `only the photos that fit under the limit are added`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(images = (1..8).map { TestFixtures.productImage(id = "m$it", url = "u$it") }),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(4)))
+            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_photos_limit_reached), awaitItem())
+        }
+        val state = viewModel.uiState.value
+        assertEquals(10, state.photos.size)
+        assertFalse(state.canAddPhotos)
+    }
+
+    @Test
+    fun `a photo already on the form is not added twice`() = runTest {
+        threePhotos()
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(1)))
+        viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(1)))
+
+        assertEquals(4, viewModel.uiState.value.photos.size)
+    }
+
+    @Test
+    fun `removing a photo marks it for deletion without sending anything`() = runTest {
+        threePhotos()
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.PhotoRemoved("m2"))
+
+        val state = viewModel.uiState.value
+        assertEquals(listOf("m1", "m3"), state.photos.map { it.key })
+        assertEquals(listOf("m2"), state.removedImageIds)
+        assertTrue(state.isDirty)
+        assertTrue(productRepository.writeLog.isEmpty())
+    }
+
+    @Test
+    fun `the last photo cannot be removed`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.PhotoRemoved("media-1"))
+
+        val state = viewModel.uiState.value
+        assertEquals(1, state.photos.size)
+        assertFalse(state.canRemovePhotos)
+        assertFalse(state.isDirty)
+    }
+
+    @Test
+    fun `saving without photo changes sends no photo request`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro Pro"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+        }
+        assertEquals(listOf("update"), productRepository.writeLog)
+    }
+
+    @Test
+    fun `saving updates the product, then deletes, then uploads`() = runTest {
+        threePhotos()
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.PhotoRemoved("m2"))
+        viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(2)))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+        }
+        assertEquals(listOf("update", "deleteImage:m2", "addImages:2"), productRepository.writeLog)
+    }
+
+    @Test
+    fun `a failed product update sends no photo request and keeps the changes`() = runTest {
+        threePhotos()
+        productRepository.updateResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.PhotoRemoved("m2"))
+        viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(1)))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertTrue(awaitItem() is ProductDetailUiEffect.ShowError)
+        }
+        assertEquals(listOf("update"), productRepository.writeLog)
+        assertEquals(listOf("m2"), viewModel.uiState.value.removedImageIds)
+        assertEquals(1, viewModel.uiState.value.addedImages.size)
+    }
+
+    @Test
+    fun `a failed upload keeps the pending photos, drops the deleted one and retries only what is left`() =
+        runTest {
+            threePhotos()
+            productRepository.addImagesResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+            val viewModel = createViewModel()
+            viewModel.onEvent(ProductDetailUiEvent.PhotoRemoved("m2"))
+            viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(1)))
+            // After the delete went through, the server no longer has m2.
+            productRepository.productDetailResult = Result.success(
+                TestFixtures.productDetail(
+                    images = listOf(
+                        TestFixtures.productImage(id = "m1", url = "https://cdn.test/1.jpg"),
+                        TestFixtures.productImage(id = "m3", url = "https://cdn.test/3.jpg"),
+                    ),
+                ),
+            )
+
+            viewModel.uiEffect.test {
+                viewModel.onEvent(ProductDetailUiEvent.Save)
+                assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save), awaitItem())
+            }
+            val state = viewModel.uiState.value
+            assertEquals(listOf("m1", "m3", "content://pick/1"), state.photos.map { it.key })
+            assertTrue(state.removedImageIds.isEmpty())
+            assertEquals(1, state.addedImages.size)
+            assertTrue(state.isDirty)
+            assertFalse(state.isSaving)
+
+            productRepository.addImagesResult = Result.success(Unit)
+            productRepository.writeLog.clear()
+            viewModel.uiEffect.test {
+                viewModel.onEvent(ProductDetailUiEvent.Save)
+                assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+            }
+            assertEquals(listOf("update", "addImages:1"), productRepository.writeLog)
+        }
+
+    @Test
+    fun `a failed photo step does not touch the discount`() = runTest {
+        threePhotos()
+        productRepository.deleteImageResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.PhotoRemoved("m2"))
+        viewModel.applyDiscount("10")
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save), awaitItem())
+        }
+        assertTrue(discountRepository.discounts.isEmpty())
+        // The delete failed, so m2 is still on the server and still marked for removal.
+        assertEquals(listOf("m2"), viewModel.uiState.value.removedImageIds)
+    }
+
+    @Test
+    fun `leaving after changing photos goes through the discard dialog`() = runTest {
+        threePhotos()
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.PhotoRemoved("m2"))
+
+        viewModel.onEvent(ProductDetailUiEvent.CancelRequested)
+
+        assertTrue(viewModel.uiState.value.showDiscardDialog)
     }
 }

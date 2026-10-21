@@ -38,12 +38,14 @@ import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountType
+import com.qhathia.mobile.staff.core.domain.model.ProductImage
 import com.qhathia.mobile.staff.core.ui.component.QhathiaDeleteProductDialog
 import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscountToggleRow
 import com.qhathia.mobile.staff.core.ui.component.productpreview.QhathiaProductPreviewDialog
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.productdetail.R
+import com.qhathia.mobile.staff.feature.productdetail.model.FormPhoto
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiState
 import com.qhathia.mobile.staff.feature.productdetail.model.toPreviewData
@@ -211,7 +213,14 @@ private fun EditForm(
         verticalArrangement = Arrangement.spacedBy(Dimens.SpaceLg),
     ) {
         LabeledField(label = stringResource(R.string.detail_photos_label)) {
-            ProductImagesRow(imageUrls = uiState.imageUrls)
+            ProductPhotosField(
+                photos = uiState.photos,
+                canAdd = uiState.canAddPhotos,
+                canRemove = uiState.canRemovePhotos,
+                enabled = !uiState.isSaving && !uiState.isDeleting,
+                onPick = { onEvent(ProductDetailUiEvent.PhotosPicked(it)) },
+                onRemove = { onEvent(ProductDetailUiEvent.PhotoRemoved(it)) },
+            )
         }
         DetailNameField(
             value = uiState.name,
@@ -442,7 +451,10 @@ private fun loadedState() = ProductDetailUiState(
     tags = "Importado, Premium",
     categories = sampleCategories(),
     selectedCategoryId = "c2",
-    imageUrls = persistentListOf("https://cdn.qhathia.test/1.jpg"),
+    photos = persistentListOf(
+        FormPhoto.Saved(ProductImage("m1", "https://cdn.qhathia.test/1.jpg")),
+        FormPhoto.Saved(ProductImage("m2", "https://cdn.qhathia.test/2.jpg")),
+    ),
     isLoading = false,
 )
 
@@ -518,7 +530,7 @@ private fun ProductDetailContentPreviewEnabledPreview() {
 private fun ProductDetailContentPreviewDisabledPreview() {
     QhathiaTheme {
         ProductDetailContent(
-            uiState = loadedState().copy(imageUrls = persistentListOf()),
+            uiState = loadedState().copy(photos = persistentListOf()),
             onEvent = {},
         )
     }
@@ -529,7 +541,7 @@ private fun ProductDetailContentPreviewDisabledPreview() {
 private fun ProductDetailContentNoPhotosPreview() {
     QhathiaTheme {
         ProductDetailContent(
-            uiState = loadedState().copy(imageUrls = persistentListOf()),
+            uiState = loadedState().copy(photos = persistentListOf()),
             onEvent = {},
         )
     }

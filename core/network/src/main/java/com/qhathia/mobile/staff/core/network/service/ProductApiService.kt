@@ -150,6 +150,38 @@ class ProductApiService(
         }.toNetworkResult()
 
     /**
+     * Appends photos to an existing product: one `images` part per photo (201). The backend adds
+     * them after the current ones with `primary=false`, so the main photo does not change, and
+     * rejects a total over its per-product limit (10) with 400.
+     */
+    suspend fun addProductImages(id: String, images: List<MultipartImage>): NetworkResult<Unit> =
+        runCatching {
+            val parts = formData {
+                images.forEach { image ->
+                    append(
+                        "images",
+                        image.bytes,
+                        Headers.build {
+                            append(HttpHeaders.ContentType, image.contentType)
+                            append(HttpHeaders.ContentDisposition, "filename=\"${image.filename}\"")
+                        },
+                    )
+                }
+            }
+            client.post("api/v1/products/$id/images") {
+                setBody(MultiPartFormDataContent(parts))
+            }
+            Unit
+        }.toNetworkResult()
+
+    /** Removes one photo of a product (204, no body). */
+    suspend fun deleteProductMedia(id: String, mediaId: String): NetworkResult<Unit> =
+        runCatching {
+            client.delete("api/v1/products/$id/media/$mediaId")
+            Unit
+        }.toNetworkResult()
+
+    /**
      * Soft-deletes a product (204, no body): the backend marks it inactive, so it leaves the
      * inventory and the kiosk catalog. There is no endpoint to bring it back.
      */

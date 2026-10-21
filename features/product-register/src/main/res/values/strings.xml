@@ -27,12 +27,6 @@
     <string name="register_preview_hint">Ingresa un nombre, un precio y al menos una foto para ver la vista previa.</string>
 
     <string name="register_images_label">Fotos</string>
-    <string name="register_add_image">Agregar</string>
-    <string name="register_add_image_cd">Agregar foto</string>
-    <string name="register_remove_image_cd">Quitar foto</string>
-    <string name="register_photo_source_title">Agregar foto</string>
-    <string name="register_photo_source_camera">Tomar foto</string>
-    <string name="register_photo_source_gallery">Elegir de la galería</string>
 
     <string name="register_submit">Agregar</string>
     <string name="register_cancel">Cancelar</string>

@@ -5,6 +5,7 @@ import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
+import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import com.qhathia.mobile.staff.core.domain.repository.ProductRepository
 import kotlinx.coroutines.CompletableDeferred
 
@@ -20,6 +21,8 @@ class FakeProductRepository : ProductRepository {
     var productDetailResult: Result<ProductDetail> = Result.success(TestFixtures.productDetail())
     var updateResult: Result<Unit> = Result.success(Unit)
     var deleteResult: Result<Unit> = Result.success(Unit)
+    var addImagesResult: Result<Unit> = Result.success(Unit)
+    var deleteImageResult: Result<Unit> = Result.success(Unit)
 
     /** Set to a pending deferred to hold [deleteProduct] in flight (to observe the deleting state). */
     var deleteGate: CompletableDeferred<Unit>? = null
@@ -51,6 +54,15 @@ class FakeProductRepository : ProductRepository {
     var updateCallCount: Int = 0
         private set
 
+    /** Every batch passed to [addProductImages], in call order. */
+    val addedImageBatches: MutableList<List<SelectedImage>> = mutableListOf()
+
+    /** Every media id passed to [deleteProductImage], in call order. */
+    val deletedImageIds: MutableList<String> = mutableListOf()
+
+    /** Every repository write, in call order, as "update", "deleteImage:<id>" or "addImages:<n>". */
+    val writeLog: MutableList<String> = mutableListOf()
+
     /** Every id passed to [deleteProduct], in call order. */
     val deletedIds: MutableList<String> = mutableListOf()
 
@@ -79,6 +91,7 @@ class FakeProductRepository : ProductRepository {
 
     override suspend fun updateProduct(id: String, product: ProductUpdate): Result<Unit> {
         updateCallCount++
+        writeLog += "update"
         updatedId = id
         updatedProduct = product
         return updateResult
@@ -88,5 +101,17 @@ class FakeProductRepository : ProductRepository {
         deletedIds += id
         deleteGate?.await()
         return deleteResult
+    }
+
+    override suspend fun addProductImages(id: String, images: List<SelectedImage>): Result<Unit> {
+        addedImageBatches += images
+        writeLog += "addImages:${images.size}"
+        return addImagesResult
+    }
+
+    override suspend fun deleteProductImage(id: String, mediaId: String): Result<Unit> {
+        deletedImageIds += mediaId
+        writeLog += "deleteImage:$mediaId"
+        return deleteImageResult
     }
 }

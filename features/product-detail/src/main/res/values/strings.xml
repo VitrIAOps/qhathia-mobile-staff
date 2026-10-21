@@ -6,7 +6,11 @@
 
     <string name="detail_photos_label">Fotos</string>
     <string name="detail_photos_empty">Este producto todavía no tiene fotos</string>
-    <string name="detail_photo_cd">Foto del producto</string>
+    <string name="detail_photos_max_hint">Máximo 10 fotos</string>
+    <string name="detail_photos_min_hint">El producto necesita al menos una foto</string>
+    <string name="detail_photos_limit_reached">Solo se pueden tener 10 fotos; algunas no se agregaron</string>
+    <string name="detail_photos_unsupported">Solo se aceptan fotos JPG o PNG</string>
+    <string name="detail_error_photos_save">Se guardó el producto, pero no se pudieron actualizar las fotos</string>
 
     <string name="detail_name_label">Nombre</string>
     <string name="detail_name_placeholder">Ej: Taladro inalámbrico</string>

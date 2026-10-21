@@ -5,6 +5,7 @@ import com.qhathia.mobile.staff.core.domain.model.NewProduct
 import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
+import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 
 /** Port for reading and writing the store's products. */
 interface ProductRepository {
@@ -42,4 +43,14 @@ interface ProductRepository {
      * inventory and the kiosk catalog. Failures carry an `UpdateProductException` (404 → not found).
      */
     suspend fun deleteProduct(id: String): Result<Unit>
+
+    /**
+     * Compresses and uploads [images] to the existing product [id] in one request. They are added
+     * after the current photos and never become the main one. Failures carry an
+     * `UpdateProductException`.
+     */
+    suspend fun addProductImages(id: String, images: List<SelectedImage>): Result<Unit>
+
+    /** Removes the photo [mediaId] from the product [id]. Failures carry an `UpdateProductException`. */
+    suspend fun deleteProductImage(id: String, mediaId: String): Result<Unit>
 }

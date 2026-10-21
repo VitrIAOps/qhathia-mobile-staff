@@ -208,7 +208,7 @@ class ProductRepositoryImplTest {
         assertEquals("p1", detail.id)
         assertEquals("Percutor 650W", detail.description)
         assertEquals(5, detail.stock)
-        assertEquals(listOf("http://img/p1.jpg"), detail.imageUrls)
+        assertEquals(listOf("http://img/p1.jpg"), detail.images.map { it.url })
     }
 
     @Test
@@ -265,5 +265,60 @@ class ProductRepositoryImplTest {
 
         val error = (result.exceptionOrNull() as UpdateProductException).error
         assertEquals(UpdateProductError.Unknown("HTTP 500"), error)
+    }
+
+    // ---- Photos ----
+
+    @Test
+    fun `given success when addProductImages then compresses and uploads every image in one request`() =
+        runTest {
+            compressionSucceeds()
+            val parts = slot<List<MultipartImage>>()
+            coEvery { api.addProductImages("p1", capture(parts)) } returns NetworkResult.Success(Unit)
+
+            val result = repository.addProductImages(
+                "p1",
+                listOf(TestFixtures.selectedImage(), TestFixtures.selectedImage(uri = "content://2")),
+            )
+
+            assertTrue(result.isSuccess)
+            assertEquals(2, parts.captured.size)
+        }
+
+    @Test
+    fun `given compression failure when addProductImages then fails without calling the api`() =
+        runTest {
+            every { imageCompressor.compress(any()) } returns Result.failure(IllegalStateException("bad"))
+
+            val result = repository.addProductImages("p1", listOf(TestFixtures.selectedImage()))
+
+            assertTrue(result.exceptionOrNull() is UpdateProductException)
+            coVerify(exactly = 0) { api.addProductImages(any(), any()) }
+        }
+
+    @Test
+    fun `given http 400 when addProductImages then fails with InvalidInput`() = runTest {
+        compressionSucceeds()
+        coEvery { api.addProductImages(any(), any()) } returns NetworkResult.HttpError(400, "limit")
+
+        val result = repository.addProductImages("p1", listOf(TestFixtures.selectedImage()))
+
+        assertEquals(UpdateProductError.InvalidInput, (result.exceptionOrNull() as UpdateProductException).error)
+    }
+
+    @Test
+    fun `given success when deleteProductImage then succeeds`() = runTest {
+        coEvery { api.deleteProductMedia("p1", "m1") } returns NetworkResult.Success(Unit)
+
+        assertTrue(repository.deleteProductImage("p1", "m1").isSuccess)
+    }
+
+    @Test
+    fun `given network error when deleteProductImage then fails with Network`() = runTest {
+        coEvery { api.deleteProductMedia(any(), any()) } returns NetworkResult.NetworkError(IOException("off"))
+
+        val result = repository.deleteProductImage("p1", "m1")
+
+        assertEquals(UpdateProductError.Network, (result.exceptionOrNull() as UpdateProductException).error)
     }
 }

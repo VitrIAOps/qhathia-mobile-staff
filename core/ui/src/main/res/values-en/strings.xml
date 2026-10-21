@@ -99,4 +99,11 @@
     <string name="delete_product_message">“%1$s” will no longer show in the inventory or on the tablet. This cannot be undone.</string>
     <string name="delete_product_confirm">Delete</string>
     <string name="delete_product_cancel">Cancel</string>
+    <!-- Product photo strip (registration and editing). -->
+    <string name="photo_add">Add</string>
+    <string name="photo_add_cd">Add photo</string>
+    <string name="photo_remove_cd">Remove photo</string>
+    <string name="photo_source_title">Add photo</string>
+    <string name="photo_source_camera">Take photo</string>
+    <string name="photo_source_gallery">Choose from gallery</string>
 </resources>

@@ -127,4 +127,11 @@
     <string name="delete_product_message">«%1$s» dejará de verse en el inventario y en la tablet. Esta acción no se puede deshacer.</string>
     <string name="delete_product_confirm">Eliminar</string>
     <string name="delete_product_cancel">Cancelar</string>
+    <!-- Product photo strip (registration and editing). -->
+    <string name="photo_add">Agregar</string>
+    <string name="photo_add_cd">Agregar foto</string>
+    <string name="photo_remove_cd">Quitar foto</string>
+    <string name="photo_source_title">Agregar foto</string>
+    <string name="photo_source_camera">Tomar foto</string>
+    <string name="photo_source_gallery">Elegir de la galería</string>
 </resources>

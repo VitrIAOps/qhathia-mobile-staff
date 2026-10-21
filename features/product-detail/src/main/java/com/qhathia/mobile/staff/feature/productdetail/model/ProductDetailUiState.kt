@@ -8,14 +8,18 @@ import com.qhathia.mobile.staff.core.common.validation.parsePrice
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
+import com.qhathia.mobile.staff.core.domain.model.ProductImage
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
 /**
  * Immutable snapshot of the product detail/edit form. Mirrors the registration form's shape — field
- * errors as string-resource ids, tags as free comma-separated text — with two differences: the
- * product has to be loaded first ([isLoading] / [isError]), and photos are read-only remote URLs, so
- * there is no "at least one image" gate on saving.
+ * errors as string-resource ids, tags as free comma-separated text — except that the product has to
+ * be loaded first ([isLoading] / [isError]).
+ *
+ * Photos are a form field like the discount: [loadedImages] is what the product has stored,
+ * [photos] is what the strip shows (saved photos plus pending picks), and the difference is only
+ * persisted on save. A product keeps between one and [MAX_PHOTOS] photos.
  *
  * [allowDiscountInquiry] and [position] are not editable but are carried through from the loaded
  * product, because `PUT /products/{id}` is a full replace that would otherwise reset them.
@@ -36,7 +40,8 @@ data class ProductDetailUiState(
     val tags: String = "",
     val categories: ImmutableList<Category> = persistentListOf(),
     val selectedCategoryId: String? = null,
-    val imageUrls: ImmutableList<String> = persistentListOf(),
+    val photos: ImmutableList<FormPhoto> = persistentListOf(),
+    val loadedImages: ImmutableList<ProductImage> = persistentListOf(),
     val allowDiscountInquiry: Boolean = false,
     val position: Int = 0,
     val loadedDiscount: Discount? = null,
@@ -94,22 +99,43 @@ data class ProductDetailUiState(
     val isDiscountToggleEnabled: Boolean
         get() = !isSaving && !isDiscountLoading && !isDiscountError && isValidPrice(price)
 
-    /**
-     * A preview needs something to show: a name, a price and a photo. Photos are read-only here, so
-     * a product registered without any cannot be previewed from this screen.
-     */
+    /** Saved photos the merchant removed on the form; deleted on save. */
+    val removedImageIds: List<String>
+        get() {
+            val kept = photos.filterIsInstance<FormPhoto.Saved>().map { it.image.id }.toSet()
+            return loadedImages.map { it.id }.filterNot { it in kept }
+        }
+
+    /** Photos picked on the form; uploaded on save. */
+    val addedImages: List<FormPhoto.Pending>
+        get() = photos.filterIsInstance<FormPhoto.Pending>()
+
+    val isPhotosChanged: Boolean
+        get() = removedImageIds.isNotEmpty() || addedImages.isNotEmpty()
+
+    val canAddPhotos: Boolean
+        get() = photos.size < MAX_PHOTOS
+
+    /** A product keeps at least one photo, so the last one cannot be removed. */
+    val canRemovePhotos: Boolean
+        get() = photos.size > 1
+
+    /** A preview needs something to show: a name, a price and a photo. */
     val isPreviewEnabled: Boolean
         get() = !isLoading &&
             !isError &&
             !isSaving &&
             isValidProductName(name) &&
             isValidPrice(price) &&
-            imageUrls.isNotEmpty()
+            photos.isNotEmpty()
 
     /** The AI assist optimizes the existing description, so it needs one and no request in flight. */
     val isAiActionEnabled: Boolean
         get() = description.isNotBlank() && !isAiLoading && !isSaving && !isLoading
 }
+
+/** The backend's per-product photo limit. */
+const val MAX_PHOTOS = 10
 
 /** Splits the free-text tag input into trimmed, non-blank tag values. */
 fun parseTags(input: String): List<String> =
