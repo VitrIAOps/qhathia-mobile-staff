@@ -37,6 +37,11 @@
     <string name="order_detail_title_no_code">Detalle de solicitud</string>
     <string name="order_detail_close_cd">Cerrar</string>
     <string name="order_detail_total">Total del pedido:</string>
+    <!-- Shown instead of the actions on an order that can no longer be acted on. -->
+    <string name="order_detail_resolved_confirmed">Esta solicitud ya fue confirmada</string>
+    <string name="order_detail_resolved_rejected">Esta solicitud ya fue rechazada</string>
+    <string name="order_detail_resolved_cancelled">Esta solicitud fue cancelada</string>
+    <string name="order_detail_resolved_expired">Esta solicitud venció</string>
     <string name="order_action_confirm">Confirmar pedido</string>
     <!-- "und" abbreviates "unidades" and does not inflect in Spanish, so this stays a string. -->
     <string name="order_item_quantity" tools:ignore="PluralsCandidate">%1$d und</string>
