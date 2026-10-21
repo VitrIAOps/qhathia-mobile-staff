@@ -3,9 +3,7 @@
 ## Purpose
 
 TBD: Defines how merchants authenticate into the Qhathia Kiosk app, covering the login screen, client-side validation, authentication against the Auth API, in-flight UI state, and network/timeout error handling.
-
 ## Requirements
-
 ### Requirement: Login screen presentation
 
 The system SHALL present a login screen optimized for phones (not tablets) that displays a large "Qhathia" wordmark as the brand reference, an email input, a password input, and a primary login button. Inputs SHALL use placeholders (no labels) with a representative leading icon each, following the Qhathia Design System input component (rounded 8dp, 40dp height, Urbanist typography).
@@ -32,11 +30,19 @@ The system SHALL validate inputs before any network call. The email MUST match a
 
 ### Requirement: Authenticate against the Auth API
 
-The system SHALL authenticate the merchant by calling `POST /api/v1/auth/login` with the email and password. On `200`, it SHALL hand the returned session (access token, refresh token, expiry, user, active store) to the session layer and navigate to Home.
+The system SHALL authenticate the merchant by calling `POST /api/v1/auth/login` with the email, the password, and a `deviceLabel` naming the phone. The label is built from the device manufacturer and model (for example "Xiaomi Redmi Note 12") and truncated to 100 characters. On `200`, the system SHALL hand the returned session (access token, refresh token, expiry, user, active store and `sessionId`) to the session layer and navigate to Home.
 
 #### Scenario: Successful login
 - **WHEN** valid credentials are submitted and the API returns `200`
-- **THEN** the session is persisted and the app navigates to the Home destination
+- **THEN** the session, including `sessionId`, is persisted and the app navigates to the Home destination
+
+#### Scenario: Device label sent
+- **WHEN** the merchant logs in from a Redmi Note 12
+- **THEN** the login request body includes `deviceLabel` naming that model
+
+#### Scenario: Response without session id
+- **WHEN** the API returns `200` without `sessionId`
+- **THEN** login still succeeds and the session is persisted without a session id
 
 #### Scenario: Invalid credentials
 - **WHEN** the API returns `401`
@@ -65,3 +71,4 @@ The system SHALL apply request timeouts appropriate for a mobile network and SHA
 #### Scenario: Network unavailable or timeout
 - **WHEN** the login request fails due to no connectivity or a timeout
 - **THEN** the screen shows a connectivity error message and the user can retry
+

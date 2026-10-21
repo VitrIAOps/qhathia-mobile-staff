@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines the Inicio tab of the Qhathia staff app — the start destination of the authenticated shell: a greeting header with the data-freshness line and a notification bell badged with the app-wide pending-order count, a period-switchable sales summary card (headline revenue of the period in progress, its variation, a four-bucket chart and an insight sentence) served from `GET /api/v1/dashboard/sales`, and the "Sugerencias para vender más" rows — products shoppers searched for and did not find (`GET /api/v1/insights/unmet-searches`) and products to restock (`GET /api/v1/dashboard/restock`) — with loading, stale-data-plus-error recovery, and design-system conformance in light and dark mode.
-
 ## Requirements
-
 ### Requirement: Open the app on Inicio
 
 The authenticated shell SHALL use Inicio as its start destination. Entering the app — after a successful login or with a restored session — MUST show the Inicio tab with its bottom-navigation item selected. Switching tabs from Inicio SHALL keep the existing tab-switch behaviour (one copy per tab, state restored).
@@ -202,3 +200,20 @@ The screen SHALL be built from the shared design-system theme — gradient heade
 #### Scenario: Content scrolls
 - **WHEN** the content is taller than the viewport
 - **THEN** the screen scrolls vertically and the bottom navigation bar stays fixed
+
+### Requirement: Open the sales statistics from Ver más
+
+The `Resumen` heading of the Inicio tab SHALL show an enabled `Ver más` action that opens the "Resumen de ventas" screen, passing the period currently selected on the summary card. The navigation MUST push the screen on top of Inicio — not switch tabs — so that going back returns to Inicio with its state preserved.
+
+#### Scenario: Ver más opens the statistics screen
+- **WHEN** the merchant taps `Ver más` while `Semanal` is selected
+- **THEN** the "Resumen de ventas" screen opens with `Semanal` selected
+
+#### Scenario: Back restores Inicio
+- **WHEN** the merchant had selected `Diario` on Inicio, opened `Ver más` and went back
+- **THEN** Inicio is shown with `Diario` still selected
+
+#### Scenario: Ver más is announced as an action
+- **WHEN** a screen reader focuses `Ver más`
+- **THEN** it is announced as an enabled button
+
