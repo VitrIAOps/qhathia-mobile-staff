@@ -29,4 +29,6 @@
 - [x] 4.1 Mark §3.2 and §3.3 as done in `docs/handoff/android-pendientes.md`, including the `confirmedOrders` and `needsAttention.totalCount` rows of "Resumen de campos nuevos"
 - [x] 4.2 Full build: `./gradlew testDebugUnitTest lintDebug assembleDebug`
 - [ ] 4.3 Manual — Actividad tab against production: the three figures read as a funnel, pills worded for the period, layout holds at 360 dp and at large font scale, light and dark; compare with Figma node `2238-31712` and confirm the added row with design
-- [ ] 4.4 Manual — Ranking tab in monthly view: the caption reads "Inmovilizados en N de los M productos sin ventas" when more products did not sell than are listed
+  - Emulator pass 2026-10-21 (Android 9, juan@tienda.com, OWNER): third figure "Pedidos confirmados" renders in its own row; the store has no tablet activity (all 0), so pills, 360dp/large font on this tab and the design review are still pending.
+- [x] 4.4 Manual — Ranking tab in monthly view: the caption reads "Inmovilizados en N de los M productos sin ventas" when more products did not sell than are listed
+  - Emulator pass 2026-10-21 (Android 9, juan@tienda.com, OWNER): passed — monthly Ranking reads "Inmovilizados en 3 de los 17 productos sin ventas", fits on two lines.

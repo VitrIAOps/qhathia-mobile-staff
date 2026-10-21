@@ -25,3 +25,4 @@
 - [x] 4.1 Mark §6 as done in `docs/handoff/android-pendientes.md`, including the `pricesIncludeIgv` / `igvRate` row of "Resumen de campos nuevos"
 - [x] 4.2 Full build: `./gradlew testDebugUnitTest lintDebug assembleDebug`
 - [ ] 4.3 Manual — as OWNER and as SELLER: Configuración shows only Idioma, switching language still applies the app locale; Mi perfil's Configuración row reads "Idioma de la app"; in airplane mode Configuración shows no error
+  - Emulator pass 2026-10-21 (Android 9, juan@tienda.com, OWNER): OWNER passed — only "Idioma", hub row reads "Idioma de la app", no error offline. Language switch and SELLER not run.

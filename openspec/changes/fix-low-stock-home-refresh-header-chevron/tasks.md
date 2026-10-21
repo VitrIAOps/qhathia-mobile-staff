@@ -26,5 +26,8 @@
 - [x] 4.1 Mark §4.2, §4.3 and §4.4 as done in `docs/handoff/android-pendientes.md`
 - [x] 4.2 Full build: `./gradlew testDebugUnitTest lintDebug assembleDebug`
 - [ ] 4.3 Manual — order detail: an order with one item at stock 0, one at 3 and one consult-mode item shows `Sin existencias`, `Quedan pocos disponibles` and nothing, respectively, in light and dark
+  - Emulator pass 2026-10-21 (Android 9, juan@tienda.com, OWNER): not run — needs a pending order with items at stock 0 and 3.
 - [ ] 4.4 Manual — Inicio: restock a product listed as `Sin existencias` from Inventario and switch back to Inicio; it leaves the list without a full-screen loader. Also check back from `Ver más` and from the background
+  - Emulator pass 2026-10-21 (Android 9, juan@tienda.com, OWNER): tab return passed (restocked "Cinta LED solar exterior 10m IP65" 0→10; Inicio reloaded and dropped it, no full-screen loader). Return from "Ver más" and from the background not verified.
 - [ ] 4.5 Manual — Solicitudes and Inventario headers: no chevron, TalkBack announces no `Volver`, and the titles line up with Inicio's (compare with Figma)
+  - Emulator pass 2026-10-21 (Android 9, juan@tienda.com, OWNER): FAILED alignment — no chevron and no "Volver" in the accessibility tree on both headers, but the Inventario title starts ~4dp right of Inicio/Solicitudes (leftover `padding(horizontal = SpaceXs)` in InventoryHeader). Figma not compared.

@@ -42,6 +42,10 @@
 
 - [x] 6.1 Full build and tests: `./gradlew testDebugUnitTest lintDebug assembleDebug`
 - [ ] 6.2 Manual — Inventory: for each of registered, discount failed, plan limit and product updated, leave Inventory while the snackbar is visible (open a product, switch tab) and come back: the snackbar does not reappear; `Ver producto` still scrolls to the new row
+  - Emulator pass 2026-10-21 (Android 9, juan@tienda.com, OWNER): PRODUCT_UPDATED passed (left mid-snackbar to Inicio and back: not shown again). Registration snackbar shows "Ver producto", but tapping it was not confirmed (snackbar timed out first). Other branches not run.
 - [ ] 6.3 Manual — notifications on a device: a `NEW_ORDER` then `ORDER_EXPIRING` for the same order leaves one notification with the expiring text; confirming that order from another device removes it and the launcher badge drops
+  - Emulator pass 2026-10-21 (Android 9, juan@tienda.com, OWNER): not run — needs orders created from the kiosk.
 - [ ] 6.4 Manual — lost push: with a notification in the tray, turn off the network, confirm the order from another device, turn the network back on and open the app: the notification disappears
+  - Emulator pass 2026-10-21 (Android 9, juan@tienda.com, OWNER): not run — needs orders created from the kiosk.
 - [ ] 6.5 Manual — update path: install the previous build, receive a push, update to this build and open the app: the old notification is cleared
+  - Emulator pass 2026-10-21 (Android 9, juan@tienda.com, OWNER): not run.
