@@ -3,8 +3,8 @@ package com.qhathia.mobile.staff.core.network.dto
 import kotlinx.serialization.Serializable
 
 /**
- * `GET /api/v1/users/me` (§3, §18). [phone] is 9 digits without `+51`; [passwordUpdatedAt] is null
- * for users who never changed their password.
+ * `GET /api/v1/users/me`, and the response of `PUT` (§3, §18). [phone] is 9 digits without `+51`;
+ * [passwordUpdatedAt] is null for users who never changed their password.
  */
 @Serializable
 data class UserProfileDto(

@@ -3,7 +3,8 @@ package com.qhathia.mobile.staff.core.domain.model
 import java.time.Instant
 
 /**
- * The authenticated user's profile as served by `GET /users/me`. Read-only in the app.
+ * The authenticated user's profile as served by `GET /users/me`. The name and the phone can be
+ * edited (`PUT /users/me`); the email is the login and cannot.
  *
  * @property phone a 9-digit Peruvian mobile without the `+51` prefix, or `null` when not set.
  * @property passwordUpdatedAt `null` when the user never changed the password.

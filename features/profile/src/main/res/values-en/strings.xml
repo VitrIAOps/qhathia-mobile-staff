@@ -3,7 +3,6 @@
     <!-- Common -->
     <string name="profile_retry">Retry</string>
     <string name="profile_cancel">Cancel</string>
-    <string name="profile_missing_value">—</string>
 
     <!-- Mi perfil -->
     <string name="profile_title">My profile</string>
@@ -81,6 +80,15 @@
     <string name="personal_email">Email</string>
     <string name="personal_phone">Phone</string>
     <string name="personal_error">We couldn\'t load your details</string>
+    <string name="personal_save">Save changes</string>
+    <string name="personal_saved">Details updated</string>
+    <string name="personal_email_note">It is your login, so it cannot be changed</string>
+    <string name="personal_phone_hint">9-digit mobile number</string>
+    <string name="personal_error_name">Use between 2 and 150 characters</string>
+    <string name="personal_error_phone">Enter a 9-digit mobile number starting with 9</string>
+    <string name="personal_error_save_validation">Check your name and phone and try again</string>
+    <string name="personal_error_save_network">No connection. Your changes were not saved</string>
+    <string name="personal_error_save_unknown">We couldn\'t save your changes. Try again</string>
 
     <!-- Ayuda -->
     <string name="help_title">Help</string>
