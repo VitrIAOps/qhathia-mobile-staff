@@ -3,7 +3,6 @@
     <!-- Header -->
     <string name="order_requests_title">Solicitudes de compra</string>
     <string name="order_requests_last_updated">Última actualización a las %1$s</string>
-    <string name="order_requests_back_cd">Volver</string>
     <string name="order_requests_refresh_cd">Actualizar solicitudes</string>
     <string name="order_requests_search_placeholder">Buscar por nombre o código</string>
     <string name="order_requests_search_clear_cd">Borrar búsqueda</string>
@@ -42,6 +41,7 @@
     <!-- "und" abbreviates "unidades" and does not inflect in Spanish, so this stays a string. -->
     <string name="order_item_quantity" tools:ignore="PluralsCandidate">%1$d und</string>
     <string name="order_item_low_stock">Quedan pocos disponibles</string>
+    <string name="order_item_out_of_stock">Sin existencias</string>
 
     <!-- Reject form (second step of the detail dialog) -->
     <string name="order_reject_title">Rechazar pedido</string>

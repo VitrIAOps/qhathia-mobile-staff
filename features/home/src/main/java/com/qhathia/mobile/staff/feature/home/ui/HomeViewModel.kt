@@ -42,6 +42,11 @@ import javax.inject.Inject
  * summary, the suggestions and the pending-count refresh are issued concurrently — none of them
  * depends on another.
  *
+ * Inicio is a bottom-nav tab, so this ViewModel outlives every visit to it. Each return to the
+ * screen ([HomeUiEvent.ScreenStarted]) reloads, so a product restocked from Inventario does not stay
+ * under "Productos para reponer" until the merchant thinks to refresh. A reload keeps what is on
+ * screen until the new data arrives.
+ *
  * The greeting and the badge are the only two values that are not part of a load: the first is
  * taken from the real session, the second from the app-wide pending count, and both are collected
  * for the lifetime of the ViewModel.
@@ -70,6 +75,9 @@ class HomeViewModel @Inject constructor(
     /** Bumped to re-run the pipeline without changing the period. */
     private val reloadTrigger = MutableStateFlow(0)
 
+    /** The first `ON_START` arrives while the load started in `init` is already running. */
+    private var hasStarted = false
+
     init {
         observeSessionUseCase()
             .onEach { session ->
@@ -87,6 +95,11 @@ class HomeViewModel @Inject constructor(
     fun onEvent(event: HomeUiEvent) {
         when (event) {
             HomeUiEvent.Refresh -> reloadTrigger.update { it + 1 }
+
+            HomeUiEvent.ScreenStarted -> {
+                if (hasStarted) reloadTrigger.update { it + 1 }
+                hasStarted = true
+            }
 
             is HomeUiEvent.SelectPeriod -> {
                 _uiState.update { it.copy(selectedPeriod = event.period) }

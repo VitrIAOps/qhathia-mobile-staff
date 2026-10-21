@@ -6,13 +6,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qhathia.mobile.staff.core.domain.model.SalesPeriod
 import com.qhathia.mobile.staff.feature.home.model.HomeUiEffect
+import com.qhathia.mobile.staff.feature.home.model.HomeUiEvent
 
 /**
  * Stateful Inicio entry point: binds [HomeViewModel], renders [HomeContent] and raises navigation to
  * the shell — the bell as a tab switch to Solicitudes, `Ver más` as a push of the sales statistics.
+ * Tells the ViewModel each time the tab comes back on screen, so it can reload.
  */
 @Composable
 fun HomeScreen(
@@ -34,6 +38,10 @@ fun HomeScreen(
             }
         }
     }
+
+    // The tab's back-stack entry drops below STARTED whenever another tab, a pushed screen or the
+    // background hides it, so ON_START marks every return to Inicio.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onEvent(HomeUiEvent.ScreenStarted) }
 
     HomeContent(uiState = uiState, onEvent = viewModel::onEvent, modifier = modifier)
 }
