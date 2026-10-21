@@ -3,7 +3,9 @@ package com.qhathia.mobile.staff.core.testing
 import com.qhathia.mobile.staff.core.domain.model.AuthTokens
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
+import com.qhathia.mobile.staff.core.domain.model.BrightnessMode
 import com.qhathia.mobile.staff.core.domain.model.Device
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettings
 import com.qhathia.mobile.staff.core.domain.model.DeviceStatus
 import com.qhathia.mobile.staff.core.domain.model.MissingProductSuggestion
 import com.qhathia.mobile.staff.core.domain.model.NewProduct
@@ -124,6 +126,22 @@ object TestFixtures {
         position = position,
     )
 
+    fun deviceSettings(
+        idleShowcaseEnabled: Boolean = true,
+        voiceAssistantEnabled: Boolean = true,
+        brightnessMode: BrightnessMode = BrightnessMode.AUTO,
+        kioskMode: Boolean = true,
+        exitPinSet: Boolean = false,
+        autoSyncEnabled: Boolean = true,
+    ) = DeviceSettings(
+        idleShowcaseEnabled = idleShowcaseEnabled,
+        voiceAssistantEnabled = voiceAssistantEnabled,
+        brightnessMode = brightnessMode,
+        kioskMode = kioskMode,
+        exitPinSet = exitPinSet,
+        autoSyncEnabled = autoSyncEnabled,
+    )
+
     fun productImage(
         id: String = "media-1",
         url: String = "https://cdn.qhathia.test/product-1.jpg",
@@ -180,6 +198,7 @@ object TestFixtures {
         storeName: String? = "Stand 1",
         lastPingAt: Instant? = NOW.minusSeconds(180),
         lastSyncAt: Instant? = NOW.minusSeconds(240),
+        model: String? = "Lenovo Tab M11",
     ) = Device(
         id = id,
         serialNumber = serialNumber,
@@ -192,6 +211,7 @@ object TestFixtures {
         storeName = storeName,
         lastPingAt = lastPingAt,
         lastSyncAt = lastSyncAt,
+        model = model,
     )
 
     fun deviceCommand(

@@ -1,0 +1,247 @@
+package com.qhathia.mobile.staff.feature.devicelinking.settings
+
+import androidx.lifecycle.SavedStateHandle
+import app.cash.turbine.test
+import com.qhathia.mobile.staff.core.domain.model.BrightnessMode
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsChange
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsError
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsException
+import com.qhathia.mobile.staff.core.domain.usecase.GetDeviceSettingsUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.GetDevicesUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.UpdateDeviceSettingsUseCase
+import com.qhathia.mobile.staff.core.testing.FakeDeviceRepository
+import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
+import com.qhathia.mobile.staff.core.testing.TestFixtures
+import com.qhathia.mobile.staff.feature.devicelinking.R
+import com.qhathia.mobile.staff.feature.devicelinking.navigation.TABLET_SETTINGS_ARG_ID
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.RegisterExtension
+import java.io.IOException
+
+private const val DEVICE_ID = "device-1"
+
+class TabletSettingsViewModelTest {
+
+    @JvmField
+    @RegisterExtension
+    val mainDispatcher = MainDispatcherExtension()
+
+    private lateinit var repository: FakeDeviceRepository
+
+    @BeforeEach
+    fun setUp() {
+        repository = FakeDeviceRepository()
+    }
+
+    private fun createViewModel() = TabletSettingsViewModel(
+        savedStateHandle = SavedStateHandle(mapOf(TABLET_SETTINGS_ARG_ID to DEVICE_ID)),
+        getDeviceSettingsUseCase = GetDeviceSettingsUseCase(repository),
+        getDevicesUseCase = GetDevicesUseCase(repository),
+        updateDeviceSettingsUseCase = UpdateDeviceSettingsUseCase(repository),
+    )
+
+    private fun failure(error: DeviceSettingsError) = Result.failure<Nothing>(DeviceSettingsException(error))
+
+    // ---- Load ----
+
+    @Test
+    fun `loads the settings and the tablet`() = runTest {
+        repository.settingsResult = Result.success(TestFixtures.deviceSettings(brightnessMode = BrightnessMode.HIGH))
+
+        val state = createViewModel().uiState.value
+
+        assertEquals(TabletSettingsLoad.LOADED, state.load)
+        assertEquals(BrightnessMode.HIGH, state.settings?.brightnessMode)
+        assertEquals("Lenovo Tab M11", state.device?.model)
+    }
+
+    @Test
+    fun `a settings failure shows the error state, and retry loads again`() = runTest {
+        repository.settingsResult = failure(DeviceSettingsError.Network)
+        val viewModel = createViewModel()
+        assertEquals(TabletSettingsLoad.ERROR, viewModel.uiState.value.load)
+
+        repository.settingsResult = Result.success(TestFixtures.deviceSettings())
+        viewModel.onEvent(TabletSettingsUiEvent.Retry)
+
+        assertEquals(TabletSettingsLoad.LOADED, viewModel.uiState.value.load)
+    }
+
+    @Test
+    fun `a 404 says the tablet is no longer linked`() = runTest {
+        repository.settingsResult = failure(DeviceSettingsError.NotFound)
+
+        assertEquals(TabletSettingsLoad.NOT_FOUND, createViewModel().uiState.value.load)
+    }
+
+    @Test
+    fun `a device list failure hides Información but keeps the settings`() = runTest {
+        repository.devicesResult = Result.failure(IOException("offline"))
+
+        val state = createViewModel().uiState.value
+
+        assertEquals(TabletSettingsLoad.LOADED, state.load)
+        assertNotNull(state.settings)
+        assertNull(state.device)
+    }
+
+    // ---- Changes ----
+
+    @Test
+    fun `a change sends only its own field and keeps the server's answer`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(TabletSettingsUiEvent.SettingChanged(DeviceSettingsChange.KioskMode(false)))
+
+        assertEquals(listOf(DEVICE_ID to DeviceSettingsChange.KioskMode(false)), repository.settingsChanges)
+        assertFalse(viewModel.uiState.value.settings!!.kioskMode)
+        assertTrue(viewModel.uiState.value.saving.isEmpty())
+    }
+
+    @Test
+    fun `selecting the current value sends nothing`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(TabletSettingsUiEvent.SettingChanged(DeviceSettingsChange.Brightness(BrightnessMode.AUTO)))
+
+        assertTrue(repository.settingsChanges.isEmpty())
+    }
+
+    @Test
+    fun `a failure puts back only that control and says so`() = runTest {
+        val viewModel = createViewModel()
+        repository.updateSettingsResult = failure(DeviceSettingsError.Network)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(TabletSettingsUiEvent.SettingChanged(DeviceSettingsChange.VoiceAssistant(false)))
+            assertEquals(TabletSettingsUiEffect.ShowMessage(R.string.tablet_settings_save_error), awaitItem())
+        }
+        assertTrue(viewModel.uiState.value.settings!!.voiceAssistantEnabled)
+    }
+
+    @Test
+    fun `while saving the control is busy and other controls still save`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        repository.updateSettingsGate = gate
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(TabletSettingsUiEvent.SettingChanged(DeviceSettingsChange.IdleShowcase(false)))
+        viewModel.onEvent(TabletSettingsUiEvent.SettingChanged(DeviceSettingsChange.IdleShowcase(true)))
+        viewModel.onEvent(TabletSettingsUiEvent.SettingChanged(DeviceSettingsChange.AutoSync(false)))
+
+        val busy = viewModel.uiState.value
+        assertTrue(busy.isSaving(SettingKey.IDLE_SHOWCASE))
+        assertTrue(busy.isSaving(SettingKey.AUTO_SYNC))
+        assertFalse(busy.settings!!.idleShowcaseEnabled)
+        assertFalse(busy.settings!!.autoSyncEnabled)
+        assertEquals(
+            listOf(
+                DEVICE_ID to DeviceSettingsChange.IdleShowcase(false),
+                DEVICE_ID to DeviceSettingsChange.AutoSync(false),
+            ),
+            repository.settingsChanges,
+        )
+
+        gate.complete(Unit)
+
+        val done = viewModel.uiState.value
+        assertTrue(done.saving.isEmpty())
+        assertFalse(done.settings!!.idleShowcaseEnabled)
+        assertFalse(done.settings!!.autoSyncEnabled)
+    }
+
+    // ---- PIN ----
+
+    private fun TabletSettingsViewModel.typePin(pin: String, confirmation: String = pin) {
+        onEvent(TabletSettingsUiEvent.OpenPinDialog)
+        onEvent(TabletSettingsUiEvent.PinChanged(pin))
+        onEvent(TabletSettingsUiEvent.PinConfirmationChanged(confirmation))
+    }
+
+    @Test
+    fun `saving needs two matching PINs of 4 to 6 digits`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.typePin("1234", "1235")
+        assertFalse(viewModel.uiState.value.pinDialog!!.canSave)
+        assertTrue(viewModel.uiState.value.pinDialog!!.isMismatch)
+
+        viewModel.typePin("123")
+        assertFalse(viewModel.uiState.value.pinDialog!!.canSave)
+
+        viewModel.typePin("12ab34")
+        assertEquals("1234", viewModel.uiState.value.pinDialog!!.pin)
+
+        viewModel.typePin("1234567")
+        assertEquals("123456", viewModel.uiState.value.pinDialog!!.pin)
+        assertTrue(viewModel.uiState.value.pinDialog!!.canSave)
+    }
+
+    @Test
+    fun `setting the PIN closes the dialog and marks it set`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.typePin("1234")
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(TabletSettingsUiEvent.SavePin)
+            assertEquals(TabletSettingsUiEffect.ShowMessage(R.string.tablet_pin_saved), awaitItem())
+        }
+        assertEquals(listOf(DEVICE_ID to DeviceSettingsChange.SetExitPin("1234")), repository.settingsChanges)
+        assertNull(viewModel.uiState.value.pinDialog)
+        assertTrue(viewModel.uiState.value.settings!!.exitPinSet)
+    }
+
+    @Test
+    fun `a failed PIN save keeps the dialog and the digits`() = runTest {
+        val viewModel = createViewModel()
+        repository.updateSettingsResult = failure(DeviceSettingsError.Network)
+        viewModel.typePin("1234")
+
+        viewModel.onEvent(TabletSettingsUiEvent.SavePin)
+
+        val dialog = viewModel.uiState.value.pinDialog!!
+        assertEquals("1234", dialog.pin)
+        assertFalse(dialog.isSaving)
+        assertEquals(R.string.tablet_pin_error, dialog.errorRes)
+    }
+
+    @Test
+    fun `removing the PIN asks first, then sends removeExitPin`() = runTest {
+        repository.settingsResult = Result.success(TestFixtures.deviceSettings(exitPinSet = true))
+        val viewModel = createViewModel()
+        viewModel.onEvent(TabletSettingsUiEvent.OpenPinDialog)
+
+        viewModel.onEvent(TabletSettingsUiEvent.RemovePinRequested)
+        assertTrue(viewModel.uiState.value.pinDialog!!.isConfirmingRemoval)
+        assertTrue(repository.settingsChanges.isEmpty())
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(TabletSettingsUiEvent.RemovePinConfirmed)
+            assertEquals(TabletSettingsUiEffect.ShowMessage(R.string.tablet_pin_removed), awaitItem())
+        }
+        assertEquals(listOf(DEVICE_ID to DeviceSettingsChange.RemoveExitPin), repository.settingsChanges)
+        assertFalse(viewModel.uiState.value.settings!!.exitPinSet)
+        assertTrue(viewModel.uiState.value.isKioskWithoutPin)
+    }
+
+    @Test
+    fun `cancelling the removal sends nothing`() = runTest {
+        repository.settingsResult = Result.success(TestFixtures.deviceSettings(exitPinSet = true))
+        val viewModel = createViewModel()
+        viewModel.onEvent(TabletSettingsUiEvent.OpenPinDialog)
+        viewModel.onEvent(TabletSettingsUiEvent.RemovePinRequested)
+
+        viewModel.onEvent(TabletSettingsUiEvent.RemovePinCancelled)
+
+        assertFalse(viewModel.uiState.value.pinDialog!!.isConfirmingRemoval)
+        assertTrue(repository.settingsChanges.isEmpty())
+    }
+}

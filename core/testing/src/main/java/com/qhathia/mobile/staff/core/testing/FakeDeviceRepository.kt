@@ -4,6 +4,9 @@ import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommand
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandType
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettings
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsChange
+import kotlinx.coroutines.CompletableDeferred
 import com.qhathia.mobile.staff.core.domain.repository.DeviceRepository
 
 /**
@@ -15,6 +18,19 @@ class FakeDeviceRepository : DeviceRepository {
     var devicesResult: Result<List<Device>> = Result.success(listOf(TestFixtures.device()))
     var pairResult: Result<Unit> = Result.success(Unit)
     var catalogCountResult: Result<Int> = Result.success(12)
+    var settingsResult: Result<DeviceSettings> = Result.success(TestFixtures.deviceSettings())
+
+    /**
+     * Answers [updateSettings]. When null, the change is applied to the current settings (from
+     * [settingsResult]) and that is returned, as the backend does.
+     */
+    var updateSettingsResult: Result<DeviceSettings>? = null
+
+    /** Set to a pending deferred to hold [updateSettings] in flight. */
+    var updateSettingsGate: CompletableDeferred<Unit>? = null
+
+    /** Every `(deviceId, change)` sent, in order. */
+    val settingsChanges: MutableList<Pair<String, DeviceSettingsChange>> = mutableListOf()
 
     /** When null, a sent command succeeds as `PENDING` of the requested type. */
     var sendCommandResult: Result<DeviceCommand>? = null
@@ -64,5 +80,25 @@ class FakeDeviceRepository : DeviceRepository {
     override suspend fun getCommands(deviceId: String): Result<List<DeviceCommand>> {
         getCommandsCallCount++
         return commandsResults[deviceId] ?: Result.success(emptyList())
+    }
+
+    override suspend fun getSettings(deviceId: String): Result<DeviceSettings> = settingsResult
+
+    override suspend fun updateSettings(deviceId: String, change: DeviceSettingsChange): Result<DeviceSettings> {
+        settingsChanges += deviceId to change
+        updateSettingsGate?.await()
+        updateSettingsResult?.let { return it }
+        val current = settingsResult.getOrNull() ?: TestFixtures.deviceSettings()
+        val applied = when (change) {
+            is DeviceSettingsChange.IdleShowcase -> current.copy(idleShowcaseEnabled = change.enabled)
+            is DeviceSettingsChange.VoiceAssistant -> current.copy(voiceAssistantEnabled = change.enabled)
+            is DeviceSettingsChange.Brightness -> current.copy(brightnessMode = change.mode)
+            is DeviceSettingsChange.KioskMode -> current.copy(kioskMode = change.enabled)
+            is DeviceSettingsChange.AutoSync -> current.copy(autoSyncEnabled = change.enabled)
+            is DeviceSettingsChange.SetExitPin -> current.copy(exitPinSet = true)
+            DeviceSettingsChange.RemoveExitPin -> current.copy(exitPinSet = false)
+        }
+        settingsResult = Result.success(applied)
+        return Result.success(applied)
     }
 }

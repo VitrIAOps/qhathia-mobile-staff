@@ -1,10 +1,15 @@
 package com.qhathia.mobile.staff.core.data.repository
 
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsChange
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsError
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsException
 import com.qhathia.mobile.staff.core.domain.model.DeviceStatus
 import com.qhathia.mobile.staff.core.domain.model.PairDeviceError
 import com.qhathia.mobile.staff.core.domain.model.PairDeviceException
 import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.dto.DeviceDto
+import com.qhathia.mobile.staff.core.network.dto.DeviceSettingsDto
+import com.qhathia.mobile.staff.core.network.dto.UpdateDeviceSettingsRequestDto
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceRequestDto
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceResponseDto
 import com.qhathia.mobile.staff.core.network.service.CatalogApiService
@@ -127,5 +132,40 @@ class DeviceRepositoryImplTest {
         val error = (repository.pairDevice("X").exceptionOrNull() as PairDeviceException).error
 
         assertEquals(PairDeviceError.Network, error)
+    }
+
+    // ---- Settings ----
+
+    @Test
+    fun `updateSettings sends the single-field body and maps the answer`() = runTest {
+        val body = slot<UpdateDeviceSettingsRequestDto>()
+        coEvery { api.updateSettings("d1", capture(body)) } returns
+            NetworkResult.Success(DeviceSettingsDto(kioskMode = false, exitPinSet = true))
+
+        val result = repository.updateSettings("d1", DeviceSettingsChange.KioskMode(false))
+
+        assertEquals(UpdateDeviceSettingsRequestDto(kioskMode = false), body.captured)
+        assertEquals(false, result.getOrThrow().kioskMode)
+    }
+
+    @Test
+    fun `settings errors map from the HTTP status`() = runTest {
+        val cases = mapOf(
+            404 to DeviceSettingsError.NotFound,
+            422 to DeviceSettingsError.InvalidInput,
+            400 to DeviceSettingsError.InvalidInput,
+            503 to DeviceSettingsError.Network,
+            500 to DeviceSettingsError.Unknown("HTTP 500"),
+        )
+        for ((code, expected) in cases) {
+            coEvery { api.getSettings("d1") } returns NetworkResult.HttpError(code, "x")
+            val error = repository.getSettings("d1").exceptionOrNull() as DeviceSettingsException
+            assertEquals(expected, error.error)
+        }
+        coEvery { api.getSettings("d1") } returns NetworkResult.NetworkError(IOException("off"))
+        assertEquals(
+            DeviceSettingsError.Network,
+            (repository.getSettings("d1").exceptionOrNull() as DeviceSettingsException).error,
+        )
     }
 }
