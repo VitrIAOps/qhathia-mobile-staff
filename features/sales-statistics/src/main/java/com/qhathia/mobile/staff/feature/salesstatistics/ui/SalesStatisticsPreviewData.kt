@@ -65,6 +65,8 @@ internal object SalesStatisticsPreviewData {
             StalledProduct("p5", "Foco LED 12W luz cálida", null, 10, BigDecimal(50), BigDecimal(500)),
             StalledProduct("p6", "Sierra caladora Stanley", null, 1, BigDecimal(120), BigDecimal(120)),
         ),
+        // More products sold nothing than the card lists, so the "3 de los 17" caption shows.
+        needsAttentionTotalCount = 17,
     )
 
     val emptyRanking = ranking.copy(
@@ -72,6 +74,7 @@ internal object SalesStatisticsPreviewData {
         topSellers = emptyList(),
         immobilizedTotal = BigDecimal.ZERO,
         needsAttention = emptyList(),
+        needsAttentionTotalCount = 0,
     )
 
     val activity = StoreActivity(
@@ -81,6 +84,8 @@ internal object SalesStatisticsPreviewData {
         uniqueSessionsDeltaPercent = 12.5,
         productViews = 148,
         productViewsDeltaPercent = -8.8,
+        confirmedOrders = 9,
+        confirmedOrdersDeltaPercent = 12.5,
     )
 
     val categories = persistentListOf(

@@ -40,6 +40,11 @@
         <item quantity="one">Tied up in the unsold product</item>
         <item quantity="other">Tied up in the %1$d unsold products</item>
     </plurals>
+    <!-- %1$d listed products of %2$d without sales; only shown when %2$d is the larger. -->
+    <plurals name="statistics_needs_attention_caption_partial">
+        <item quantity="one">Tied up in %1$d of %2$d unsold product</item>
+        <item quantity="other">Tied up in %1$d of the %2$d unsold products</item>
+    </plurals>
     <string name="statistics_needs_attention_empty">All your inventory moved in this period.</string>
     <plurals name="statistics_units_unsold">
         <item quantity="one">%1$d unit unsold</item>
@@ -53,6 +58,8 @@
     <string name="statistics_activity_customers_caption">used the tablet</string>
     <string name="statistics_activity_products">Products</string>
     <string name="statistics_activity_products_caption">viewed</string>
+    <string name="statistics_activity_orders">Orders</string>
+    <string name="statistics_activity_orders_caption">confirmed</string>
     <string name="statistics_activity_delta_monthly">%1$s vs last month</string>
     <string name="statistics_activity_delta_weekly">%1$s vs last week</string>
     <string name="statistics_activity_delta_daily">%1$s vs previous day</string>

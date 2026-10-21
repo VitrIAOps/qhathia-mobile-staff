@@ -78,11 +78,25 @@ internal fun RankingTab(
         RankingCard(
             title = stringResource(R.string.statistics_needs_attention_title),
             totalLabel = ranking.immobilizedTotal.toSolesLabel(),
-            caption = pluralStringResource(
-                R.plurals.statistics_needs_attention_caption,
-                ranking.needsAttention.size,
-                ranking.needsAttention.size,
-            ),
+            // Immobilized stock, not revenue — and only the listed products' share of it.
+            caption = when (
+                val caption = needsAttentionCaption(
+                    listed = ranking.needsAttention.size,
+                    totalCount = ranking.needsAttentionTotalCount,
+                )
+            ) {
+                is NeedsAttentionCaption.All -> pluralStringResource(
+                    R.plurals.statistics_needs_attention_caption,
+                    caption.listed,
+                    caption.listed,
+                )
+                is NeedsAttentionCaption.Partial -> pluralStringResource(
+                    R.plurals.statistics_needs_attention_caption_partial,
+                    caption.total,
+                    caption.listed,
+                    caption.total,
+                )
+            },
             accent = MaterialTheme.colorScheme.error,
             trendIcon = Icons.AutoMirrored.Filled.TrendingDown,
             emptyMessage = stringResource(R.string.statistics_needs_attention_empty),

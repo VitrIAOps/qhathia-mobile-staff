@@ -15,7 +15,9 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material.icons.outlined.TabletAndroid
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,8 +46,9 @@ private val PillIconSize = 12.dp
 private val DividerHeight = 44.dp
 
 /**
- * The Actividad tab: customers who used the tablet and products they looked at, each with its
- * variation. Zeros are shown as zeros — a tablet that emits no events is a reading, not a failure.
+ * The Actividad tab, read as a funnel: customers who used the tablet, products they looked at and
+ * orders confirmed, each with its variation. Zeros are shown as zeros — a tablet that emits no
+ * events is a reading, not a failure.
  */
 @Composable
 internal fun ActivityTab(
@@ -78,37 +81,58 @@ internal fun ActivityTab(
                 modifier = Modifier.semantics { heading() },
             )
         }
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min)
                 .background(MaterialTheme.colorScheme.background, RoundedCornerShape(12.dp))
                 .padding(Dimens.SpaceMd),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpaceMd),
         ) {
-            ActivityFigure(
-                icon = Icons.Outlined.PersonOutline,
-                value = activity.uniqueSessions,
-                label = stringResource(R.string.statistics_activity_customers),
-                caption = stringResource(R.string.statistics_activity_customers_caption),
-                deltaPercent = activity.uniqueSessionsDeltaPercent,
-                period = period,
-                modifier = Modifier.weight(1f),
-            )
-            VerticalDivider(
-                modifier = Modifier.height(DividerHeight),
-                color = QhathiaColors.rowDivider,
-            )
-            ActivityFigure(
-                icon = Icons.Outlined.Search,
-                value = activity.productViews,
-                label = stringResource(R.string.statistics_activity_products),
-                caption = stringResource(R.string.statistics_activity_products_caption),
-                deltaPercent = activity.productViewsDeltaPercent,
-                period = period,
-                modifier = Modifier.weight(1f),
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ActivityFigure(
+                    icon = Icons.Outlined.PersonOutline,
+                    value = activity.uniqueSessions,
+                    label = stringResource(R.string.statistics_activity_customers),
+                    caption = stringResource(R.string.statistics_activity_customers_caption),
+                    deltaPercent = activity.uniqueSessionsDeltaPercent,
+                    period = period,
+                    modifier = Modifier.weight(1f),
+                )
+                VerticalDivider(
+                    modifier = Modifier.height(DividerHeight),
+                    color = QhathiaColors.rowDivider,
+                )
+                ActivityFigure(
+                    icon = Icons.Outlined.Search,
+                    value = activity.productViews,
+                    label = stringResource(R.string.statistics_activity_products),
+                    caption = stringResource(R.string.statistics_activity_products_caption),
+                    deltaPercent = activity.productViewsDeltaPercent,
+                    period = period,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            // The end of the funnel: of everyone above, how many ordered. Without it "Clientes" reads
+            // as buyers. Two figures already fill the width, so it takes its own row. An older backend
+            // that does not report it leaves the card as it was, rather than showing an invented 0.
+            activity.confirmedOrders?.let { confirmedOrders ->
+                HorizontalDivider(color = QhathiaColors.rowDivider)
+                ActivityFigure(
+                    icon = Icons.Outlined.ShoppingBag,
+                    value = confirmedOrders,
+                    label = stringResource(R.string.statistics_activity_orders),
+                    caption = stringResource(R.string.statistics_activity_orders_caption),
+                    deltaPercent = activity.confirmedOrdersDeltaPercent,
+                    period = period,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
@@ -195,6 +219,22 @@ private fun ActivityTabPreview() {
     QhathiaTheme {
         ActivityTab(
             activity = SalesStatisticsPreviewData.activity,
+            period = SalesPeriod.WEEKLY,
+            modifier = Modifier.padding(Dimens.SpaceMd),
+        )
+    }
+}
+
+@Preview(name = "Actividad tab, no confirmed orders — light", showBackground = true)
+@Preview(name = "Actividad tab, no confirmed orders — dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun ActivityTabWithoutOrdersPreview() {
+    QhathiaTheme {
+        ActivityTab(
+            activity = SalesStatisticsPreviewData.activity.copy(
+                confirmedOrders = null,
+                confirmedOrdersDeltaPercent = null,
+            ),
             period = SalesPeriod.WEEKLY,
             modifier = Modifier.padding(Dimens.SpaceMd),
         )

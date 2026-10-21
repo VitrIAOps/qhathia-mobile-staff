@@ -28,6 +28,10 @@ data class StalledProduct(
 /**
  * What sold and what did not over a period. [needsAttention] is ordered by immobilized money,
  * highest first, so its first product is the one most worth acting on.
+ *
+ * [immobilizedTotal] adds up the listed [needsAttention] products only. [needsAttentionTotalCount]
+ * is how many products sold nothing in total, which can be more than are listed; null when the
+ * backend did not report it.
  */
 data class SalesRanking(
     val periodStart: Instant?,
@@ -36,4 +40,5 @@ data class SalesRanking(
     val topSellers: List<TopSellingProduct>,
     val immobilizedTotal: BigDecimal,
     val needsAttention: List<StalledProduct>,
+    val needsAttentionTotalCount: Int? = null,
 )

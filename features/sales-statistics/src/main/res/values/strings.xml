@@ -38,8 +38,13 @@
 
     <string name="statistics_needs_attention_title">Lo que necesita atención</string>
     <plurals name="statistics_needs_attention_caption">
-        <item quantity="one">Generados por el producto no vendido</item>
-        <item quantity="other">Generados por los %1$d productos no vendidos</item>
+        <item quantity="one">Inmovilizados en el producto sin ventas</item>
+        <item quantity="other">Inmovilizados en los %1$d productos sin ventas</item>
+    </plurals>
+    <!-- %1$d listed products of %2$d without sales; only shown when %2$d is the larger. -->
+    <plurals name="statistics_needs_attention_caption_partial">
+        <item quantity="one">Inmovilizados en %1$d de %2$d producto sin ventas</item>
+        <item quantity="other">Inmovilizados en %1$d de los %2$d productos sin ventas</item>
     </plurals>
     <string name="statistics_needs_attention_empty">Todo tu inventario se movió en este periodo.</string>
     <plurals name="statistics_units_unsold">
@@ -55,6 +60,8 @@
     <string name="statistics_activity_customers_caption">usaron la tablet</string>
     <string name="statistics_activity_products">Productos</string>
     <string name="statistics_activity_products_caption">consultados</string>
+    <string name="statistics_activity_orders">Pedidos</string>
+    <string name="statistics_activity_orders_caption">confirmados</string>
     <!-- %1$s is a spaced signed percentage, e.g. "+ 12%". -->
     <string name="statistics_activity_delta_monthly">%1$s vs mes pasado</string>
     <string name="statistics_activity_delta_weekly">%1$s vs semana pasada</string>
