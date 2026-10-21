@@ -4,7 +4,7 @@ import com.qhathia.mobile.staff.core.domain.model.StoreSettings
 import com.qhathia.mobile.staff.core.domain.repository.StoreSettingsRepository
 import javax.inject.Inject
 
-/** Loads the active store's language and IGV settings. */
+/** Loads the active store's display settings (its language). */
 class GetStoreSettingsUseCase @Inject constructor(
     private val repository: StoreSettingsRepository,
 ) {

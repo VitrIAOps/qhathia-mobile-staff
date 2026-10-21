@@ -57,16 +57,13 @@ class ProfileRepositoriesTest {
     }
 
     @Test
-    fun `store updates target the active store with only the changed field`() = runTest {
+    fun `a language update targets the active store`() = runTest {
         val api = mockk<StoreApiService>()
-        coEvery { api.updateStore("store-1", language = "en", pricesIncludeIgv = null) } returns
+        coEvery { api.updateStore("store-1", language = "en") } returns
             NetworkResult.Success(StoreSettingsDto(id = "store-1", language = "en"))
-        coEvery { api.updateStore("store-1", language = null, pricesIncludeIgv = false) } returns
-            NetworkResult.Success(StoreSettingsDto(id = "store-1", pricesIncludeIgv = false))
         val repository = StoreSettingsRepositoryImpl(api, FakeSessionRepository(TestFixtures.session()))
 
         assertEquals(AppLanguage.ENGLISH, repository.updateLanguage(AppLanguage.ENGLISH).getOrThrow().language)
-        assertEquals(false, repository.updatePricesIncludeIgv(false).getOrThrow().pricesIncludeIgv)
     }
 
     @Test

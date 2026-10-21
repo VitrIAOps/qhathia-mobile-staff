@@ -42,15 +42,14 @@ data class SubscriptionDto(
 )
 
 /**
- * The display-settings slice of `GET/PUT /api/v1/stores/{storeId}` (§22). Other store fields are
- * ignored by the JSON configuration.
+ * The display-settings slice of `GET/PUT /api/v1/stores/{storeId}` (§22): the store's language.
+ * Other store fields are ignored by the JSON configuration. `pricesIncludeIgv` / `igvRate` were
+ * retired by the backend (§27) and are not read.
  */
 @Serializable
 data class StoreSettingsDto(
     val id: String,
     val language: String? = null,
-    val pricesIncludeIgv: Boolean = true,
-    val igvRate: Double = 0.18,
 )
 
 /** `GET /api/v1/catalog/count`. */

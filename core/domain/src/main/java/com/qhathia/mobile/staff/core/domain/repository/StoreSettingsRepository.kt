@@ -10,7 +10,4 @@ interface StoreSettingsRepository {
 
     /** Mirrors the device language to the store. OWNER/ADMIN only. */
     suspend fun updateLanguage(language: AppLanguage): Result<StoreSettings>
-
-    /** OWNER/ADMIN only. */
-    suspend fun updatePricesIncludeIgv(pricesIncludeIgv: Boolean): Result<StoreSettings>
 }

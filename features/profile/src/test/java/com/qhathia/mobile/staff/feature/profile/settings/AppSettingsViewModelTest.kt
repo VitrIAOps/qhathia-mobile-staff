@@ -1,23 +1,18 @@
 package com.qhathia.mobile.staff.feature.profile.settings
 
-import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.model.AppLanguage
 import com.qhathia.mobile.staff.core.domain.model.UserRole
 import com.qhathia.mobile.staff.core.domain.usecase.GetStoreSettingsUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveAppLanguageUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveSessionUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.SetAppLanguageUseCase
-import com.qhathia.mobile.staff.core.domain.usecase.SetPricesIncludeIgvUseCase
 import com.qhathia.mobile.staff.core.testing.FakeAppPreferencesRepository
 import com.qhathia.mobile.staff.core.testing.FakeSessionRepository
 import com.qhathia.mobile.staff.core.testing.FakeStoreSettingsRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
 import com.qhathia.mobile.staff.core.testing.TestFixtures
-import com.qhathia.mobile.staff.feature.profile.common.LoadState
-import com.qhathia.mobile.staff.feature.profile.common.valueOrNull
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
@@ -39,7 +34,6 @@ class AppSettingsViewModelTest {
             observeSessionUseCase = ObserveSessionUseCase(sessions),
             setAppLanguageUseCase = SetAppLanguageUseCase(prefs, store, sessions),
             getStoreSettingsUseCase = GetStoreSettingsUseCase(store),
-            setPricesIncludeIgvUseCase = SetPricesIncludeIgvUseCase(store),
         )
     }
 
@@ -73,47 +67,23 @@ class AppSettingsViewModelTest {
     }
 
     @Test
-    fun `a seller changes the language only on the device and cannot touch IGV`() = runTest {
+    fun `a seller changes the language only on the device`() = runTest {
+        prefs.setLanguage(AppLanguage.ENGLISH)
+        store.settingsResult = Result.success(TestFixtures.storeSettings(language = AppLanguage.SPANISH))
         val viewModel = createViewModel(role = UserRole.SELLER)
 
-        viewModel.onEvent(AppSettingsUiEvent.SelectLanguage(AppLanguage.ENGLISH))
-        viewModel.onEvent(AppSettingsUiEvent.ToggleIgv(false))
+        viewModel.onEvent(AppSettingsUiEvent.SelectLanguage(AppLanguage.SPANISH))
 
-        assertFalse(viewModel.uiState.value.canEditStore)
-        assertEquals(AppLanguage.ENGLISH, prefs.language)
+        assertEquals(AppLanguage.SPANISH, prefs.language)
         assertTrue(store.languageUpdates.isEmpty())
-        assertTrue(store.igvUpdates.isEmpty())
     }
 
     @Test
-    fun `IGV toggle saves the new declaration`() = runTest {
-        val viewModel = createViewModel()
-
-        viewModel.onEvent(AppSettingsUiEvent.ToggleIgv(false))
-
-        assertEquals(listOf(false), store.igvUpdates)
-        assertFalse(viewModel.uiState.value.store.valueOrNull!!.pricesIncludeIgv)
-        assertFalse(viewModel.uiState.value.isIgvSaving)
-    }
-
-    @Test
-    fun `a failed IGV save springs back and reports it`() = runTest {
-        store.updateFailure = IOException("offline")
-        val viewModel = createViewModel()
-
-        viewModel.uiEffect.test {
-            viewModel.onEvent(AppSettingsUiEvent.ToggleIgv(false))
-            assertEquals(AppSettingsUiEffect.ShowIgvSaveError, awaitItem())
-        }
-        assertTrue(viewModel.uiState.value.store.valueOrNull!!.pricesIncludeIgv)
-    }
-
-    @Test
-    fun `a store that fails to load leaves the language usable`() = runTest {
+    fun `a store that fails to load is silent and leaves the language usable`() = runTest {
         store.settingsResult = Result.failure(IOException("offline"))
         val viewModel = createViewModel()
 
-        assertEquals(LoadState.Error, viewModel.uiState.value.store)
+        assertEquals(AppSettingsUiState(language = AppLanguage.SPANISH), viewModel.uiState.value)
 
         viewModel.onEvent(AppSettingsUiEvent.SelectLanguage(AppLanguage.ENGLISH))
         assertEquals(AppLanguage.ENGLISH, prefs.language)

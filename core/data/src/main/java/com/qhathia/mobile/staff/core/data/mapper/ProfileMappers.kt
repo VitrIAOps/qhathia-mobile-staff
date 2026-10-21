@@ -86,6 +86,4 @@ fun ActiveSessionDto.toDomain(): ActiveSession = ActiveSession(
 fun StoreSettingsDto.toDomain(): StoreSettings = StoreSettings(
     storeId = id,
     language = AppLanguage.fromTag(language),
-    pricesIncludeIgv = pricesIncludeIgv,
-    igvRate = if (igvRate.isFinite()) BigDecimal.valueOf(igvRate) else BigDecimal("0.18"),
 )

@@ -128,7 +128,6 @@ class FakeStoreSettingsRepository : StoreSettingsRepository {
     var getCallCount: Int = 0
         private set
     val languageUpdates: MutableList<AppLanguage> = mutableListOf()
-    val igvUpdates: MutableList<Boolean> = mutableListOf()
 
     override suspend fun get(): Result<StoreSettings> {
         getCallCount++
@@ -138,11 +137,6 @@ class FakeStoreSettingsRepository : StoreSettingsRepository {
     override suspend fun updateLanguage(language: AppLanguage): Result<StoreSettings> {
         languageUpdates += language
         return update { it.copy(language = language) }
-    }
-
-    override suspend fun updatePricesIncludeIgv(pricesIncludeIgv: Boolean): Result<StoreSettings> {
-        igvUpdates += pricesIncludeIgv
-        return update { it.copy(pricesIncludeIgv = pricesIncludeIgv) }
     }
 
     private fun update(change: (StoreSettings) -> StoreSettings): Result<StoreSettings> {

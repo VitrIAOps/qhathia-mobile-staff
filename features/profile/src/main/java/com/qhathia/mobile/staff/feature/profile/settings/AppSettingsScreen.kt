@@ -7,30 +7,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -39,16 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qhathia.mobile.staff.core.domain.model.AppLanguage
-import com.qhathia.mobile.staff.core.domain.model.StoreSettings
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaGradientTopBar
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaSettingsSection
-import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaSwitchRow
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
-import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.profile.R
-import com.qhathia.mobile.staff.feature.profile.common.LoadState
-import java.math.BigDecimal
 
 /** Stateful Configuración. */
 @Composable
@@ -58,28 +44,13 @@ fun AppSettingsScreen(
     viewModel: AppSettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val resources = LocalResources.current
-
-    LaunchedEffect(Unit) {
-        viewModel.uiEffect.collect { effect ->
-            when (effect) {
-                AppSettingsUiEffect.ShowIgvSaveError ->
-                    snackbarHostState.showSnackbar(resources.getString(R.string.settings_igv_save_error))
-            }
-        }
-    }
-
-    Box(modifier = modifier.fillMaxSize()) {
-        AppSettingsContent(uiState = uiState, onEvent = viewModel::onEvent, onBack = onBack)
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
-        )
-    }
+    AppSettingsContent(uiState = uiState, onEvent = viewModel::onEvent, onBack = onBack, modifier = modifier)
 }
 
-/** Stateless Configuración: the language pills and the IGV toggle in one card. */
+/**
+ * Stateless Configuración: the language pills in one card. Prices are not configured in the app —
+ * they always include IGV — so there is no price or tax setting here.
+ */
 @Composable
 fun AppSettingsContent(
     uiState: AppSettingsUiState,
@@ -111,42 +82,7 @@ fun AppSettingsContent(
                         onSelect = { onEvent(AppSettingsUiEvent.SelectLanguage(it)) },
                     )
                 }
-                HorizontalDivider(color = QhathiaColors.rowDivider)
-                IgvSetting(uiState = uiState, onEvent = onEvent)
             }
-        }
-    }
-}
-
-@Composable
-private fun IgvSetting(uiState: AppSettingsUiState, onEvent: (AppSettingsUiEvent) -> Unit) {
-    when (val store = uiState.store) {
-        LoadState.Error -> Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.SpaceSm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.settings_store_error),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = { onEvent(AppSettingsUiEvent.RetryStore) }) {
-                Text(stringResource(R.string.profile_retry), color = MaterialTheme.colorScheme.secondary)
-            }
-        }
-        LoadState.Loading, is LoadState.Loaded -> {
-            val loaded = (store as? LoadState.Loaded)?.value
-            QhathiaSwitchRow(
-                title = stringResource(R.string.settings_igv),
-                subtitle = stringResource(
-                    if (loaded != null && !uiState.canEditStore) R.string.settings_igv_read_only else R.string.settings_igv_subtitle,
-                ),
-                checked = loaded?.pricesIncludeIgv ?: false,
-                enabled = loaded != null && uiState.canEditStore && !uiState.isIgvSaving,
-                onCheckedChange = { onEvent(AppSettingsUiEvent.ToggleIgv(it)) },
-                showDivider = false,
-            )
         }
     }
 }
@@ -188,43 +124,25 @@ private fun AppLanguage.labelRes(): Int = when (this) {
     AppLanguage.ENGLISH -> R.string.settings_language_english
 }
 
-private val PreviewStore = StoreSettings("store-1", AppLanguage.SPANISH, pricesIncludeIgv = true, igvRate = BigDecimal("0.18"))
-
 @Preview(name = "Configuración — light", showBackground = true)
 @Preview(name = "Configuración — dark", showBackground = true, uiMode = 0x20)
 @Composable
 private fun AppSettingsContentPreview() {
     QhathiaTheme {
         AppSettingsContent(
-            uiState = AppSettingsUiState(
-                language = AppLanguage.SPANISH,
-                store = LoadState.Loaded(PreviewStore),
-                canEditStore = true,
-            ),
+            uiState = AppSettingsUiState(language = AppLanguage.SPANISH),
             onEvent = {},
             onBack = {},
         )
     }
 }
 
-@Preview(name = "Configuración, seller — light", showBackground = true)
+@Preview(name = "Configuración, English — light", showBackground = true)
 @Composable
-private fun AppSettingsSellerPreview() {
+private fun AppSettingsEnglishPreview() {
     QhathiaTheme {
         AppSettingsContent(
-            uiState = AppSettingsUiState(language = AppLanguage.ENGLISH, store = LoadState.Loaded(PreviewStore)),
-            onEvent = {},
-            onBack = {},
-        )
-    }
-}
-
-@Preview(name = "Configuración, store error — light", showBackground = true)
-@Composable
-private fun AppSettingsErrorPreview() {
-    QhathiaTheme {
-        AppSettingsContent(
-            uiState = AppSettingsUiState(language = AppLanguage.SPANISH, store = LoadState.Error, canEditStore = true),
+            uiState = AppSettingsUiState(language = AppLanguage.ENGLISH),
             onEvent = {},
             onBack = {},
         )

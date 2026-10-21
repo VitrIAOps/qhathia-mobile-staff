@@ -36,7 +36,7 @@
     <string name="menu_security_title">Seguridad</string>
     <string name="menu_security_subtitle">Contraseña, huella y sesiones</string>
     <string name="menu_settings_title">Configuración</string>
-    <string name="menu_settings_subtitle">Idioma y precios</string>
+    <string name="menu_settings_subtitle">Idioma de la app</string>
     <string name="menu_devices_title">Dispositivos</string>
     <plurals name="menu_devices_connected">
         <item quantity="one">%d tablet conectada</item>
@@ -174,9 +174,4 @@
     <string name="settings_language">Idioma</string>
     <string name="settings_language_spanish" translatable="false">Español</string>
     <string name="settings_language_english" translatable="false">English</string>
-    <string name="settings_igv">Precios con IGV incluido</string>
-    <string name="settings_igv_subtitle">Los precios que ve el cliente ya incluyen IGV</string>
-    <string name="settings_igv_read_only">Solo el dueño de la tienda puede cambiarlo</string>
-    <string name="settings_store_error">No pudimos cargar la configuración de la tienda</string>
-    <string name="settings_igv_save_error">No se pudo guardar el cambio. Inténtalo de nuevo.</string>
 </resources>

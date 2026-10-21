@@ -34,7 +34,7 @@
     <string name="menu_security_title">Security</string>
     <string name="menu_security_subtitle">Password, fingerprint and sessions</string>
     <string name="menu_settings_title">Settings</string>
-    <string name="menu_settings_subtitle">Language and prices</string>
+    <string name="menu_settings_subtitle">App language</string>
     <string name="menu_devices_title">Devices</string>
     <plurals name="menu_devices_connected">
         <item quantity="one">%d tablet connected</item>
@@ -169,9 +169,4 @@
     <!-- Configuración -->
     <string name="settings_title">Settings</string>
     <string name="settings_language">Language</string>
-    <string name="settings_igv">Prices include IGV</string>
-    <string name="settings_igv_subtitle">The prices customers see already include IGV</string>
-    <string name="settings_igv_read_only">Only the store owner can change this</string>
-    <string name="settings_store_error">We couldn\'t load the store settings</string>
-    <string name="settings_igv_save_error">Couldn\'t save the change. Try again.</string>
 </resources>
