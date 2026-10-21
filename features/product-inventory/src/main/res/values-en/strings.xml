@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="inventory_title">Inventory</string>
-    <string name="inventory_back_cd">Back</string>
     <string name="inventory_notifications_cd">Notifications</string>
 
     <string name="inventory_search_placeholder">Search</string>

@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
@@ -67,13 +66,6 @@ internal fun InventoryHeader(
             .padding(top = Dimens.SpaceSm, bottom = Dimens.SpaceMd),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = {}) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                    contentDescription = stringResource(R.string.inventory_back_cd),
-                    tint = QhathiaColors.onHeaderGradient,
-                )
-            }
             Text(
                 text = stringResource(R.string.inventory_title),
                 style = MaterialTheme.typography.titleLarge,

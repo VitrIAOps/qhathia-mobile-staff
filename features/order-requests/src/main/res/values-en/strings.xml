@@ -3,7 +3,6 @@
     <!-- Header -->
     <string name="order_requests_title">Purchase requests</string>
     <string name="order_requests_last_updated">Last updated at %1$s</string>
-    <string name="order_requests_back_cd">Back</string>
     <string name="order_requests_refresh_cd">Refresh requests</string>
     <string name="order_requests_search_placeholder">Search by name or code</string>
     <string name="order_requests_search_clear_cd">Clear search</string>
@@ -42,6 +41,7 @@
     <!-- "pcs" is an abbreviation that does not inflect. -->
     <string name="order_item_quantity" tools:ignore="PluralsCandidate">%1$d pcs</string>
     <string name="order_item_low_stock">Only a few left</string>
+    <string name="order_item_out_of_stock">Out of stock</string>
 
     <!-- Reject form -->
     <string name="order_reject_title">Reject order</string>

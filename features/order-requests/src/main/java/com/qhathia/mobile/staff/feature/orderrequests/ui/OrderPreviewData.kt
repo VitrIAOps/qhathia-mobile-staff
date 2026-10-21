@@ -57,6 +57,8 @@ internal fun previewOrderDetail() = OrderDetail(
         previewOrderItem(id = "item-1"),
         // The low-stock variant: a tracked stock at or below the warning threshold.
         previewOrderItem(id = "item-2", productStock = 2),
+        // The sold-out variant: zero reads "Sin existencias", not "quedan pocos".
+        previewOrderItem(id = "item-4", productStock = 0),
         // A consult-mode product — no tracked stock, so no warning.
         previewOrderItem(id = "item-3", unitPrice = 10.0, quantity = 5, productStock = null),
     ),

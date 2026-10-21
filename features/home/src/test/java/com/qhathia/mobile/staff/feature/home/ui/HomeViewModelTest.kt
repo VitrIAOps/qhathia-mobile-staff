@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.home.ui
 
+import app.cash.turbine.Event
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.model.SalesPeriod
 import com.qhathia.mobile.staff.core.domain.usecase.GetSalesSuggestionsUseCase
@@ -14,6 +15,7 @@ import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.home.model.HomeUiEffect
 import com.qhathia.mobile.staff.feature.home.model.HomeUiEvent
+import com.qhathia.mobile.staff.feature.home.model.HomeUiState
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -93,6 +95,77 @@ class HomeViewModelTest {
             listOf(SalesPeriod.WEEKLY, SalesPeriod.DAILY, SalesPeriod.DAILY),
             insights.requestedPeriods,
         )
+    }
+
+    @Test
+    fun `the first screen start does not load again`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.onEvent(HomeUiEvent.ScreenStarted)
+        runCurrent()
+
+        assertEquals(listOf(SalesPeriod.WEEKLY), insights.requestedPeriods)
+        assertEquals(1, insights.suggestionsCallCount)
+        assertEquals(1, orders.refreshPendingCountCallCount)
+    }
+
+    @Test
+    fun `returning to the screen reloads everything for the selected period`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(HomeUiEvent.ScreenStarted)
+        viewModel.onEvent(HomeUiEvent.SelectPeriod(SalesPeriod.MONTHLY))
+        runCurrent()
+
+        viewModel.onEvent(HomeUiEvent.ScreenStarted)
+        runCurrent()
+
+        assertEquals(SalesPeriod.MONTHLY, viewModel.uiState.value.selectedPeriod)
+        assertEquals(
+            listOf(SalesPeriod.WEEKLY, SalesPeriod.MONTHLY, SalesPeriod.MONTHLY),
+            insights.requestedPeriods,
+        )
+        assertEquals(3, insights.suggestionsCallCount)
+        assertEquals(3, orders.refreshPendingCountCallCount)
+    }
+
+    @Test
+    fun `a reload on return never clears the summary on screen`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(HomeUiEvent.ScreenStarted)
+        val loaded = viewModel.uiState.value
+
+        viewModel.uiState.test {
+            skipItems(1)
+            viewModel.onEvent(HomeUiEvent.ScreenStarted)
+            runCurrent()
+            val states = cancelAndConsumeRemainingEvents()
+                .filterIsInstance<Event.Item<HomeUiState>>()
+                .map { it.value }
+            assertTrue(states.isNotEmpty())
+            assertTrue(states.all { it.summary != null && !it.isInitialLoading })
+        }
+        assertEquals(loaded.summary, viewModel.uiState.value.summary)
+    }
+
+    @Test
+    fun `a failed reload on return keeps the previous data`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(HomeUiEvent.ScreenStarted)
+        val loaded = viewModel.uiState.value
+
+        insights.failEverything(IOException("offline"))
+        viewModel.onEvent(HomeUiEvent.ScreenStarted)
+        runCurrent()
+
+        val stale = viewModel.uiState.value
+        assertTrue(stale.isError)
+        assertEquals(loaded.summary, stale.summary)
+        assertEquals(loaded.lastUpdatedAt, stale.lastUpdatedAt)
+        assertEquals(loaded.restockProducts, stale.restockProducts)
     }
 
     @Test

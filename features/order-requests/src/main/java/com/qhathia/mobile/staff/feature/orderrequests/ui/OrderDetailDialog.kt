@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -55,14 +56,16 @@ import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.orderrequests.R
+import com.qhathia.mobile.staff.core.ui.R as CoreUiR
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderDetailUiState
 import com.qhathia.mobile.staff.feature.orderrequests.model.RejectionReason
 import com.qhathia.mobile.staff.feature.orderrequests.model.RejectionUiState
 import java.time.Instant
 
 /**
- * At or below this much tracked stock, an item shows the "quedan pocos disponibles" warning. The
- * threshold is client-side: the contract carries the raw `productStock`, not a low-stock flag.
+ * At or below this much tracked stock (and above zero), an item shows the "quedan pocos
+ * disponibles" warning. The threshold is client-side: the contract carries the raw `productStock`,
+ * not a low-stock flag.
  */
 private const val LOW_STOCK_THRESHOLD = 5
 
@@ -289,9 +292,13 @@ private fun OrderItemRow(
         }
 
         // Null stock means a consult-mode product: nothing is tracked, so nothing is warned about.
+        // Zero gets its own warning: "quedan pocos" would soften a stock-out into a low-stock one,
+        // which is how a merchant once confirmed an order that could not be shipped.
         val stock = item.productStock
-        if (stock != null && stock <= LOW_STOCK_THRESHOLD) {
-            LowStockWarning()
+        when {
+            stock == null -> Unit
+            stock <= 0 -> OutOfStockWarning()
+            stock <= LOW_STOCK_THRESHOLD -> LowStockWarning()
         }
     }
 }
@@ -362,6 +369,32 @@ private fun LowStockWarning(modifier: Modifier = Modifier) {
             text = stringResource(R.string.order_item_low_stock),
             style = MaterialTheme.typography.bodySmall,
             color = QhathiaColors.onWarningContainer,
+        )
+    }
+}
+
+/** Same shape as [LowStockWarning], in the error tones and with the alert icon, so it reads as worse. */
+@Composable
+private fun OutOfStockWarning(modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.errorContainer, RoundedCornerShape(Dimens.SpaceXs))
+            .padding(horizontal = Dimens.SpaceSm, vertical = Dimens.SpaceXs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceXs, Alignment.CenterHorizontally),
+    ) {
+        Icon(
+            painter = painterResource(CoreUiR.drawable.ic_alert),
+            contentDescription = null,
+            tint = colors.onErrorContainer,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = stringResource(R.string.order_item_out_of_stock),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.onErrorContainer,
         )
     }
 }
