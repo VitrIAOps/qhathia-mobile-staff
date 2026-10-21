@@ -18,12 +18,6 @@ class ProfileFormattersTest {
     }
 
     @Test
-    fun `peruvian mobile is grouped after the country prefix`() {
-        assertEquals("+51 999 888 777", formatPeruPhone("999888777"))
-        assertEquals("+51 12345", formatPeruPhone("12345"))
-    }
-
-    @Test
     fun `plan checklist lists the product limit first and only the true flags`() {
         val lines = PlanFeatures(
             productLimit = 200,

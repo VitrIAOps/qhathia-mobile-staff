@@ -29,6 +29,23 @@ class FakeUserProfileRepository : UserProfileRepository {
         callCount++
         return profileResult
     }
+
+    /** One recorded `updateProfile` call. */
+    data class Update(val fullName: String?, val phone: String?)
+
+    val updates: MutableList<Update> = mutableListOf()
+
+    /** When null, a successful update applies the arguments to [profileResult] and returns it. */
+    var updateResult: Result<UserProfile>? = null
+
+    override suspend fun updateProfile(fullName: String?, phone: String?): Result<UserProfile> {
+        updates += Update(fullName, phone)
+        updateResult?.let { return it }
+        val current = profileResult.getOrNull() ?: TestFixtures.userProfile()
+        val updated = current.copy(fullName = fullName ?: current.fullName, phone = phone ?: current.phone)
+        profileResult = Result.success(updated)
+        return profileResult
+    }
 }
 
 /** Controllable [SubscriptionRepository]. A successful `null` stands for "no subscription". */

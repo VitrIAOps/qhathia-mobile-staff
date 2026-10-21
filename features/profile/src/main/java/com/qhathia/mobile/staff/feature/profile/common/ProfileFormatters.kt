@@ -35,14 +35,6 @@ fun Instant.longDateLabel(locale: Locale): String =
 fun Instant.shortDateLabel(locale: Locale): String =
     DateTimeFormatter.ofPattern("d MMM yyyy", locale).format(atZone(LIMA_ZONE)).replace(".", "")
 
-/** "+51 999 888 777" for a 9-digit Peruvian mobile; anything else keeps its digits after the prefix. */
-fun formatPeruPhone(digits: String): String =
-    if (digits.length == 9) {
-        "+51 ${digits.substring(0, 3)} ${digits.substring(3, 6)} ${digits.substring(6)}"
-    } else {
-        "+51 $digits"
-    }
-
 /** "Carla Mendoza" → "CM"; a single name gives one letter; blank gives "?". */
 fun initialsOf(fullName: String): String =
     fullName.trim()

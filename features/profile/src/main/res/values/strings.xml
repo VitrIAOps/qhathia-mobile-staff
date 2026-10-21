@@ -3,7 +3,6 @@
     <!-- Common -->
     <string name="profile_retry">Reintentar</string>
     <string name="profile_cancel">Cancelar</string>
-    <string name="profile_missing_value">—</string>
 
     <!-- Mi perfil -->
     <string name="profile_title">Mi perfil</string>
@@ -83,6 +82,16 @@
     <string name="personal_email">Correo</string>
     <string name="personal_phone">Teléfono</string>
     <string name="personal_error">No pudimos cargar tus datos</string>
+    <string name="personal_save">Guardar cambios</string>
+    <string name="personal_saved">Datos actualizados</string>
+    <string name="personal_email_note">Es tu usuario para ingresar, por eso no se puede cambiar</string>
+    <string name="personal_phone_hint">Celular de 9 dígitos</string>
+    <string name="personal_phone_placeholder" translatable="false">999 888 777</string>
+    <string name="personal_error_name">Escribe entre 2 y 150 caracteres</string>
+    <string name="personal_error_phone">Ingresa un celular de 9 dígitos que empiece con 9</string>
+    <string name="personal_error_save_validation">Revisa tu nombre y tu teléfono e inténtalo de nuevo</string>
+    <string name="personal_error_save_network">No hay conexión. Tus cambios no se guardaron</string>
+    <string name="personal_error_save_unknown">No pudimos guardar tus cambios. Inténtalo de nuevo</string>
 
     <!-- Ayuda -->
     <string name="help_title">Ayuda</string>
