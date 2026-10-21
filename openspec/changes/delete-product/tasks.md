@@ -28,6 +28,22 @@
 - [x] 3.3 Wire the events through `InventoryContent` and `ProductRow`, and show the dialog when `deleteCandidate != null`
 - [x] 3.4 Previews: the dialog idle and deleting (light and dark), and the open row menu if a menu preview already exists
 
+## 5. Edit screen (Detalle de producto)
+
+- [x] 5.1 `core:ui` — move the confirmation to `QhathiaDeleteProductDialog` with its strings (es/en); Inventario uses it (design Decision 5)
+- [x] 5.2 `ProductDetailUiState` / `UiEvent` / `UiEffect`: add `showDeleteDialog`, `isDeleting`, `DeleteRequested` / `DeleteConfirmed` / `DeleteDismissed` and `NavigateBackDeleted(alreadyDeleted)`; `isSaveEnabled` is false while deleting
+- [x] 5.3 `ProductDetailViewModel`: request (only once loaded, not while saving), confirm, and dismiss. While deleting, ignore back and the bell. Success or `404` → `NavigateBackDeleted`; any other failure → `ShowError`, staying on the form
+- [x] 5.4 `ProductDetailContent`: the full-width destructive `Eliminar producto` under `FormActions`, and the dialog. The bell is disabled while deleting. `BackHandler` swallows back while deleting
+- [x] 5.5 Navigation: `productDetailGraph(onDeleted)` → `MainShell` sets `INVENTORY_RESULT_PRODUCT_DELETED` / `…_ALREADY_DELETED` → `InventoryScreen` refreshes and shows the message
+- [x] 5.6 ViewModel tests:
+  - the confirmation sends nothing
+  - dismissing keeps the edits
+  - success leaves even with unsaved edits, without the discard dialog
+  - `404` leaves
+  - a failure stays and shows the error
+  - nothing can leave or save while deleting
+  - no delete before the product has loaded
+
 ## 4. Verification
 
 - [x] 4.1 `./gradlew :core:domain:test :core:data:testDebugUnitTest :features:product-inventory:testDebugUnitTest :features:product-inventory:lintDebug`
@@ -39,3 +55,4 @@
 - After a pull to refresh, on the kiosk tablet, and in Inicio ("Productos para reponer"), the deleted product does not come back
 - Cancel and tap-outside do nothing. Airplane mode shows the error and keeps the row
 - Light and dark, large font: the dialog's message and buttons are not clipped
+- Edit screen: `Eliminar producto` sits under Cancelar/Guardar. Confirming returns to Inventario with "Producto eliminado" and the product gone. With unsaved edits there is no discard prompt. In airplane mode the screen stays with its edits and shows the error. Back does nothing while deleting

@@ -94,4 +94,9 @@
         <item quantity="one">%d year ago</item>
         <item quantity="other">%d years ago</item>
     </plurals>
+    <!-- Delete product confirmation (inventory row menu and edit screen); %1$s = product name. -->
+    <string name="delete_product_title">Delete product?</string>
+    <string name="delete_product_message">“%1$s” will no longer show in the inventory or on the tablet. This cannot be undone.</string>
+    <string name="delete_product_confirm">Delete</string>
+    <string name="delete_product_cancel">Cancel</string>
 </resources>

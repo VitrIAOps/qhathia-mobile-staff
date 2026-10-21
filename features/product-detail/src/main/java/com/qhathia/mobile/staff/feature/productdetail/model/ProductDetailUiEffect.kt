@@ -7,6 +7,12 @@ sealed interface ProductDetailUiEffect {
     /** The edit was persisted; the caller pops back and refreshes the inventory list. */
     data object NavigateBackSaved : ProductDetailUiEffect
 
+    /**
+     * The product was deleted; the caller pops back and inventory confirms it. [alreadyDeleted] when
+     * the server said it was already gone (404).
+     */
+    data class NavigateBackDeleted(val alreadyDeleted: Boolean) : ProductDetailUiEffect
+
     /** The merchant discarded or never edited; the caller just pops back. */
     data object NavigateBackCancelled : ProductDetailUiEffect
 

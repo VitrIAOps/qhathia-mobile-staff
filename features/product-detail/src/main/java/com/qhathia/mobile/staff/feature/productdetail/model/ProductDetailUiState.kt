@@ -24,6 +24,9 @@ import kotlinx.collections.immutable.persistentListOf
  * [discount] is what the form shows, and the difference is only persisted on save.
  * [discountDraft] is non-null while the "Aplicar descuento" dialog is open. [showPreview] is true
  * while the "Vista previa" dialog is open; it reads the form but never changes it.
+ *
+ * "Eliminar producto" asks first: [showDeleteDialog] while the confirmation is open, [isDeleting]
+ * while its request is in flight (the form is locked meanwhile).
  */
 data class ProductDetailUiState(
     val name: String = "",
@@ -53,6 +56,8 @@ data class ProductDetailUiState(
     val isDirty: Boolean = false,
     val showDiscardDialog: Boolean = false,
     val showPreview: Boolean = false,
+    val showDeleteDialog: Boolean = false,
+    val isDeleting: Boolean = false,
 ) {
     /**
      * The save gate: the product must be loaded and every required field valid (tags are
@@ -64,6 +69,7 @@ data class ProductDetailUiState(
         get() = !isLoading &&
             !isError &&
             !isSaving &&
+            !isDeleting &&
             isDirty &&
             isValidProductName(name) &&
             isValidPrice(price) &&

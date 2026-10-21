@@ -28,6 +28,8 @@
 
     <string name="detail_save">Guardar</string>
     <string name="detail_cancel">Cancelar</string>
+    <string name="detail_delete_product">Eliminar producto</string>
+    <string name="detail_delete_error">No se pudo eliminar el producto. Inténtalo de nuevo</string>
     <string name="detail_retry">Reintentar</string>
     <string name="detail_load_error">No se pudo cargar el producto</string>
 

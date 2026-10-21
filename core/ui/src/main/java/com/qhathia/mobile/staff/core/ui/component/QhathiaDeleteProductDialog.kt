@@ -1,4 +1,4 @@
-package com.qhathia.mobile.staff.feature.productinventory.ui
+package com.qhathia.mobile.staff.core.ui.component
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
@@ -11,16 +11,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.qhathia.mobile.staff.core.ui.R
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
-import com.qhathia.mobile.staff.feature.productinventory.R
 
 /**
- * Confirms "Eliminar producto". It names the product, because the menu was opened from a list of
- * look-alike rows, and says plainly that there is no way back. While the request is in flight the
- * buttons are disabled and "Eliminar" shows progress; the ViewModel ignores dismissals meanwhile.
+ * Confirms "Eliminar producto", from the Inventario row menu and from the edit screen alike. It names
+ * the product and says plainly that there is no way back (the backend soft-deletes and cannot
+ * reactivate). While the request is in flight both buttons are disabled and "Eliminar" shows
+ * progress; callers ignore dismissals meanwhile.
  */
 @Composable
-internal fun DeleteProductDialog(
+fun QhathiaDeleteProductDialog(
     productName: String,
     isDeleting: Boolean,
     onConfirm: () -> Unit,
@@ -28,8 +29,8 @@ internal fun DeleteProductDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.inventory_delete_title)) },
-        text = { Text(stringResource(R.string.inventory_delete_message, productName)) },
+        title = { Text(stringResource(R.string.delete_product_title)) },
+        text = { Text(stringResource(R.string.delete_product_message, productName)) },
         confirmButton = {
             TextButton(onClick = onConfirm, enabled = !isDeleting) {
                 if (isDeleting) {
@@ -40,7 +41,7 @@ internal fun DeleteProductDialog(
                     )
                 } else {
                     Text(
-                        text = stringResource(R.string.inventory_delete_confirm),
+                        text = stringResource(R.string.delete_product_confirm),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -48,18 +49,32 @@ internal fun DeleteProductDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !isDeleting) {
-                Text(stringResource(R.string.inventory_delete_cancel))
+                Text(stringResource(R.string.delete_product_cancel))
             }
         },
     )
 }
 
+@Preview(name = "Delete product", showBackground = true)
+@Preview(name = "Delete product dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun QhathiaDeleteProductDialogPreview() {
+    QhathiaTheme {
+        QhathiaDeleteProductDialog(
+            productName = "Taladro Percutor Bosch GSB 13 RE",
+            isDeleting = false,
+            onConfirm = {},
+            onDismiss = {},
+        )
+    }
+}
+
 @Preview(name = "Delete product — deleting", showBackground = true)
 @Preview(name = "Delete product — deleting dark", showBackground = true, uiMode = 0x20)
 @Composable
-private fun DeleteProductDialogDeletingPreview() {
+private fun QhathiaDeleteProductDialogDeletingPreview() {
     QhathiaTheme {
-        DeleteProductDialog(
+        QhathiaDeleteProductDialog(
             productName = "Taladro Percutor Bosch GSB 13 RE",
             isDeleting = true,
             onConfirm = {},

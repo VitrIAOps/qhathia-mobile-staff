@@ -37,6 +37,7 @@ import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.ui.component.QhathiaDeleteProductDialog
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -150,7 +151,7 @@ fun InventoryContent(
         }
 
         uiState.deleteCandidate?.let { product ->
-            DeleteProductDialog(
+            QhathiaDeleteProductDialog(
                 productName = product.name,
                 isDeleting = uiState.isDeleting,
                 onConfirm = { onEvent(InventoryUiEvent.DeleteConfirmed) },

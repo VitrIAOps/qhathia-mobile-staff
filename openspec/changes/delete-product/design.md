@@ -12,7 +12,7 @@ The Inventario row menu (`ProductRow.RowActionsMenu`) offers `Editar producto` a
 
 **Non-Goals:**
 - An undo. There is no reactivate endpoint.
-- Delete from Product Detail, bulk delete, and role-based hiding. The backend allows every role.
+- Bulk delete, and role-based hiding. The backend allows every role.
 
 ## Decisions
 
@@ -49,6 +49,23 @@ The Inventario row menu (`ProductRow.RowActionsMenu`) offers `Editar producto` a
   - Message: "«{nombre}» dejará de verse en el inventario y en la tablet. Esta acción no se puede deshacer."
   - Buttons: `Cancelar`, and `Eliminar` in the error colour. While deleting, `Eliminar` shows a small progress indicator in place of its label.
 - The name is shown because the merchant opened the menu from a list of look-alike rows.
+
+### 5. The edit screen
+
+- **Button:** a full-width `TextButton` "Eliminar producto", with the delete icon in the error colour, placed under the `Cancelar` / `Guardar` row. It is disabled while saving or deleting.
+- **Confirmation:** the same dialog as Inventario. It moves to `core:ui` as `QhathiaDeleteProductDialog`, with its four strings, so both modules share one design and one text.
+- **State:** `showDeleteDialog` and `isDeleting` in `ProductDetailUiState`.
+  - While `isDeleting` is true, the ViewModel ignores back, the header bell, dismissals and a second confirm, and `isSaveEnabled` is false.
+  - `BackHandler` is enabled while deleting, so system back cannot pop the screen and cancel the request.
+- **Unsaved edits:** they are dropped without the discard dialog. The delete confirmation already covers losing the product.
+- **Outcome:**
+  - `204` → `NavigateBackDeleted(alreadyDeleted = false)`.
+  - `404` → `NavigateBackDeleted(alreadyDeleted = true)`.
+  - Any other failure → the dialog closes, the merchant stays on the form with the edits intact, and `ShowError("No se pudo eliminar el producto…")` is shown.
+- **Back in Inventario:**
+  - `MainShell` puts `INVENTORY_RESULT_PRODUCT_DELETED` or `…_ALREADY_DELETED` on the existing result channel (`INVENTORY_REGISTER_RESULT_KEY`). This is the same mechanism as `PRODUCT_UPDATED`, so the "consume once" fix carries over.
+  - Inventario refreshes and shows "Producto eliminado" or "Este producto ya había sido eliminado".
+  - Here a reload is right: Inventario did not see the delete happen.
 
 ## Risks / Trade-offs
 

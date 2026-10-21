@@ -25,6 +25,7 @@ import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 @Composable
 fun ProductDetailScreen(
     onSaved: () -> Unit,
+    onDeleted: (alreadyDeleted: Boolean) -> Unit,
     onBack: () -> Unit,
     onNavigateToOrderRequests: () -> Unit,
     modifier: Modifier = Modifier,
@@ -38,6 +39,7 @@ fun ProductDetailScreen(
         viewModel.uiEffect.collect { effect ->
             when (effect) {
                 ProductDetailUiEffect.NavigateBackSaved -> onSaved()
+                is ProductDetailUiEffect.NavigateBackDeleted -> onDeleted(effect.alreadyDeleted)
                 ProductDetailUiEffect.NavigateBackCancelled -> onBack()
                 ProductDetailUiEffect.NavigateToOrderRequests -> onNavigateToOrderRequests()
                 is ProductDetailUiEffect.ShowError ->
@@ -46,7 +48,8 @@ fun ProductDetailScreen(
         }
     }
 
-    BackHandler(enabled = uiState.isDirty && !uiState.isSaving) {
+    // While a delete is in flight back is swallowed: leaving would cancel the request mid-way.
+    BackHandler(enabled = uiState.isDeleting || (uiState.isDirty && !uiState.isSaving)) {
         viewModel.onEvent(ProductDetailUiEvent.CancelRequested)
     }
 

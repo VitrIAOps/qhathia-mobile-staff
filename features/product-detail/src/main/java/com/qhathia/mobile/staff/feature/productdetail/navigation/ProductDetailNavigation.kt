@@ -17,11 +17,13 @@ fun productDetailRoute(productId: String): String = "product_detail/$productId"
 
 /**
  * Registers the product detail/edit destination. [onSaved] fires once the edit is persisted, so the
- * caller can hand a refresh signal back to the inventory list; [onBack] on discard, cancel or a
- * plain back press; [onNavigateToOrderRequests] when the header bell leaves for Solicitudes.
+ * caller can hand a refresh signal back to the inventory list; [onDeleted] once the product was
+ * deleted (`alreadyDeleted` when the server said it was already gone); [onBack] on discard, cancel
+ * or a plain back press; [onNavigateToOrderRequests] when the header bell leaves for Solicitudes.
  */
 fun NavGraphBuilder.productDetailGraph(
     onSaved: () -> Unit,
+    onDeleted: (alreadyDeleted: Boolean) -> Unit,
     onBack: () -> Unit,
     onNavigateToOrderRequests: () -> Unit,
 ) {
@@ -31,6 +33,7 @@ fun NavGraphBuilder.productDetailGraph(
     ) {
         ProductDetailScreen(
             onSaved = onSaved,
+            onDeleted = onDeleted,
             onBack = onBack,
             onNavigateToOrderRequests = onNavigateToOrderRequests,
         )

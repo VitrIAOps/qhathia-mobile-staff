@@ -5,6 +5,7 @@ A merchant has no way to take a product out of the catalog from the app. Today a
 ## What Changes
 
 - The Inventario row's three-dot menu gains a third option, **Eliminar producto**, styled as destructive and set apart from the other two.
+- The edit screen (Detalle de producto) gains an **Eliminar producto** button under `Cancelar` and `Guardar` (product decision, 2026-10-21). It asks for the same confirmation. On success it goes back to Inventario, which refreshes and shows the result.
 - Choosing it opens a confirmation dialog naming the product and stating that it disappears from Inventario and from the tablet and cannot be undone. The two buttons are `Cancelar` and `Eliminar`.
 - On confirm the app calls `DELETE /api/v1/products/{id}` (`204`). The dialog stays open with progress until the request answers.
   - **Success:** the dialog closes, the row leaves the list, the count updates, and a snackbar reads "Producto eliminado".
@@ -20,6 +21,7 @@ _None._
 ### Modified Capabilities
 
 - `product-inventory`: the row actions menu has three options instead of two, and adds a requirement for deleting a product with confirmation.
+- `product-detail`: adds a requirement for deleting the product from the edit screen.
 
 ## Impact
 
@@ -27,10 +29,12 @@ _None._
 - **`core:domain`**: `ProductRepository.deleteProduct(id)`, `DeleteProductUseCase`. Failures reuse `UpdateProductException` (`NotFound`, `Network`, `Unknown`).
 - **`core:data`**: `ProductRepositoryImpl.deleteProduct`.
 - **`core:testing`**: `FakeProductRepository` supports deletes.
-- **`features:product-inventory`**: menu option, confirmation dialog, events, state, ViewModel, strings (es/en), previews and tests.
+- **`core:ui`**: `QhathiaDeleteProductDialog` and its strings (es/en), shared by both screens.
+- **`features:product-inventory`**: menu option, events, state, ViewModel, strings (es/en), previews and tests. It also handles the two new results the edit screen hands back.
+- **`features:product-detail`**: the delete button, events, state, ViewModel, the `onDeleted` navigation callback, strings (es/en) and tests.
+- **`app`**: `MainShell` passes the delete result from the edit screen back to Inventario.
 - **API:** `DELETE /api/v1/products/{id}`, already in production. Any role may call it.
 - **Not in scope:**
-  - Deleting from the Product Detail screen.
   - Bulk delete.
   - Undo. The backend cannot reactivate a product.
   - Pending orders that contain the deleted product. The backend keeps them, and they are handled as today.
