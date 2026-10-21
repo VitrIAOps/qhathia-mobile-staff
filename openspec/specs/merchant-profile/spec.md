@@ -35,7 +35,7 @@ The bottom navigation bar SHALL remain visible on Mi perfil.
 ### Requirement: Menu rows show live subtitles
 
 Each menu row SHALL show an icon, a title, a subtitle and a trailing chevron:
-- **Datos personales**: "Tu cuenta y los datos de tu tienda".
+- **Datos personales**: "Nombre, correo y teléfono" — what the screen holds; it shows no store data.
 - **Notificaciones**: "N de M alertas activas", from `activeCount` and `totalCount` of the notification preferences.
 - **Seguridad**: "Contraseña, huella y sesiones".
 - **Configuración**: "Idioma de la app". Prices are not configured in the app, so the subtitle does not mention them.
@@ -59,6 +59,10 @@ While a live subtitle is loading or has failed, the row SHALL show its static fa
 #### Scenario: Configuración subtitle does not mention prices
 - **WHEN** the merchant opens Mi perfil
 - **THEN** the Configuración row subtitle reads "Idioma de la app"
+
+#### Scenario: Datos personales subtitle
+- **WHEN** the merchant opens Mi perfil
+- **THEN** the Datos personales row subtitle reads "Nombre, correo y teléfono"
 
 ### Requirement: Navigation from the hub
 
@@ -233,4 +237,3 @@ The screen SHALL show a loading state while fetching and an error state with ret
 #### Scenario: Change photo not available
 - **WHEN** the merchant taps "Cambiar foto"
 - **THEN** nothing is uploaded and the action is presented as *Próximamente*
-
