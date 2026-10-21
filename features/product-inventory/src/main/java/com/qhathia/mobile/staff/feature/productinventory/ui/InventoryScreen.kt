@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,40 +77,48 @@ fun InventoryScreen(
         }
     }
 
-    LaunchedEffect(registerResult) {
-        // An action label makes a snackbar indefinite by default, hence the explicit duration.
-        suspend fun showRegisteredSnackbar(@StringRes messageRes: Int) {
-            val result = snackbarHostState.showSnackbar(
-                message = resources.getString(messageRes),
-                actionLabel = registeredProductId?.let {
-                    resources.getString(R.string.inventory_register_view_product)
-                },
-                duration = SnackbarDuration.Long,
-            )
-            if (result == SnackbarResult.ActionPerformed && registeredProductId != null) {
-                viewModel.onEvent(InventoryUiEvent.ViewRegisteredProductClicked(registeredProductId))
-            }
+    // An action label makes a snackbar indefinite by default, hence the explicit duration.
+    suspend fun showRegisteredSnackbar(@StringRes messageRes: Int, productId: String?) {
+        val result = snackbarHostState.showSnackbar(
+            message = resources.getString(messageRes),
+            actionLabel = productId?.let {
+                resources.getString(R.string.inventory_register_view_product)
+            },
+            duration = SnackbarDuration.Long,
+        )
+        if (result == SnackbarResult.ActionPerformed && productId != null) {
+            viewModel.onEvent(InventoryUiEvent.ViewRegisteredProductClicked(productId))
         }
+    }
 
-        when (registerResult) {
-            INVENTORY_REGISTER_RESULT_SUCCESS -> {
-                viewModel.refresh()
-                showRegisteredSnackbar(R.string.inventory_register_success)
-                onRegisterResultConsumed()
-            }
-            INVENTORY_REGISTER_RESULT_PLAN_LIMIT -> {
-                snackbarHostState.showSnackbar(resources.getString(R.string.inventory_register_plan_limit))
-                onRegisterResultConsumed()
-            }
-            INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED -> {
-                viewModel.refresh()
-                showRegisteredSnackbar(R.string.inventory_register_discount_failed)
-                onRegisterResultConsumed()
-            }
-            INVENTORY_RESULT_PRODUCT_UPDATED -> {
-                viewModel.refresh()
-                snackbarHostState.showSnackbar(resources.getString(R.string.inventory_product_updated))
-                onRegisterResultConsumed()
+    // The result is consumed first, before any snackbar is awaited. `showSnackbar` suspends until
+    // the snackbar is dismissed, so consuming after it meant that leaving the screen mid-snackbar
+    // cancelled the effect, left the result in the back-stack entry, and showed it again on return.
+    // Consuming clears `registerResult`, which restarts this effect and cancels it, so the snackbar
+    // runs in `resultScope` instead; that scope ends when the screen leaves composition. The product
+    // id is captured because consuming clears it too.
+    val resultScope = rememberCoroutineScope()
+    LaunchedEffect(registerResult) {
+        val result = registerResult ?: return@LaunchedEffect
+        val productId = registeredProductId
+        onRegisterResultConsumed()
+
+        resultScope.launch {
+            when (result) {
+                INVENTORY_REGISTER_RESULT_SUCCESS -> {
+                    viewModel.refresh()
+                    showRegisteredSnackbar(R.string.inventory_register_success, productId)
+                }
+                INVENTORY_REGISTER_RESULT_PLAN_LIMIT ->
+                    snackbarHostState.showSnackbar(resources.getString(R.string.inventory_register_plan_limit))
+                INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED -> {
+                    viewModel.refresh()
+                    showRegisteredSnackbar(R.string.inventory_register_discount_failed, productId)
+                }
+                INVENTORY_RESULT_PRODUCT_UPDATED -> {
+                    viewModel.refresh()
+                    snackbarHostState.showSnackbar(resources.getString(R.string.inventory_product_updated))
+                }
             }
         }
     }

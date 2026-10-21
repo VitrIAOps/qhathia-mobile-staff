@@ -7,12 +7,11 @@
     <string name="notif_new_order_title">New purchase order</string>
     <string name="notif_new_order_body">You have a new order to handle</string>
 
-    <!-- Order taken (ORDER_TAKEN) -->
-    <string name="notif_order_taken_title">Order updated</string>
-    <string name="notif_order_confirmed_body">An order was confirmed</string>
-    <string name="notif_order_rejected_body">An order was rejected</string>
-    <string name="notif_order_updated_body">An order changed status</string>
+    <!-- Order about to expire (ORDER_EXPIRING) -->
+    <string name="notif_order_expiring_title">Order about to expire</string>
+    <string name="notif_order_expiring_body">A pending order is about to expire. Handle it soon.</string>
 
-    <!-- Fallback -->
+    <!-- Fallback (unknown events) -->
+    <string name="notif_order_updated_body">An order changed status</string>
     <string name="notif_order_generic_title">Order updates</string>
 </resources>

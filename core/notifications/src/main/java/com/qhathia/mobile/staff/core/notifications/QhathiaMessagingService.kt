@@ -9,7 +9,9 @@ import javax.inject.Inject
 
 /**
  * Receives FCM messages for this device. The backend sends **data-only, PII-free** payloads
- * (`{event, orderId, storeId, status}`), so the app always builds the local notification itself.
+ * (`{event, orderId, storeId, status}`), so the app builds (or, for `ORDER_TAKEN`,
+ * cancels) the local notification itself. The payload's `status` is not needed: the event alone
+ * decides what the tray shows.
  *
  * Both callbacks run on an FCM background thread; token registration is done with [runBlocking] so
  * it completes before the callback returns (the underlying use case is fail-open).
@@ -30,16 +32,14 @@ class QhathiaMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
-        presenter.showOrderNotification(
+        presenter.handleOrderPush(
             event = data[KEY_EVENT],
-            status = data[KEY_STATUS],
             orderId = data[KEY_ORDER_ID],
         )
     }
 
     private companion object {
         const val KEY_EVENT = "event"
-        const val KEY_STATUS = "status"
         const val KEY_ORDER_ID = "orderId"
     }
 }

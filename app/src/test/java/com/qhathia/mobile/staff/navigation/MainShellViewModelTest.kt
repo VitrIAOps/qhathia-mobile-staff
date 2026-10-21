@@ -2,9 +2,13 @@ package com.qhathia.mobile.staff.navigation
 
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.usecase.ObservePendingOrderCountUseCase
-import com.qhathia.mobile.staff.core.domain.usecase.RefreshPendingOrderCountUseCase
+import com.qhathia.mobile.staff.core.domain.model.OrderPage
+import com.qhathia.mobile.staff.core.domain.usecase.ReconcileOrderNotificationsUseCase
+import com.qhathia.mobile.staff.core.testing.FakeOrderNotificationTray
 import com.qhathia.mobile.staff.core.testing.FakeOrderRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
+import com.qhathia.mobile.staff.core.testing.TestFixtures
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,25 +23,53 @@ class MainShellViewModelTest {
     val mainDispatcher = MainDispatcherExtension()
 
     private lateinit var repository: FakeOrderRepository
+    private lateinit var tray: FakeOrderNotificationTray
 
     @BeforeEach
     fun setUp() {
         repository = FakeOrderRepository()
+        tray = FakeOrderNotificationTray()
     }
 
     private fun createViewModel() = MainShellViewModel(
         observePendingOrderCount = ObservePendingOrderCountUseCase(repository),
-        refreshPendingOrderCount = RefreshPendingOrderCountUseCase(repository),
+        reconcileOrderNotifications = ReconcileOrderNotificationsUseCase(repository, tray),
     )
 
     @Test
-    fun `entering the shell refreshes the pending count`() = runTest {
-        repository.pendingCountResult = Result.success(2)
-
+    fun `creating the view model alone does not refresh the pending count`() = runTest {
         createViewModel()
         runCurrent()
 
+        assertEquals(0, repository.refreshPendingCountCallCount)
+        assertEquals(0, tray.cancelUnmatchedCallCount)
+    }
+
+    @Test
+    fun `coming to the foreground with an empty tray refreshes the pending count`() = runTest {
+        repository.pendingCountResult = Result.success(2)
+        val viewModel = createViewModel()
+
+        viewModel.onForegrounded()
+        runCurrent()
+
         assertEquals(1, repository.refreshPendingCountCallCount)
+        assertEquals(1, tray.cancelUnmatchedCallCount)
+    }
+
+    @Test
+    fun `coming to the foreground cancels notifications of orders no longer pending`() = runTest {
+        tray.activeIds += setOf("handled", "still-pending")
+        repository.ordersResult = Result.success(
+            OrderPage(orders = listOf(TestFixtures.order(id = "still-pending")), totalElements = 1),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.onForegrounded()
+        runCurrent()
+
+        assertEquals(listOf("handled"), tray.cancelledIds)
+        assertEquals(1, repository.pendingOrderCount.first())
     }
 
     @Test
