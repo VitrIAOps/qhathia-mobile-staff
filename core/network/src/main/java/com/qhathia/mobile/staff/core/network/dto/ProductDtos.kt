@@ -6,8 +6,9 @@ import kotlinx.serialization.Serializable
 
 /**
  * Row of `GET /api/v1/products`. Optional fields are nullable/defaulted because a product may have
- * no category or image, and the products API exposes no stock quantity yet (the row's stock
- * indicator is mocked in the data layer until backend adds the field).
+ * no category or image. [stock] is `null` for legacy and "consult" products. [discountedPrice] is
+ * the server-computed price with the discount in effect, `null` when there is none, and
+ * [discountEndsAt] (ISO-8601) is when that discount ends.
  */
 @Serializable
 data class ProductDto(
@@ -20,6 +21,9 @@ data class ProductDto(
     val allowDiscountInquiry: Boolean = false,
     val position: Int = 0,
     val primaryImageUrl: String? = null,
+    val stock: Int? = null,
+    val discountedPrice: Double? = null,
+    val discountEndsAt: String? = null,
 )
 
 /** One photo/video row of a product, as returned inside [ProductDetailDto.media]. */

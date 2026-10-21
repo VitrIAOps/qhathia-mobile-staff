@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class ProductDtosTest {
@@ -31,5 +32,32 @@ class ProductDtosTest {
         )
 
         assertEquals("""["bosch","650w"]""", body["tags"].toString())
+    }
+
+    private val lenientJson = Json { ignoreUnknownKeys = true }
+
+    @Test
+    fun `a products row carries stock and the server-computed discount`() {
+        val row = lenientJson.decodeFromString(
+            ProductDto.serializer(),
+            """{"id":"p1","name":"Foco LED","price":35.90,"stock":1,""" +
+                """"discountedPrice":30.90,"discountEndsAt":"2026-10-25T05:00:00Z","discounts":[]}""",
+        )
+
+        assertEquals(1, row.stock)
+        assertEquals(30.90, row.discountedPrice)
+        assertEquals("2026-10-25T05:00:00Z", row.discountEndsAt)
+    }
+
+    @Test
+    fun `a products row from an older backend leaves stock and discount null`() {
+        val row = lenientJson.decodeFromString(
+            ProductDto.serializer(),
+            """{"id":"p1","name":"Foco LED","price":35.90}""",
+        )
+
+        assertNull(row.stock)
+        assertNull(row.discountedPrice)
+        assertNull(row.discountEndsAt)
     }
 }

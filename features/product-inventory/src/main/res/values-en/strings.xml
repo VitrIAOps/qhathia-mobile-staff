@@ -22,7 +22,9 @@
     <string name="inventory_availability_consult">Check availability</string>
 
     <string name="inventory_stock_format">%1$d in stock</string>
+    <string name="inventory_out_of_stock">Out of stock</string>
     <string name="inventory_price_format">S/ %1$.2f</string>
+    <string name="inventory_price_discounted_cd">Original price S/ %1$.2f, discounted price S/ %2$.2f</string>
 
     <string name="inventory_register_cd">Register product</string>
     <string name="inventory_product_image_cd">Product image</string>

@@ -89,7 +89,13 @@ object TestFixtures {
         price: Double = 189.0,
         availability: Availability = Availability.AVAILABLE,
         primaryImageUrl: String? = null,
-    ) = Product(id, categoryId, categoryName, name, price, availability, primaryImageUrl)
+        stock: Int? = null,
+        discountedPrice: Double? = null,
+        discountEndsAt: Instant? = null,
+    ) = Product(
+        id, categoryId, categoryName, name, price, availability, primaryImageUrl,
+        stock, discountedPrice, discountEndsAt,
+    )
 
     fun productDetail(
         id: String = "product-1",
