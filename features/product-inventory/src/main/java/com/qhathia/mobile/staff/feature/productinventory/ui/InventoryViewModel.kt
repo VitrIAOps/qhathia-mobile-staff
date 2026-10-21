@@ -18,6 +18,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +58,9 @@ class InventoryViewModel @Inject constructor(
 
     /** A product to scroll to once the load in flight delivers the list it should be in. */
     private var pendingRevealProductId: String? = null
+
+    /** The products request in flight; a newer one replaces it so a stale response never lands. */
+    private var productsJob: Job? = null
 
     init {
         onEvent(InventoryUiEvent.Load)
@@ -225,6 +229,9 @@ class InventoryViewModel @Inject constructor(
                             .copy(isDiscountSaving = false, discountDraft = null, discountProductId = null)
                     }
                     _uiEffect.emit(InventoryUiEffect.ShowMessage(R.string.inventory_discount_updated))
+                    // The row's discounted price comes from the server, so re-read it rather than
+                    // computing it here.
+                    fetchProducts(quiet = true)
                 }
                 .onFailure {
                     // The dialog stays open with what was typed so the merchant can try again. A
@@ -243,12 +250,25 @@ class InventoryViewModel @Inject constructor(
     /** Re-queries products with the active filters — used after a product is registered or edited. */
     fun refresh() = loadProducts()
 
-    private fun loadProducts() {
+    private fun loadProducts() = fetchProducts(quiet = false)
+
+    /**
+     * Queries products with the active filters and applies the search to them.
+     *
+     * A [quiet] fetch keeps the current rows on screen instead of showing the loading state, and on
+     * failure leaves them as they are — it only refreshes what is already shown. If it replaces a
+     * regular load still in flight, it takes over that load's loading and error handling.
+     */
+    private fun fetchProducts(quiet: Boolean) {
         val current = _uiState.value
-        viewModelScope.launch {
-            // A reload follows edits made elsewhere (detail, registration), so what was learned
-            // about each product's discount may be stale.
-            _uiState.update { it.copy(isLoading = true, isError = false, knownDiscounts = persistentMapOf()) }
+        val visible = !quiet || current.isLoading
+        productsJob?.cancel()
+        productsJob = viewModelScope.launch {
+            if (visible) {
+                // A reload follows edits made elsewhere (detail, registration), so what was learned
+                // about each product's discount may be stale.
+                _uiState.update { it.copy(isLoading = true, isError = false, knownDiscounts = persistentMapOf()) }
+            }
             getProductsUseCase(current.selectedCategoryId, current.selectedAvailability)
                 .onSuccess { products ->
                     _uiState.update { state ->
@@ -265,6 +285,7 @@ class InventoryViewModel @Inject constructor(
                     }
                 }
                 .onFailure {
+                    if (!visible) return@onFailure
                     pendingRevealProductId = null
                     _uiState.update { it.copy(isLoading = false, isError = true) }
                     _uiEffect.emit(InventoryUiEffect.ShowError(R.string.inventory_error))

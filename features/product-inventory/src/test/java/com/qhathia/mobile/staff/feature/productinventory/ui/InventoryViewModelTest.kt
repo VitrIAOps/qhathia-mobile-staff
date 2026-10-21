@@ -353,6 +353,101 @@ class InventoryViewModelTest {
         assertNull(viewModel.uiState.value.hasDiscount("p1"))
     }
 
+    /** Opens the discount dialog for p1 and enters a 10 % discount, ready to apply. */
+    private fun InventoryViewModel.withDiscountTyped() {
+        onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+        val draft = checkNotNull(uiState.value.discountDraft)
+        onEvent(InventoryUiEvent.DiscountDraftChanged(draft.withQuickPercentage(10)))
+    }
+
+    @Test
+    fun `a saved discount re-reads the products with the active filters`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1", price = 100.0)))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.SelectCategory("c1"))
+        viewModel.onEvent(InventoryUiEvent.SelectAvailability(Availability.LOW_STOCK))
+        val callsBefore = productRepository.callCount
+        viewModel.withDiscountTyped()
+        productRepository.productsResult = Result.success(
+            listOf(TestFixtures.product(id = "p1", price = 100.0, discountedPrice = 90.0)),
+        )
+
+        viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+
+        assertEquals(callsBefore + 1, productRepository.callCount)
+        assertEquals("c1", productRepository.lastCategoryId)
+        assertEquals(Availability.LOW_STOCK, productRepository.lastAvailability)
+        // The row shows the server's discounted price, not one computed by the app.
+        assertEquals(90.0, viewModel.uiState.value.visibleProducts.single().discountedPrice)
+    }
+
+    @Test
+    fun `the re-read after a saved discount keeps the rows on screen`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        viewModel.withDiscountTyped()
+        val gate = CompletableDeferred<Unit>()
+        productRepository.productsGate = gate
+
+        viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals(listOf("p1"), viewModel.uiState.value.visibleProducts.map { it.id })
+        gate.complete(Unit)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `a failed re-read after a saved discount leaves the rows and shows no error`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        viewModel.withDiscountTyped()
+        productRepository.productsResult = Result.failure(IOException("offline"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+            assertTrue(awaitItem() is InventoryUiEffect.ShowMessage)
+            expectNoEvents()
+        }
+        assertFalse(viewModel.uiState.value.isError)
+        assertEquals(listOf("p1"), viewModel.uiState.value.visibleProducts.map { it.id })
+    }
+
+    @Test
+    fun `the re-read after a saved discount keeps the search`() = runTest {
+        val products = listOf(
+            TestFixtures.product(id = "p1", name = "Taladro Bosch"),
+            TestFixtures.product(id = "p2", name = "Martillo"),
+        )
+        productRepository.productsResult = Result.success(products)
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.Search("taladro"))
+        viewModel.withDiscountTyped()
+
+        viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+
+        assertEquals("taladro", viewModel.uiState.value.searchQuery)
+        assertEquals(listOf("p1"), viewModel.uiState.value.visibleProducts.map { it.id })
+        assertEquals(2, viewModel.uiState.value.loadedProducts.size)
+    }
+
+    @Test
+    fun `a filter change during the re-read is not overwritten by it`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        val viewModel = createViewModel()
+        viewModel.withDiscountTyped()
+        productRepository.productsGate = CompletableDeferred()
+        viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+
+        // The filter change replaces the re-read still in flight.
+        productRepository.productsGate = null
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "c1-product")))
+        viewModel.onEvent(InventoryUiEvent.SelectCategory("c1"))
+
+        assertEquals(listOf("c1-product"), viewModel.uiState.value.visibleProducts.map { it.id })
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
     private fun productsWithRegistered() = listOf(
         TestFixtures.product(id = "p1", name = "Taladro Bosch"),
         TestFixtures.product(id = "p2", name = "Martillo"),

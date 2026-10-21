@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,7 +38,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
@@ -46,7 +51,6 @@ import com.qhathia.mobile.staff.core.domain.model.Product
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.feature.productinventory.R
-import kotlin.math.abs
 
 /**
  * A single inventory product (DS "Product-cards"): 59dp thumbnail, name over a price/stock row, and
@@ -55,7 +59,9 @@ import kotlin.math.abs
  *
  * [hasDiscount] is only known once the menu has been opened ([onActionsOpened] triggers the
  * lookup): it picks between "Registrar descuento" and "Editar descuento".
- * The "N stock" value is mocked via [mockedStock] until backend exposes a real stock quantity.
+ *
+ * Stock and discounted price are shown exactly as the products API sends them: an unknown stock
+ * shows nothing, and the discounted price is never computed here.
  */
 @Composable
 internal fun ProductRow(
@@ -119,19 +125,21 @@ internal fun ProductRow(
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
                 verticalAlignment = Alignment.Bottom,
             ) {
-                Text(
-                    text = stringResource(R.string.inventory_price_format, product.price),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                ProductPrice(
+                    price = product.price,
+                    discountedPrice = product.discountedPrice,
+                    modifier = Modifier.weight(1f),
                 )
-                Text(
-                    text = stringResource(R.string.inventory_stock_format, mockedStock(product)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                stockLabel(product.stock)?.let { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
             }
         }
 
@@ -221,6 +229,56 @@ private fun ProductRowActions(
     }
 }
 
+/**
+ * The row's price. With a discount in effect the original price is struck through and the
+ * server's [discountedPrice] follows it in bold, styled like the discount dialog; the two wrap onto
+ * a second line rather than squeeze the stock label. Screen readers get one sentence naming both
+ * prices instead of two bare numbers.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ProductPrice(price: Double, discountedPrice: Double?, modifier: Modifier = Modifier) {
+    if (discountedPrice == null) {
+        Text(
+            text = stringResource(R.string.inventory_price_format, price),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = modifier,
+        )
+        return
+    }
+    val description = stringResource(R.string.inventory_price_discounted_cd, price, discountedPrice)
+    FlowRow(
+        modifier = modifier.clearAndSetSemantics { contentDescription = description },
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
+        itemVerticalAlignment = Alignment.Bottom,
+    ) {
+        Text(
+            text = stringResource(R.string.inventory_price_format, price),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textDecoration = TextDecoration.LineThrough,
+        )
+        Text(
+            text = stringResource(R.string.inventory_price_format, discountedPrice),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/**
+ * "N stock", or "Sin existencias" at zero so a stock-out does not read as a small number, or
+ * nothing at all when the API does not know the stock.
+ */
+@Composable
+private fun stockLabel(stock: Int?): String? = when (stock) {
+    null -> null
+    0 -> stringResource(R.string.inventory_out_of_stock)
+    else -> stringResource(R.string.inventory_stock_format, stock)
+}
+
 /** A centered, tinted icon used as the thumbnail's loading / error / no-image state. */
 @Composable
 private fun ThumbnailStateIcon(icon: ImageVector) {
@@ -236,11 +294,3 @@ private fun ThumbnailStateIcon(icon: ImageVector) {
         )
     }
 }
-
-/**
- * Interim stock placeholder. `GET /api/v1/products` exposes no stock quantity yet; backend will add
- * it later. Derived deterministically from the product id so the value is stable across
- * recompositions. **Replace this single helper (and the DTO/domain field) when the real field
- * lands** — the row layout above does not change.
- */
-internal fun mockedStock(product: Product): Int = (abs(product.id.hashCode()) % 90) + 10

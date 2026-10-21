@@ -233,8 +233,16 @@ private fun ErrorState(onRetry: () -> Unit, modifier: Modifier = Modifier) {
 
 // ---- Previews ----
 
+/** Rows covering every stock state (n, 0, unknown) and both price states (plain, discounted). */
 private fun sampleProducts(): ImmutableList<Product> =
-    List(6) { index ->
+    listOf(
+        12 to null,
+        1 to 151.2,
+        0 to null,
+        null to null,
+        99 to 174.0,
+        5 to null,
+    ).mapIndexed { index, (stock, discountedPrice) ->
         Product(
             id = "p$index",
             categoryId = "c1",
@@ -243,6 +251,8 @@ private fun sampleProducts(): ImmutableList<Product> =
             price = 189.0,
             availability = Availability.AVAILABLE,
             primaryImageUrl = null,
+            stock = stock,
+            discountedPrice = discountedPrice,
         )
     }.toImmutableList()
 

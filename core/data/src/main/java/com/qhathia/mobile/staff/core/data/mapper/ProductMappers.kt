@@ -24,6 +24,9 @@ fun ProductDto.toDomain(): Product = Product(
     price = price,
     availability = availability.toAvailability(),
     primaryImageUrl = primaryImageUrl,
+    stock = stock,
+    discountedPrice = discountedPrice,
+    discountEndsAt = discountEndsAt.toInstantOrNull(),
 )
 
 /**

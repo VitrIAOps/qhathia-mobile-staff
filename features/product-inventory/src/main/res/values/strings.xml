@@ -21,9 +21,11 @@
     <string name="inventory_availability_low_stock">Stock bajo</string>
     <string name="inventory_availability_consult">Consultar disponibilidad</string>
 
-    <!-- Mocked stock indicator (interim until backend exposes a stock quantity) -->
+    <!-- Stock indicator: the API's stock as is; nothing when it is unknown -->
     <string name="inventory_stock_format">%1$d stock</string>
+    <string name="inventory_out_of_stock">Sin existencias</string>
     <string name="inventory_price_format">S/ %1$.2f</string>
+    <string name="inventory_price_discounted_cd">Precio original S/ %1$.2f, precio con descuento S/ %2$.2f</string>
 
     <string name="inventory_register_cd">Registrar producto</string>
     <string name="inventory_product_image_cd">Imagen del producto</string>

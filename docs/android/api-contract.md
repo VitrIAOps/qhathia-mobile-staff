@@ -7,9 +7,36 @@
 
 > **Nota para el frontend**: producción es `http://87.99.156.164` (IP directa, sin HTTPS, sin dominio). Local dev: `http://localhost` (todos los servicios via nginx en :80).
 
+> **Si venís del lado Android**: [`docs/handoff/android-pendientes.md`](../handoff/android-pendientes.md)
+> es el plan de trabajo — qué consumir, qué borrar y por qué, ordenado por impacto.
+> Este documento es el contrato; aquel es la lista de tareas.
+
 ---
 
-## Cambios recientes (Fase 1-24)
+## Cambios recientes (Fase 1-28)
+
+**Fase 25-28 — 2026-10-18 (triage de 31 bugs reportados desde la app):** detalle por bug en [`docs/qa/TRIAGE-BUGS.md`](../qa/TRIAGE-BUGS.md), tareas del front en [`docs/handoff/android-pendientes.md`](../handoff/android-pendientes.md).
+
+*Campos nuevos — ninguno rompe un contrato existente:*
+- **`GET /products` suma `stock`**: faltaba, y la app lo estaba **inventando** desde el hash del UUID. El comerciante veía "19 stock", abría el producto y tenía 1, y el pedido se rechazaba al confirmar.
+- **`discountedPrice` y `discountEndsAt`** en `GET /products`, `/products/{id}` y `/catalog/by-category`. El backend **nunca había calculado** el precio con descuento: devolvía `discounts[]` crudo y cada cliente debía hacer la aritmética. Ninguno la hacía. `null` = sin descuento vigente.
+- **Push `ORDER_EXPIRING`**, 10 min antes del vencimiento (configurable). El toggle "Pedido por expirar" existía desde la Fase 20 **sin emisor**. `status` se mantiene en `PENDING`: el pedido no cambió de estado.
+
+*Correcciones de comportamiento:*
+- **`GET /products`: los filtros se cruzan.** `categoryId` y `availability` se combinaban con un `if/else if` y la categoría ganaba — "Iluminación interior" + "Stock bajo" devolvía la categoría entera.
+- **`availability=LOW_STOCK` ahora significa algo**: se traduce a `0 < stock <= umbral` (default 5, el mismo de "Productos para reponer"). La sync stock↔availability nunca asigna ese valor, así que el filtro devolvía cero **siempre**.
+- **La búsqueda por voz aplica piso Y techo.** "Lámpara más de 50 soles" devolvía las de **menos** de 50: `minPrice` se extraía, viajaba en el DTO y nadie filtraba por él.
+- **"Clientes" deja de quedarse en 0.** Sin el header `X-Kiosk-Session` la sesión se infiere por ventana de inactividad del mismo `device_id` (15 min, configurable). El header, si viene, siempre gana.
+- **Comandos a la tablet: los vencidos dejan de bloquear.** Con la tablet apagada un comando se quedaba "en vuelo" hasta la purga de las 03:30 y el botón quedaba en gris casi un día.
+- **El botón de WhatsApp del PDF** concatenaba `51` siempre: `+51 987 654 321` terminaba en `wa.me/5151987654321`. Si el número no tiene forma de móvil peruano, ahora se **omite** el botón.
+- **"Productos no encontrados"** agrupaba frases crudas ("Quiero una amoladora") y las duplicaba contra la versión limpia ("Amoladora"). Ahora el término se canoniza y los grupos se fusionan uniendo sesiones, no sumándolas.
+
+*Campos retirados:*
+- **`pricesIncludeIgv` e `igvRate` salen de `GET/PUT /stores/{id}`.** Era una declaración que solo cambiaba una etiqueta del PDF; un control sin efecto observable se lee como roto. **No rompe apps instaladas**: mandar el campo en el `PUT` sigue dando 200, y su ausencia en la respuesta no rompe un DTO con default.
+- **El PDF dejó de decir "by VitrIA"** (configurable, vacío por defecto).
+
+*Infraestructura, sin cambio de contrato:*
+- **Los tres modelos de IA configurados estaban dados de baja** desde julio y agosto. El fail-open lo escondía: descripciones vacías, sugerencias vacías, todo con 200. Ver `scripts/check-llm-models.sh`.
 
 **Fase 24 — 2026-10-03 (métricas del kiosko y detalle de pedido):** correcciones sobre lo reportado desde la app.
 - **`GET /api/v1/products/{id}` ahora registra la visita** cuando quien consulta es la **tablet** (rol DEVICE). Antes `kiosk_events` solo se llenaba si la app llamaba explícitamente a `/analytics/events`, y mientras no lo hiciera la pestaña Actividad quedaba en cero con gente usando la tablet todo el día.
@@ -28,12 +55,10 @@
 - Los comandos **expiran a los 10 min y no se reintentan**. Un "Reiniciar" del viernes no puede ejecutarse el lunes, y re-entregar un `RESTART_APP` dejaría la tablet en bucle.
 - **auth V18**: tabla `device_commands`.
 
-**Fase 22 — 2026-09-13 (change `store-display-settings`):** pantalla Configuración ("Idioma y precios").
-- **`GET/PUT /api/v1/stores/{storeId}`** gana `language` (`"es"` | `"en"`) y `pricesIncludeIgv`. **Sin endpoint nuevo** — es donde ya viven `whatsapp` y `address`.
-- **`igvRate`** (`0.18`) sale en la respuesta para que la tablet, la app y el PDF no lo hardcodeen por separado.
-- **El backend NO recalcula precios.** `pricesIncludeIgv` declara cómo leer `products.price`; mover el toggle cambia etiquetas, nunca montos.
-- El **PDF del carrito** rotula el total: "Precios con IGV incluido." o "Los precios no incluyen IGV (18%)". No suma impuesto.
+**Fase 22 — 2026-09-13 (change `store-display-settings`):** pantalla Configuración.
+- **`GET/PUT /api/v1/stores/{storeId}`** gana `language` (`"es"` | `"en"`). **Sin endpoint nuevo** — es donde ya viven `whatsapp` y `address`.
 - `language` **se persiste pero todavía no se aplica**: que el asistente de voz conteste en inglés es su propio change.
+- Traía también `pricesIncludeIgv` e `igvRate`: **retirados en la Fase 27**, el toggle solo cambiaba una etiqueta del PDF.
 - **auth V17**: `stores.language` + `stores.prices_include_igv`.
 - **Además**: `GlobalExceptionHandler` (auth y biz) mapea `HttpMessageNotReadableException` a **400** con los valores válidos del enum. Antes un enum desconocido en el body salía como **500**.
 
@@ -199,9 +224,13 @@ Esta sección resume los cambios contractuales más relevantes desde la versión
 19. [Seguridad de la cuenta y sesiones (Fase 19)](#19-seguridad-de-la-cuenta-y-sesiones-fase-19)
 20. [Preferencias de notificaciones (Fase 20)](#20-preferencias-de-notificaciones-fase-20)
 21. [Ajustes remotos de la tablet (Fase 21)](#21-ajustes-remotos-de-la-tablet-fase-21)
-22. [Configuración de la tienda: idioma e IGV (Fase 22)](#22-configuración-de-la-tienda-idioma-e-igv-fase-22)
+22. [Configuración de la tienda: idioma (Fase 22)](#22-configuración-de-la-tienda-idioma-fase-22-revisado-en-la-27)
 23. [Comandos remotos a la tablet (Fase 23)](#23-comandos-remotos-a-la-tablet-fase-23)
 24. [Métricas del kiosko: qué mide cada número (Fase 24)](#24-métricas-del-kiosko-qué-mide-cada-número-fase-24)
+25. [Precio con descuento y aviso de expiración (Fase 25)](#25-precio-con-descuento-y-aviso-de-expiración-fase-25)
+26. [Correcciones del triage del 2026-10-18 (Fase 26)](#26-correcciones-del-triage-del-2026-10-18-fase-26)
+27. [Se retira el toggle de IGV (Fase 27)](#27-se-retira-el-toggle-de-igv-fase-27)
+28. [Filtros de Inventario y rango de precio por voz (Fase 28)](#28-filtros-de-inventario-y-rango-de-precio-por-voz-fase-28)
 
 ---
 
@@ -1361,10 +1390,15 @@ curl -X DELETE http://87.99.156.164/api/v1/categories/550e8400-e29b-41d4-a716-44
     "availability": "AVAILABLE",
     "allowDiscountInquiry": false,
     "position": 0,
-    "primaryImageUrl": "https://..."
+    "primaryImageUrl": "https://...",
+    "stock": 12,
+    "discountedPrice": 76.42,
+    "discountEndsAt": "2026-10-25T05:00:00Z"
   }
 ]
 ```
+
+`stock` es `null` en productos legacy y en modo "consultar" (§26). `discountedPrice` y `discountEndsAt` son `null` sin descuento vigente (§25).
 
 **curl:**
 ```bash
@@ -2228,7 +2262,7 @@ curl "http://87.99.156.164/api/v1/orders?q=mari" \
 
 ### GET /api/v1/orders/{id}
 
-**Descripción:** Retorna el detalle completo de una orden, con `items[]`, customer fields y totales. Desde la Fase 16 incluye además `orderCode`, `expiresAt`, y por cada item `productStock` + `productAvailability` (stock vivo del producto, para el warning "quedan pocos"). Desde la Fase 24 cada item suma `productImageUrl` (imagen principal vigente del producto, `null` si no tiene imágenes) — ver [§24](#24-métricas-del-kiosko-qué-mide-cada-número-fase-24).
+**Descripción:** Retorna el detalle completo de una orden, con `items[]`, customer fields y totales. Desde la Fase 16 incluye además `orderCode`, `expiresAt`, y por cada item `productStock` + `productAvailability` (stock vivo del producto, para el warning "quedan pocos").
 **Autenticación:** JWT requerido (roles: `OWNER`, `SELLER`, `ADMIN`)
 
 **Response 200:** mismo shape que el response 201 de `POST /orders` (objeto `OrderResponse` completo con `items[]`).
@@ -3891,18 +3925,19 @@ visible — es aditivo, nada se rompe.
 
 ---
 
-## 22. Configuración de la tienda: idioma e IGV (Fase 22)
+## 22. Configuración de la tienda: idioma (Fase 22, revisado en la 27)
 
-Backend de la pantalla **Configuración** ("Idioma y precios"). Change `store-display-settings`.
-**No hay endpoint nuevo**: los dos campos entran por `GET/PUT /api/v1/stores/{storeId}`, que ya es
+Backend de la pantalla **Configuración**. Change `store-display-settings`.
+**No hay endpoint nuevo**: el campo entra por `GET/PUT /api/v1/stores/{storeId}`, que ya es
 donde viven `whatsapp` y `address`.
+
+> **El toggle de IGV se retiró** en la Fase 27 (triage 2026-10-18, BUG-012).
+> `pricesIncludeIgv` e `igvRate` ya no viajan. Lo que sigue describe solo `language`.
 
 ```json
 {
   "id": "…", "name": "El Martillo", "slug": "el-martillo",
   "language": "es",
-  "pricesIncludeIgv": true,
-  "igvRate": 0.18,
   "…": "…"
 }
 ```
@@ -3910,28 +3945,9 @@ donde viven `whatsapp` y `address`.
 | Campo | Valores | Default |
 |---|---|---|
 | `language` | `"es"` \| `"en"` | `"es"` |
-| `pricesIncludeIgv` | `true` \| `false` | `true` |
-| `igvRate` | derivado, solo lectura | `0.18` |
 
 `PUT` es parcial (los campos ausentes no se tocan) y requiere OWNER/ADMIN. Un `language` fuera de
 los dos valores da **400** con el detalle listando los válidos.
-
-### El backend NO recalcula precios
-
-`pricesIncludeIgv` es una **declaración sobre cómo leer `products.price`**, no una instrucción de
-cálculo:
-
-```
-true   →  products.price YA lleva IGV   →  mostrar "S/ 118 · IGV incluido"
-false  →  products.price es neto        →  mostrar "S/ 100 + IGV"
-```
-
-Mover el toggle **no cambia ningún precio guardado ni ningún total servido**. Si recalculara,
-activarlo y desactivarlo dos veces dejaría precios distintos por redondeo, y un toque accidental
-repreciaría el catálogo entero. El redondeo lo hace quien muestra el número, con su propia regla.
-
-`igvRate` viene del backend justamente para que el kiosko, la app y el PDF no lo escriban por
-separado y discrepen el día que cambie.
 
 ### `language` se guarda, todavía no se aplica
 
@@ -3944,14 +3960,12 @@ nombre en español. Eso se prueba con el LLM delante; es su propio change.
 
 ### Qué hace el PDF
 
-El PDF de la cotización agrega bajo el TOTAL REFERENCIAL:
-
-- `pricesIncludeIgv: true` → "Precios con IGV incluido."
-- `pricesIncludeIgv: false` → "Los precios no incluyen IGV (18%)."
+Bajo el TOTAL REFERENCIAL imprime siempre la misma línea: **"Precios con IGV incluido."**
 
 **No suma el IGV al total.** Ya es un documento referencial que dice que el precio final se
-confirma en la tienda; calcularle un tributo le daría una precisión que no tiene. Si auth no
-responde, el PDF sale igual con el default (IGV incluido) — un share nunca falla por una etiqueta.
+confirma en la tienda; calcularle un tributo le daría una precisión que no tiene.
+
+Antes la línea tenía dos variantes según la tienda. Ver la Fase 27 para por qué ahora hay una sola.
 
 ---
 
@@ -4181,3 +4195,299 @@ reconocer el producto que tiene en el estante hoy.
 
 Se resuelve con **una consulta por pedido**, no una por línea: `Product.media`
 es `LAZY` y tocarla por ítem sería un N+1 contra `product_media`.
+
+---
+
+## 25. Precio con descuento y aviso de expiración (Fase 25)
+
+Dos correcciones nacidas del triage de bugs del 2026-10-18
+(`docs/qa/TRIAGE-BUGS.md`, BUG-008 y BUG-013).
+
+### El backend ahora calcula el precio con descuento
+
+Hasta esta fase el backend **guardaba** los descuentos y los devolvía crudos en
+`discounts[]`, dejando la aritmética a cada cliente. Ninguno la hacía: el mismo
+producto se veía a precio lleno en la grilla del Discovery, en la lista de
+Inventario y en el PDF.
+
+Ahora el precio efectivo lo calcula el servidor y viaja en **dos campos nuevos**:
+
+| Campo | Tipo | Significado |
+|---|---|---|
+| `discountedPrice` | `number \| null` | Precio ya con el descuento aplicado |
+| `discountEndsAt` | ISO-8601 `\| null` | Fin del descuento aplicado |
+
+`null` significa **sin descuento vigente**: el cliente pinta solo `price`.
+
+Están en:
+
+- `GET /api/v1/products` — cada fila (`ProductSummaryResponse`)
+- `GET /api/v1/products/{id}` — además de `discounts[]`, que se mantiene
+- `GET /api/v1/catalog/by-category` — cada producto de cada grupo
+
+```json
+{
+  "id": "…",
+  "name": "Foco LED Philips Globo E27 13W Luz Cálida",
+  "price": 35.90,
+  "discountedPrice": 30.90,
+  "discountEndsAt": "2026-10-25T05:00:00Z"
+}
+```
+
+#### Las reglas, que ahora son una sola
+
+| Regla | Decisión |
+|---|---|
+| Varios descuentos vigentes | **Gana el más barato**, no se encadenan |
+| Ventana | `startsAt <= ahora < endsAt` (fin exclusivo) |
+| Redondeo | `HALF_UP` a 2 decimales |
+| Monto mayor que el precio | Tope en 0, nunca negativo |
+| Descuento que no baja nada | `discountedPrice: null` |
+
+**No se encadenan a propósito.** Dos promociones solapadas podrían regalar el
+producto sin que nadie lo haya decidido.
+
+**Fail-open**: si la consulta de descuentos falla, el listado responde 200 con
+los precios de lista y registra un warning. Un catálogo sin etiqueta de oferta se
+sigue vendiendo; uno que no carga, no.
+
+`discounts[]` sigue en el detalle para quien quiera mostrar el detalle de la
+promo, pero **el número autoritativo es `discountedPrice`** — repetir la
+aritmética en el cliente es volver al bug.
+
+### Aviso "este pedido está por vencer"
+
+El toggle `orderExpiring` de la Fase 20 existía sin emisor. Ahora lo tiene.
+
+| Pieza | Valor |
+|---|---|
+| Evento del push | `ORDER_EXPIRING` |
+| `status` del payload | `PENDING` — el pedido **no** cambió de estado |
+| Antelación | `ORDERS_EXPIRING_WARNING_MINUTES`, default **10** |
+| Apagarlo | Poner la variable en `0` |
+| Respeta preferencia | Sí, el toggle `orderExpiring` (opt-out) |
+
+```json
+{ "event": "ORDER_EXPIRING", "orderId": "…", "storeId": "…", "status": "PENDING" }
+```
+
+**Se manda una sola vez por pedido**, garantizado por la columna
+`orders.expiring_notified_at` (biz V18) y un `UPDATE` condicional: varias
+instancias del backend barriendo a la vez mandan un solo aviso.
+
+**El `status` se mantiene en `PENDING` a propósito.** Mandar otra cosa haría que
+la app sacara el pedido de "Pendientes", que es lo contrario de lo que pide el
+aviso.
+
+#### Lo que falta del lado de la app
+
+`OrderNotificationPresenter.contentFor` no conoce el evento todavía, así que cae
+en el texto genérico *"Pedido actualizado"*. Necesita su rama con los strings
+propios. El push llega y suena igual.
+
+---
+
+## 26. Correcciones del triage del 2026-10-18 (Fase 26)
+
+Cinco arreglos de backend del segundo lote de bugs
+(`docs/qa/TRIAGE-BUGS.md`, BUG-015 a BUG-020). Ninguno rompe un contrato
+existente: todo es campo nuevo o comportamiento que antes estaba mal.
+
+### `stock` en el listado de productos
+
+`GET /api/v1/products` ahora devuelve `stock` por fila, el mismo
+`products.stock` del detalle.
+
+```json
+{ "id": "…", "name": "Caja de herramientas metálica 20\"", "price": 95.00, "stock": 1 }
+```
+
+`null` en productos legacy y en modo "consultar".
+
+**Por qué importa.** Faltaba, y la app de staff lo estaba **inventando**:
+derivaba un número del hash del UUID (`(abs(id.hashCode()) % 90) + 10`). El
+comerciante veía "19 stock", editaba y encontraba 1. El front tiene que borrar
+ese helper y leer el campo.
+
+### "Clientes" ya no se queda en cero
+
+`GET /api/v1/dashboard/activity` → `uniqueSessions` contaba
+`COUNT(DISTINCT session_id)`, y como la tablet no manda `X-Kiosk-Session` todas
+las filas entraban con `NULL`. Resultado: *0 clientes · 27 productos
+consultados*.
+
+Ahora, cuando el header **no** viene, el backend infiere la sesión por ventana de
+inactividad del mismo `device_id`:
+
+| Caso | Sesión asignada |
+|---|---|
+| Vino `X-Kiosk-Session` | Esa |
+| Actividad de la tablet hace < N min | La misma |
+| Sin actividad reciente | Nueva, con prefijo `srv-` |
+
+`N` = `DASHBOARD_KIOSK_SESSION_GAP_MINUTES`, default **15**. `0` apaga la
+inferencia.
+
+**Precisión.** Dos personas separadas por menos de N minutos cuentan como una. Es
+el error de cualquier analítica por inactividad, y es menor que contar cero. Para
+exactitud, la app debe mandar el header — **siempre gana sobre lo inferido**.
+
+### El botón de WhatsApp del PDF
+
+`buildMerchantWaLink` concatenaba `"51"` **siempre**, sin mirar si el número ya lo
+traía: `+51 987 654 321` terminaba en `wa.me/5151987654321` y WhatsApp respondía
+que el número no existe.
+
+Ahora se normaliza a MSISDN peruano:
+
+| Entrada | Salida |
+|---|---|
+| `987654321` | `51987654321` |
+| `+51 987 654 321` | `51987654321` |
+| `0051987654321` | `51987654321` |
+| otra cosa | **se omite el botón** |
+
+Omitir es deliberado: un botón que lleva a un número inexistente es peor que
+ninguno.
+
+### La bajada del PDF
+
+`vitria.qhatia.pdf-sub-brand` (`QHATIA_PDF_SUB_BRAND`), **vacío por defecto**.
+Estaba fijo en `"by VitrIA"`, el nombre técnico del repositorio; la marca del
+cliente final es Qhathia. Vacío = no se dibuja ni bajo el logo ni en el pie.
+
+### Comandos a la tablet: los vencidos dejan de bloquear
+
+`POST /api/v1/devices/{deviceId}/commands` rechazaba encolar si ya había uno en
+vuelo, pero "en vuelo" miraba solo el estado y nunca `expires_at`. Con la tablet
+apagada el comando se quedaba en `DELIVERED` hasta la purga de las **03:30**, y
+el comerciante no podía reenviar el catálogo hasta la madrugada.
+
+Dos cambios:
+
+1. La deduplicación exige `expires_at > now`. Un comando vencido ya no bloquea.
+2. `GET /api/v1/devices/{deviceId}/commands` cierra los vencidos antes de
+   responder, así la card muestra `EXPIRED` en vez de `DELIVERED` para siempre.
+
+**La política de no reintentar no cambió**: re-entregar un `RESTART_APP` dejaría
+la tablet en bucle.
+
+### "Productos no encontrados": términos canónicos y sin duplicar
+
+`GET /api/v1/insights/unmet-searches` (vo) devolvía frases enteras como productos
+—*"Quiero una amoladora"*— y además duplicadas contra la versión limpia
+—*"Amoladora"*— porque Mongo agrupa por el valor literal y la normalización
+corría después.
+
+Ahora el término se canoniza antes de comparar:
+
+| Paso | Ejemplo |
+|---|---|
+| Puntuación final | `"lámparas."` → `"lamparas"` |
+| Arranque conversacional, en cadena | `"quiero ver una amoladora"` → `"amoladora"` |
+| Plural regular | `"lamparas"` → `"lampara"` |
+
+Y los grupos que colapsan al mismo término se fusionan **después** de la
+agregación, **uniendo las sesiones en vez de sumarlas**: quien buscó de las dos
+formas es una persona, no dos.
+
+`examples[]` sigue trayendo los textos crudos — el término se limpia para
+agrupar, pero la evidencia de qué modelo comprar está en lo que la gente dijo.
+
+---
+
+## 27. Se retira el toggle de IGV (Fase 27)
+
+**Cambio de contrato.** `pricesIncludeIgv` e `igvRate` salen de
+`GET /api/v1/stores/{storeId}` y de `PUT /api/v1/stores/{storeId}`.
+
+### Por qué
+
+El flag era una **declaración, no un cálculo**: su único efecto era elegir entre dos líneas de
+texto del PDF. Apagarlo no movía ningún precio, y así se reportó como bug (triage 2026-10-18,
+BUG-012) — con razón, porque un control que no produce efecto observable se lee como roto.
+
+Se retiró en vez de hacerlo calcular. En Perú el precio al consumidor lleva IGV incluido por ley
+y así es como las tiendas ya cargaban `products.price`: **todas estaban en `true`**. Hacerlo
+calcular habría sido trabajo en doce superficies con precio para un caso de uso que no está
+confirmado que exista.
+
+### Qué significa ahora
+
+`products.price` **es el precio final que paga el consumidor**, siempre. No hay configuración por
+tienda y el backend no hace aritmética de impuestos en ningún lado.
+
+### Compatibilidad: no rompe nada instalado
+
+| Dirección | Qué pasa |
+|---|---|
+| App vieja **manda** `pricesIncludeIgv` en el `PUT` | **200**. Spring Boot ignora propiedades desconocidas; hay un test que lo fija |
+| App vieja **espera** el campo en la respuesta | El DTO de Kotlin tiene default, así que su ausencia no rompe la deserialización |
+
+### La columna sigue en la base
+
+`stores.prices_include_igv` se conserva (**auth V19** solo reescribe su `COMMENT`). Queda sin
+mapear en la entidad y fuera de la API.
+
+Borrarla es destructivo a cambio de un byte por tienda. Y si algún día aparece un comerciante que
+carga precios netos, el diseño correcto **no** es reescribir el catálogo: es derivar el precio al
+público en **lectura** (`price × 1.18`) dejando `products.price` intacto — reversible, sin
+migración— y esta columna es donde vive esa declaración.
+
+### Queda del front
+
+Borrar el toggle y sus 14 archivos de alcance (`AppSettingsScreen`,
+`SetPricesIncludeIgvUseCase`, el campo de `StoreSettings`, el parámetro de `StoreApiService`,
+mappers, fakes y los strings `settings_igv*`). Mientras tanto el toggle manda un campo que se
+ignora y lee uno que no llega: se queda fijo en "encendido" sin hacer nada.
+
+---
+
+## 28. Filtros de Inventario y rango de precio por voz (Fase 28)
+
+Triage 2026-10-18, BUG-022 y BUG-024.
+
+### `GET /api/v1/products`: los filtros se cruzan
+
+`categoryId` y `availability` **se combinan**. Antes el backend elegía uno con un
+`if/else if` y la categoría ganaba: pedir "Iluminación interior" + "Stock bajo"
+devolvía la categoría entera, con productos de 78 de stock.
+
+### `availability=LOW_STOCK` ahora significa algo
+
+La sync `stock ↔ availability` produce solo `CONSULT` (stock null),
+`OUT_OF_STOCK` (0) y `AVAILABLE` (>0). **`LOW_STOCK` no lo asigna nadie**, así que
+filtrar por ese valor devolvía cero siempre.
+
+Ahora el backend lo traduce a un rango: `0 < stock <= DASHBOARD_RESTOCK_THRESHOLD`
+(default **5**) — **el mismo umbral** que "Productos para reponer" en Inicio. El
+valor del parámetro no cambia, así que la app no necesita tocar nada.
+
+```
+GET /api/v1/products?categoryId=<uuid>&availability=LOW_STOCK
+→ los productos de esa categoría con 1..5 de stock
+```
+
+### El rango de precio de la búsqueda por voz
+
+`POST /api/v1/conversations/search` (vo) aplica ahora **piso y techo**.
+
+`minPrice` ya se extraía —el prompt del LLM lo pedía y el DTO lo llevaba— pero
+**nadie filtraba por él**: solo se aplicaba el máximo. *"Lámpara de más de 50
+soles"* devolvía las de menos de 50.
+
+El extractor por reglas también invertía la frase: tenía el prefijo opcional, así
+que el `50` suelto de "más de 50" entraba como techo. Ahora hay un patrón por
+sentido, con prefijo obligatorio:
+
+| Frase | Resultado |
+|---|---|
+| "menos de 50", "hasta 50", "por debajo de 50" | techo 50 |
+| "más de 50", "desde 50", "a partir de 50" | piso 50 |
+| "no más de 80" | techo 80 (no piso) |
+| "desde 20 hasta 60" | rango 20–60 |
+| "lámpara 200 soles" | techo 200 — un número suelto sigue siendo presupuesto |
+
+`search_events` guarda también `minPrice`, para que la analítica vea la consulta
+completa.

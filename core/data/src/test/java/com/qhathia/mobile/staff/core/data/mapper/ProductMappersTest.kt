@@ -1,10 +1,13 @@
 package com.qhathia.mobile.staff.core.data.mapper
 
 import com.qhathia.mobile.staff.core.network.dto.ProductDetailDto
+import com.qhathia.mobile.staff.core.network.dto.ProductDto
 import com.qhathia.mobile.staff.core.network.dto.ProductMediaDto
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import java.time.Instant
 
 class ProductMappersTest {
 
@@ -84,5 +87,45 @@ class ProductMappersTest {
         )
 
         assertEquals(listOf("photo.jpg"), dto.toDomain().imageUrls)
+    }
+
+    @Test
+    fun `ProductDto toDomain carries stock and the server-computed discount`() {
+        val product = ProductDto(
+            id = "p1",
+            name = "Foco LED",
+            price = 35.9,
+            stock = 1,
+            discountedPrice = 30.9,
+            discountEndsAt = "2026-10-25T05:00:00Z",
+        ).toDomain()
+
+        assertEquals(1, product.stock)
+        assertEquals(30.9, product.discountedPrice)
+        assertEquals(Instant.parse("2026-10-25T05:00:00Z"), product.discountEndsAt)
+    }
+
+    @Test
+    fun `ProductDto toDomain keeps unknown stock and no discount as null`() {
+        val product = ProductDto(id = "p1", name = "Foco LED", price = 35.9).toDomain()
+
+        // Null stock means "unknown", never zero: the row must not invent a number.
+        assertNull(product.stock)
+        assertNull(product.discountedPrice)
+        assertNull(product.discountEndsAt)
+    }
+
+    @Test
+    fun `ProductDto toDomain maps an unparsable discount end to null`() {
+        val product = ProductDto(
+            id = "p1",
+            name = "Foco LED",
+            price = 35.9,
+            discountedPrice = 30.9,
+            discountEndsAt = "next friday",
+        ).toDomain()
+
+        assertEquals(30.9, product.discountedPrice)
+        assertNull(product.discountEndsAt)
     }
 }
