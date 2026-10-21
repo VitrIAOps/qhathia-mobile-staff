@@ -42,6 +42,9 @@ sealed interface ProductDetailUiEvent {
 
     /** Back or cancel — routed through the discard dialog when the form is dirty. */
     data object CancelRequested : ProductDetailUiEvent
+
+    /** The header bell — leaves for Solicitudes through the same discard guard as back. */
+    data object OrderRequestsRequested : ProductDetailUiEvent
     data object ConfirmDiscard : ProductDetailUiEvent
     data object DismissDiscard : ProductDetailUiEvent
 }

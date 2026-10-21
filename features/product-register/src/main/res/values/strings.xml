@@ -2,7 +2,7 @@
 <resources>
     <string name="register_title">Registro de producto</string>
     <string name="register_back_cd">Volver</string>
-    <string name="register_notifications_cd">Notificaciones</string>
+    <string name="register_bell_cd">Ver solicitudes</string>
 
     <string name="register_photos_title">Fotos del producto</string>
     <string name="register_photos_subtitle">La primera foto será la principal.</string>

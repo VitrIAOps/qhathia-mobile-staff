@@ -665,4 +665,50 @@ class ProductRegisterViewModelTest {
 
         assertNull(viewModel.uiState.value.toPreviewData())
     }
+
+    @Test
+    fun `the bell on a pristine form leaves for Solicitudes without the dialog`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.OrderRequestsRequested)
+            assertEquals(ProductRegisterUiEffect.NavigateToOrderRequests, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertFalse(viewModel.uiState.value.showDiscardDialog)
+    }
+
+    @Test
+    fun `the bell on a dirty form asks first and confirming leaves for Solicitudes`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductRegisterUiEvent.NameChanged("x"))
+
+        viewModel.onEvent(ProductRegisterUiEvent.OrderRequestsRequested)
+        assertTrue(viewModel.uiState.value.showDiscardDialog)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.ConfirmDiscard)
+            assertEquals(ProductRegisterUiEffect.NavigateToOrderRequests, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertFalse(viewModel.uiState.value.showDiscardDialog)
+    }
+
+    @Test
+    fun `dismissing the dialog after the bell keeps the form and later cancels go back`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductRegisterUiEvent.NameChanged("x"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.OrderRequestsRequested)
+            viewModel.onEvent(ProductRegisterUiEvent.DismissDiscard)
+            expectNoEvents()
+            assertEquals("x", viewModel.uiState.value.name)
+
+            viewModel.onEvent(ProductRegisterUiEvent.CancelRequested)
+            viewModel.onEvent(ProductRegisterUiEvent.ConfirmDiscard)
+            assertEquals(ProductRegisterUiEffect.NavigateBackCancelled, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

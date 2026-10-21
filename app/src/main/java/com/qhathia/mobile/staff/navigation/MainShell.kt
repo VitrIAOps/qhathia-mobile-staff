@@ -133,6 +133,16 @@ fun MainShell(
         }
     }
 
+    /**
+     * The bell on a form pushed over Inventario (product detail, registration). The form is popped
+     * first, so the Inventario stack saved by the tab switch is just the list: coming back to the tab
+     * never brings back a form the merchant chose to leave.
+     */
+    fun leaveFormForOrderRequests() {
+        navController.popBackStack()
+        switchTab(ORDER_REQUESTS_ROUTE)
+    }
+
     LaunchedEffect(pendingDestination) {
         if (pendingDestination != DESTINATION_ORDER_REQUESTS) return@LaunchedEffect
         switchTab(ORDER_REQUESTS_ROUTE)
@@ -188,6 +198,7 @@ fun MainShell(
             inventoryGraph(
                 onNavigateToRegister = { navController.navigate(PRODUCT_REGISTER_ROUTE) },
                 onNavigateToProductDetail = { id -> navController.navigate(productDetailRoute(id)) },
+                onNavigateToOrderRequests = { switchTab(ORDER_REQUESTS_ROUTE) },
             )
             productDetailGraph(
                 onSaved = {
@@ -196,6 +207,7 @@ fun MainShell(
                     navController.popBackStack()
                 },
                 onBack = { navController.popBackStack() },
+                onNavigateToOrderRequests = ::leaveFormForOrderRequests,
             )
             productRegisterGraph(
                 onRegistered = { productId ->
@@ -218,6 +230,7 @@ fun MainShell(
                     navController.popBackStack()
                 },
                 onCancelled = { navController.popBackStack() },
+                onNavigateToOrderRequests = ::leaveFormForOrderRequests,
             )
             orderRequestsGraph()
             profileGraph(

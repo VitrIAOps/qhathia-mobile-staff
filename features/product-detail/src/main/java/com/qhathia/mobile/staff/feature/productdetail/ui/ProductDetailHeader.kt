@@ -18,11 +18,13 @@ import androidx.compose.ui.text.font.FontWeight
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.feature.productdetail.R
 
-/** Detail header: a back chevron, the bold screen title and an inert notification bell. */
+/** Detail header: a back chevron, the bold screen title and a bell that opens Solicitudes. */
 @Composable
 internal fun ProductDetailHeader(
     onBack: () -> Unit,
+    onOpenOrderRequests: () -> Unit,
     modifier: Modifier = Modifier,
+    bellEnabled: Boolean = true,
 ) {
     Row(
         modifier = modifier
@@ -46,10 +48,11 @@ internal fun ProductDetailHeader(
                 .weight(1f)
                 .padding(horizontal = Dimens.SpaceXs),
         )
-        IconButton(onClick = {}) {
+        // Opens Solicitudes, like the bells on Inicio and Mi perfil.
+        IconButton(onClick = onOpenOrderRequests, enabled = bellEnabled) {
             Icon(
                 imageVector = Icons.Outlined.Notifications,
-                contentDescription = stringResource(R.string.detail_notifications_cd),
+                contentDescription = stringResource(R.string.detail_bell_cd),
                 tint = MaterialTheme.colorScheme.onSurface,
             )
         }

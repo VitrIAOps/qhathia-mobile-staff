@@ -50,6 +50,7 @@ import com.qhathia.mobile.staff.feature.productinventory.R
 internal fun InventoryHeader(
     searchQuery: String,
     onSearch: (String) -> Unit,
+    onOpenOrderRequests: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -71,14 +72,14 @@ internal fun InventoryHeader(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = QhathiaColors.onHeaderGradient,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = Dimens.SpaceXs),
+                // Starts at the header padding, like Inicio and Solicitudes.
+                modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = {}) {
+            // Opens Solicitudes, like the bells on Inicio and Mi perfil.
+            IconButton(onClick = onOpenOrderRequests) {
                 Icon(
                     imageVector = Icons.Outlined.Notifications,
-                    contentDescription = stringResource(R.string.inventory_notifications_cd),
+                    contentDescription = stringResource(R.string.inventory_bell_cd),
                     tint = QhathiaColors.onHeaderGradient,
                 )
             }

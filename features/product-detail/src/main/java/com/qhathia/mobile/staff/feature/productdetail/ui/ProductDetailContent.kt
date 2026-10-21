@@ -65,7 +65,11 @@ fun ProductDetailContent(
                 .fillMaxSize()
                 .padding(horizontal = Dimens.SpaceMd),
         ) {
-            ProductDetailHeader(onBack = { onEvent(ProductDetailUiEvent.CancelRequested) })
+            ProductDetailHeader(
+                onBack = { onEvent(ProductDetailUiEvent.CancelRequested) },
+                onOpenOrderRequests = { onEvent(ProductDetailUiEvent.OrderRequestsRequested) },
+                bellEnabled = !uiState.isSaving,
+            )
 
             Surface(
                 modifier = Modifier

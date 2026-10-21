@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 fun InventoryScreen(
     onNavigateToRegister: () -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
+    onNavigateToOrderRequests: () -> Unit,
     registerResult: String?,
     registeredProductId: String?,
     onRegisterResultConsumed: () -> Unit,
@@ -124,7 +125,12 @@ fun InventoryScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        InventoryContent(uiState = uiState, onEvent = viewModel::onEvent, listState = listState)
+        InventoryContent(
+            uiState = uiState,
+            onEvent = viewModel::onEvent,
+            listState = listState,
+            onOpenOrderRequests = onNavigateToOrderRequests,
+        )
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter),

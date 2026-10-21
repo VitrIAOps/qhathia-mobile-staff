@@ -109,12 +109,18 @@ class ProductDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(showPreview = false) }
             ProductDetailUiEvent.Save -> save()
             ProductDetailUiEvent.CancelRequested -> onCancelRequested()
+            // Disabled in the header while saving; ignored here too so a stray tap cannot leave.
+            ProductDetailUiEvent.OrderRequestsRequested ->
+                if (!_uiState.value.isSaving) leave(Exit.ORDER_REQUESTS)
             ProductDetailUiEvent.ConfirmDiscard -> {
                 _uiState.update { it.copy(showDiscardDialog = false) }
-                emit(ProductDetailUiEffect.NavigateBackCancelled)
+                emit(pendingExit.effect)
+                pendingExit = Exit.BACK
             }
-            ProductDetailUiEvent.DismissDiscard ->
+            ProductDetailUiEvent.DismissDiscard -> {
                 _uiState.update { it.copy(showDiscardDialog = false) }
+                pendingExit = Exit.BACK
+            }
         }
     }
 
@@ -254,12 +260,27 @@ class ProductDetailViewModel @Inject constructor(
         _uiState.update { it.copy(quantity = value, quantityError = error, isDirty = true) }
     }
 
-    private fun onCancelRequested() {
+    private fun onCancelRequested() = leave(Exit.BACK)
+
+    /**
+     * Back, cancel and the header bell all leave the form the same way: straight away when nothing
+     * changed, through the discard dialog otherwise. [pendingExit] remembers where to go once the
+     * merchant confirms.
+     */
+    private fun leave(exit: Exit) {
         if (_uiState.value.isDirty) {
+            pendingExit = exit
             _uiState.update { it.copy(showDiscardDialog = true) }
         } else {
-            emit(ProductDetailUiEffect.NavigateBackCancelled)
+            emit(exit.effect)
         }
+    }
+
+    private var pendingExit = Exit.BACK
+
+    private enum class Exit(val effect: ProductDetailUiEffect) {
+        BACK(ProductDetailUiEffect.NavigateBackCancelled),
+        ORDER_REQUESTS(ProductDetailUiEffect.NavigateToOrderRequests),
     }
 
     private fun optimizeDescription() {

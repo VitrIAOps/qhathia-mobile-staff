@@ -30,13 +30,15 @@ const val INVENTORY_REGISTERED_PRODUCT_ID_KEY = "inventory_registered_product_id
 
 /**
  * Registers the inventory destination. [onNavigateToRegister] opens the registration screen and
- * [onNavigateToProductDetail] the detail/edit screen of the tapped product; the destination observes
+ * [onNavigateToProductDetail] the detail/edit screen of the tapped product, and
+ * [onNavigateToOrderRequests] switches to the Solicitudes tab (the header bell); the destination observes
  * its own `SavedStateHandle` for a result set by either on the way back (success/updated → refresh +
  * snackbar, plan-limit → message). A registration also hands back the new product's id.
  */
 fun NavGraphBuilder.inventoryGraph(
     onNavigateToRegister: () -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
+    onNavigateToOrderRequests: () -> Unit,
 ) {
     composable(route = INVENTORY_ROUTE) { entry ->
         val registerResult by entry.savedStateHandle
@@ -45,6 +47,7 @@ fun NavGraphBuilder.inventoryGraph(
         InventoryScreen(
             onNavigateToRegister = onNavigateToRegister,
             onNavigateToProductDetail = onNavigateToProductDetail,
+            onNavigateToOrderRequests = onNavigateToOrderRequests,
             registerResult = registerResult,
             registeredProductId = entry.savedStateHandle[INVENTORY_REGISTERED_PRODUCT_ID_KEY],
             onRegisterResultConsumed = {

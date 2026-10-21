@@ -2,7 +2,7 @@
 <resources>
     <string name="detail_title">Product details</string>
     <string name="detail_back_cd">Back</string>
-    <string name="detail_notifications_cd">Notifications</string>
+    <string name="detail_bell_cd">View requests</string>
 
     <string name="detail_photos_label">Photos</string>
     <string name="detail_photos_empty">This product has no photos yet</string>
