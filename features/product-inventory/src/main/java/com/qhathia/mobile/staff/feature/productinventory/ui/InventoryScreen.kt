@@ -27,6 +27,8 @@ import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEvent
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_PLAN_LIMIT
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_SUCCESS
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_ALREADY_DELETED
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_DELETED
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_UPDATED
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -119,6 +121,14 @@ fun InventoryScreen(
                 INVENTORY_RESULT_PRODUCT_UPDATED -> {
                     viewModel.refresh()
                     snackbarHostState.showSnackbar(resources.getString(R.string.inventory_product_updated))
+                }
+                INVENTORY_RESULT_PRODUCT_DELETED -> {
+                    viewModel.refresh()
+                    snackbarHostState.showSnackbar(resources.getString(R.string.inventory_product_deleted))
+                }
+                INVENTORY_RESULT_PRODUCT_ALREADY_DELETED -> {
+                    viewModel.refresh()
+                    snackbarHostState.showSnackbar(resources.getString(R.string.inventory_product_already_deleted))
                 }
             }
         }

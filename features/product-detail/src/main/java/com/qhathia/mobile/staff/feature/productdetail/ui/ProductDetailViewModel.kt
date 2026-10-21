@@ -11,6 +11,7 @@ import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductException
+import com.qhathia.mobile.staff.core.domain.usecase.DeleteProductUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductDetailUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductDiscountUseCase
@@ -61,6 +62,7 @@ class ProductDetailViewModel @Inject constructor(
     private val getProductDiscountUseCase: GetProductDiscountUseCase,
     private val saveProductDiscountUseCase: SaveProductDiscountUseCase,
     private val removeProductDiscountUseCase: RemoveProductDiscountUseCase,
+    private val deleteProductUseCase: DeleteProductUseCase,
 ) : ViewModel() {
 
     private val productId: String = checkNotNull(savedStateHandle[PRODUCT_DETAIL_ARG_ID]) {
@@ -108,10 +110,11 @@ class ProductDetailViewModel @Inject constructor(
             ProductDetailUiEvent.PreviewDismissed ->
                 _uiState.update { it.copy(showPreview = false) }
             ProductDetailUiEvent.Save -> save()
-            ProductDetailUiEvent.CancelRequested -> onCancelRequested()
+            ProductDetailUiEvent.CancelRequested ->
+                if (!_uiState.value.isDeleting) onCancelRequested()
             // Disabled in the header while saving; ignored here too so a stray tap cannot leave.
             ProductDetailUiEvent.OrderRequestsRequested ->
-                if (!_uiState.value.isSaving) leave(Exit.ORDER_REQUESTS)
+                if (!_uiState.value.isSaving && !_uiState.value.isDeleting) leave(Exit.ORDER_REQUESTS)
             ProductDetailUiEvent.ConfirmDiscard -> {
                 _uiState.update { it.copy(showDiscardDialog = false) }
                 emit(pendingExit.effect)
@@ -120,6 +123,38 @@ class ProductDetailViewModel @Inject constructor(
             ProductDetailUiEvent.DismissDiscard -> {
                 _uiState.update { it.copy(showDiscardDialog = false) }
                 pendingExit = Exit.BACK
+            }
+            ProductDetailUiEvent.DeleteRequested ->
+                _uiState.update {
+                    val canDelete = !it.isLoading && !it.isError && !it.isSaving && !it.isDeleting
+                    if (canDelete) it.copy(showDeleteDialog = true) else it
+                }
+            ProductDetailUiEvent.DeleteConfirmed -> deleteProduct()
+            ProductDetailUiEvent.DeleteDismissed ->
+                _uiState.update { if (it.isDeleting) it else it.copy(showDeleteDialog = false) }
+        }
+    }
+
+    /**
+     * Deletes the product and leaves the form; unsaved edits go with it, and the confirmation
+     * already said so. A 404 also leaves, since the product is gone either way. Any other failure
+     * keeps the merchant on the form, edits intact.
+     */
+    private fun deleteProduct() {
+        val current = _uiState.value
+        if (!current.showDeleteDialog || current.isDeleting) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeleting = true) }
+            val result = deleteProductUseCase(productId)
+            val error = (result.exceptionOrNull() as? UpdateProductException)?.error
+            when {
+                result.isSuccess -> _uiEffect.emit(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = false))
+                error == UpdateProductError.NotFound ->
+                    _uiEffect.emit(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = true))
+                else -> {
+                    _uiState.update { it.copy(isDeleting = false, showDeleteDialog = false) }
+                    _uiEffect.emit(ProductDetailUiEffect.ShowError(R.string.detail_delete_error))
+                }
             }
         }
     }

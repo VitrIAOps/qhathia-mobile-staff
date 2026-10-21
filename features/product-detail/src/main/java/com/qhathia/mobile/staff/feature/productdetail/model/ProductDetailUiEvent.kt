@@ -47,4 +47,13 @@ sealed interface ProductDetailUiEvent {
     data object OrderRequestsRequested : ProductDetailUiEvent
     data object ConfirmDiscard : ProductDetailUiEvent
     data object DismissDiscard : ProductDetailUiEvent
+
+    /** "Eliminar producto" under the form actions; asks for confirmation first. */
+    data object DeleteRequested : ProductDetailUiEvent
+
+    /** "Eliminar" in the confirmation dialog. */
+    data object DeleteConfirmed : ProductDetailUiEvent
+
+    /** "Cancelar" or a tap outside the confirmation. Ignored while the delete is in flight. */
+    data object DeleteDismissed : ProductDetailUiEvent
 }

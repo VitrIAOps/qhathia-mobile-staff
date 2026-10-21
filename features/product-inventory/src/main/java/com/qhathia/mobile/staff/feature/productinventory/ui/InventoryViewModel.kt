@@ -6,6 +6,9 @@ import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
+import com.qhathia.mobile.staff.core.domain.model.UpdateProductException
+import com.qhathia.mobile.staff.core.domain.usecase.DeleteProductUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductsUseCase
@@ -37,7 +40,8 @@ import javax.inject.Inject
  *
  * A row's actions menu edits that product's discount in place. Opening the menu looks up whether
  * the product has one, so the option reads "Registrar descuento" or "Editar descuento"; choosing
- * it opens the dialog prefilled, and applying saves it straight away.
+ * it opens the dialog prefilled, and applying saves it straight away. The same menu deletes the
+ * product, after a confirmation, since the delete cannot be undone.
  */
 @HiltViewModel
 class InventoryViewModel @Inject constructor(
@@ -45,6 +49,7 @@ class InventoryViewModel @Inject constructor(
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val getProductDiscountUseCase: GetProductDiscountUseCase,
     private val saveProductDiscountUseCase: SaveProductDiscountUseCase,
+    private val deleteProductUseCase: DeleteProductUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(InventoryUiState())
@@ -110,8 +115,51 @@ class InventoryViewModel @Inject constructor(
                     if (it.isDiscountSaving) it else it.copy(discountDraft = null, discountProductId = null)
                 }
             is InventoryUiEvent.ViewRegisteredProductClicked -> revealProduct(event.productId)
+            is InventoryUiEvent.DeleteProductClicked ->
+                _uiState.update { state ->
+                    if (state.isDeleting) return@update state
+                    val product = state.loadedProducts.firstOrNull { it.id == event.productId }
+                    state.copy(deleteCandidate = product ?: return@update state)
+                }
+            InventoryUiEvent.DeleteConfirmed -> deleteProduct()
+            InventoryUiEvent.DeleteDismissed ->
+                _uiState.update { if (it.isDeleting) it else it.copy(deleteCandidate = null) }
         }
     }
+
+    /**
+     * Deletes the product awaiting confirmation. The row is removed only once the server agrees —
+     * a 404 counts, the product is already gone — and it is dropped locally instead of re-querying,
+     * since the answer already says what the list should look like. Any other failure keeps it.
+     */
+    private fun deleteProduct() {
+        val current = _uiState.value
+        if (current.isDeleting) return
+        val productId = current.deleteCandidate?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeleting = true) }
+            val result = deleteProductUseCase(productId)
+            val alreadyGone =
+                (result.exceptionOrNull() as? UpdateProductException)?.error == UpdateProductError.NotFound
+            if (result.isSuccess || alreadyGone) {
+                _uiState.update { it.withoutProduct(productId).copy(isDeleting = false, deleteCandidate = null) }
+                _uiEffect.emit(
+                    InventoryUiEffect.ShowMessage(
+                        if (alreadyGone) R.string.inventory_product_already_deleted else R.string.inventory_product_deleted,
+                    ),
+                )
+            } else {
+                _uiState.update { it.copy(isDeleting = false, deleteCandidate = null) }
+                _uiEffect.emit(InventoryUiEffect.ShowError(R.string.inventory_delete_error))
+            }
+        }
+    }
+
+    private fun InventoryUiState.withoutProduct(productId: String) = copy(
+        loadedProducts = loadedProducts.filterNot { it.id == productId }.toImmutableList(),
+        visibleProducts = visibleProducts.filterNot { it.id == productId }.toImmutableList(),
+        knownDiscounts = knownDiscounts.toPersistentMap().remove(productId),
+    )
 
     /**
      * Brings the row of [productId] into view. A product hidden only by the search is revealed by

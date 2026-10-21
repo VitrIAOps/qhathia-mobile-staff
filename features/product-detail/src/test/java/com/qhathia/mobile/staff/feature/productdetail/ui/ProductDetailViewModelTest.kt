@@ -8,6 +8,7 @@ import com.qhathia.mobile.staff.core.domain.model.DiscountException
 import com.qhathia.mobile.staff.core.domain.model.DiscountType
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductException
+import com.qhathia.mobile.staff.core.domain.usecase.DeleteProductUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductDetailUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductDiscountUseCase
@@ -26,6 +27,8 @@ import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEffec
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 import com.qhathia.mobile.staff.feature.productdetail.model.toPreviewData
 import com.qhathia.mobile.staff.feature.productdetail.navigation.PRODUCT_DETAIL_ARG_ID
+import com.qhathia.mobile.staff.feature.productdetail.R
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -65,6 +68,7 @@ class ProductDetailViewModelTest {
         getProductDiscountUseCase = GetProductDiscountUseCase(discountRepository, clock),
         saveProductDiscountUseCase = SaveProductDiscountUseCase(discountRepository, clock),
         removeProductDiscountUseCase = RemoveProductDiscountUseCase(discountRepository),
+        deleteProductUseCase = DeleteProductUseCase(productRepository),
     )
 
     /** Opens the dialog, types [input] in [type] mode and applies it to the form. */
@@ -683,5 +687,112 @@ class ProductDetailViewModelTest {
             assertEquals(ProductDetailUiEffect.NavigateBackCancelled, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ---- Delete product ----
+
+    @Test
+    fun `asking to delete opens the confirmation and sends nothing`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.DeleteRequested)
+
+        assertTrue(viewModel.uiState.value.showDeleteDialog)
+        assertTrue(productRepository.deletedIds.isEmpty())
+    }
+
+    @Test
+    fun `dismissing the confirmation keeps the form`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro Pro"))
+        viewModel.onEvent(ProductDetailUiEvent.DeleteRequested)
+
+        viewModel.onEvent(ProductDetailUiEvent.DeleteDismissed)
+
+        assertFalse(viewModel.uiState.value.showDeleteDialog)
+        assertEquals("Taladro Pro", viewModel.uiState.value.name)
+        assertTrue(productRepository.deletedIds.isEmpty())
+    }
+
+    @Test
+    fun `confirming deletes the product and leaves, even with unsaved edits`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro Pro"))
+        viewModel.onEvent(ProductDetailUiEvent.DeleteRequested)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.DeleteConfirmed)
+            assertEquals(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = false), awaitItem())
+        }
+
+        assertEquals(listOf(PRODUCT_ID), productRepository.deletedIds)
+        assertEquals(0, productRepository.updateCallCount)
+        assertFalse(viewModel.uiState.value.showDiscardDialog)
+    }
+
+    @Test
+    fun `a product already deleted elsewhere also leaves`() = runTest {
+        productRepository.deleteResult = Result.failure(UpdateProductException(UpdateProductError.NotFound))
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.DeleteRequested)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.DeleteConfirmed)
+            assertEquals(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = true), awaitItem())
+        }
+    }
+
+    @Test
+    fun `a failed delete stays on the form and shows the error`() = runTest {
+        productRepository.deleteResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro Pro"))
+        viewModel.onEvent(ProductDetailUiEvent.DeleteRequested)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.DeleteConfirmed)
+            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_delete_error), awaitItem())
+        }
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isDeleting)
+        assertFalse(state.showDeleteDialog)
+        assertEquals("Taladro Pro", state.name)
+    }
+
+    @Test
+    fun `while deleting the form cannot be left, saved or dismissed`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        productRepository.deleteGate = gate
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro Pro"))
+        viewModel.onEvent(ProductDetailUiEvent.DeleteRequested)
+        viewModel.onEvent(ProductDetailUiEvent.DeleteConfirmed)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.DeleteDismissed)
+            viewModel.onEvent(ProductDetailUiEvent.CancelRequested)
+            viewModel.onEvent(ProductDetailUiEvent.OrderRequestsRequested)
+            viewModel.onEvent(ProductDetailUiEvent.DeleteConfirmed)
+            expectNoEvents()
+        }
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isDeleting)
+        assertTrue(state.showDeleteDialog)
+        assertFalse(state.showDiscardDialog)
+        assertFalse(state.isSaveEnabled)
+        assertEquals(listOf(PRODUCT_ID), productRepository.deletedIds)
+        gate.complete(Unit)
+    }
+
+    @Test
+    fun `delete is not offered while the product is still loading`() = runTest {
+        productRepository.productDetailResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.DeleteRequested)
+
+        assertFalse(viewModel.uiState.value.showDeleteDialog)
     }
 }

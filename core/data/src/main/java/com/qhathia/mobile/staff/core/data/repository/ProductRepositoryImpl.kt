@@ -28,7 +28,8 @@ import javax.inject.Inject
  * thread, then submits the product and its photos in a single atomic multipart request; failures
  * carry a [RegisterProductException] whose [RegisterProductError] is derived from the HTTP status
  * (402/403 → plan limit, 400/422 → invalid input, 503 → transient/storage). Detail reads and edits
- * fail with an [UpdateProductException] instead (404 → not found, 400/422 → invalid input).
+ * and deletes fail with an [UpdateProductException] instead (404 → not found, 400/422 → invalid
+ * input).
  */
 class ProductRepositoryImpl @Inject constructor(
     private val apiService: ProductApiService,
@@ -84,6 +85,16 @@ class ProductRepositoryImpl @Inject constructor(
 
     override suspend fun updateProduct(id: String, product: ProductUpdate): Result<Unit> =
         when (val result = apiService.updateProduct(id, product.toUpdateRequestDto())) {
+            is NetworkResult.Success ->
+                Result.success(Unit)
+            is NetworkResult.HttpError ->
+                Result.failure(UpdateProductException(result.code.toUpdateError()))
+            is NetworkResult.NetworkError ->
+                Result.failure(UpdateProductException(UpdateProductError.Network))
+        }
+
+    override suspend fun deleteProduct(id: String): Result<Unit> =
+        when (val result = apiService.deleteProduct(id)) {
             is NetworkResult.Success ->
                 Result.success(Unit)
             is NetworkResult.HttpError ->

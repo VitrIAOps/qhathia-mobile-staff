@@ -22,6 +22,10 @@ const val INVENTORY_REGISTER_RESULT_PLAN_LIMIT = "plan_limit"
 const val INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED = "discount_failed"
 const val INVENTORY_RESULT_PRODUCT_UPDATED = "product_updated"
 
+/** The edit screen deleted the product; "already" when the server said it was gone (404). */
+const val INVENTORY_RESULT_PRODUCT_DELETED = "product_deleted"
+const val INVENTORY_RESULT_PRODUCT_ALREADY_DELETED = "product_already_deleted"
+
 /**
  * Id of the product a registration just created, set alongside a success or discount-failed result
  * (and before it, so it is there when the result is observed) so inventory can scroll to its row.

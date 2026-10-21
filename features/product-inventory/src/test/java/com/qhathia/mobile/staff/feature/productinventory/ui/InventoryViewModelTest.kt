@@ -6,6 +6,9 @@ import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountError
 import com.qhathia.mobile.staff.core.domain.model.DiscountException
 import com.qhathia.mobile.staff.core.domain.model.DiscountType
+import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
+import com.qhathia.mobile.staff.core.domain.model.UpdateProductException
+import com.qhathia.mobile.staff.core.domain.usecase.DeleteProductUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetProductsUseCase
@@ -54,6 +57,7 @@ class InventoryViewModelTest {
         getCategoriesUseCase = GetCategoriesUseCase(categoryRepository),
         getProductDiscountUseCase = GetProductDiscountUseCase(discountRepository, clock),
         saveProductDiscountUseCase = SaveProductDiscountUseCase(discountRepository, clock),
+        deleteProductUseCase = DeleteProductUseCase(productRepository),
     )
 
     @Test
@@ -593,5 +597,128 @@ class InventoryViewModelTest {
             viewModel.refresh()
             expectNoEvents()
         }
+    }
+
+    // ---- Delete product ----
+
+    private fun twoProducts() {
+        productRepository.productsResult = Result.success(
+            listOf(
+                TestFixtures.product(id = "p1", name = "Taladro Bosch"),
+                TestFixtures.product(id = "p2", name = "Lámpara LED"),
+            ),
+        )
+    }
+
+    @Test
+    fun `choosing delete asks for confirmation and sends nothing`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(InventoryUiEvent.DeleteProductClicked("p1"))
+
+        assertEquals("p1", viewModel.uiState.value.deleteCandidate?.id)
+        assertTrue(productRepository.deletedIds.isEmpty())
+    }
+
+    @Test
+    fun `dismissing the confirmation closes it without deleting`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.DeleteProductClicked("p1"))
+
+        viewModel.onEvent(InventoryUiEvent.DeleteDismissed)
+
+        assertNull(viewModel.uiState.value.deleteCandidate)
+        assertTrue(productRepository.deletedIds.isEmpty())
+        assertEquals(2, viewModel.uiState.value.productCount)
+    }
+
+    @Test
+    fun `confirming removes the product from the list and says so`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.DeleteProductClicked("p1"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.DeleteConfirmed)
+            assertEquals(InventoryUiEffect.ShowMessage(R.string.inventory_product_deleted), awaitItem())
+        }
+
+        val state = viewModel.uiState.value
+        assertEquals(listOf("p1"), productRepository.deletedIds)
+        assertEquals(listOf("p2"), state.visibleProducts.map { it.id })
+        assertEquals(listOf("p2"), state.loadedProducts.map { it.id })
+        assertNull(state.deleteCandidate)
+        assertFalse(state.isDeleting)
+        // The row is dropped locally: no reload after the initial one.
+        assertEquals(1, productRepository.callCount)
+    }
+
+    @Test
+    fun `while deleting the dialog stays open and cannot be dismissed`() = runTest {
+        twoProducts()
+        val gate = CompletableDeferred<Unit>()
+        productRepository.deleteGate = gate
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.DeleteProductClicked("p1"))
+
+        viewModel.onEvent(InventoryUiEvent.DeleteConfirmed)
+        viewModel.onEvent(InventoryUiEvent.DeleteDismissed)
+        viewModel.onEvent(InventoryUiEvent.DeleteConfirmed)
+
+        assertTrue(viewModel.uiState.value.isDeleting)
+        assertEquals("p1", viewModel.uiState.value.deleteCandidate?.id)
+        assertEquals(listOf("p1"), productRepository.deletedIds)
+        gate.complete(Unit)
+    }
+
+    @Test
+    fun `a product already deleted elsewhere is removed too`() = runTest {
+        twoProducts()
+        productRepository.deleteResult = Result.failure(UpdateProductException(UpdateProductError.NotFound))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.DeleteProductClicked("p1"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.DeleteConfirmed)
+            assertEquals(
+                InventoryUiEffect.ShowMessage(R.string.inventory_product_already_deleted),
+                awaitItem(),
+            )
+        }
+
+        assertEquals(listOf("p2"), viewModel.uiState.value.visibleProducts.map { it.id })
+    }
+
+    @Test
+    fun `a failed delete keeps the product and shows the error`() = runTest {
+        twoProducts()
+        productRepository.deleteResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.DeleteProductClicked("p1"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.DeleteConfirmed)
+            assertEquals(InventoryUiEffect.ShowError(R.string.inventory_delete_error), awaitItem())
+        }
+
+        val state = viewModel.uiState.value
+        assertEquals(2, state.productCount)
+        assertNull(state.deleteCandidate)
+        assertFalse(state.isDeleting)
+    }
+
+    @Test
+    fun `deleting under a search removes the product from the full list too`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.Search("Taladro"))
+        viewModel.onEvent(InventoryUiEvent.DeleteProductClicked("p1"))
+        viewModel.onEvent(InventoryUiEvent.DeleteConfirmed)
+
+        viewModel.onEvent(InventoryUiEvent.Search(""))
+
+        assertEquals(listOf("p2"), viewModel.uiState.value.visibleProducts.map { it.id })
     }
 }

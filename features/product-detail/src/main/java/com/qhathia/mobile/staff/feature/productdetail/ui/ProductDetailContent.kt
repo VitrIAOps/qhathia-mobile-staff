@@ -12,13 +12,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -34,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountType
+import com.qhathia.mobile.staff.core.ui.component.QhathiaDeleteProductDialog
 import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscountToggleRow
 import com.qhathia.mobile.staff.core.ui.component.productpreview.QhathiaProductPreviewDialog
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
@@ -68,7 +73,7 @@ fun ProductDetailContent(
             ProductDetailHeader(
                 onBack = { onEvent(ProductDetailUiEvent.CancelRequested) },
                 onOpenOrderRequests = { onEvent(ProductDetailUiEvent.OrderRequestsRequested) },
-                bellEnabled = !uiState.isSaving,
+                bellEnabled = !uiState.isSaving && !uiState.isDeleting,
             )
 
             Surface(
@@ -119,6 +124,15 @@ fun ProductDetailContent(
                 onDraftChange = { onEvent(ProductDetailUiEvent.DiscountDraftChanged(it)) },
                 onApply = { onEvent(ProductDetailUiEvent.DiscountApplied) },
                 onDismiss = { onEvent(ProductDetailUiEvent.DiscountDismissed) },
+            )
+        }
+
+        if (uiState.showDeleteDialog) {
+            QhathiaDeleteProductDialog(
+                productName = uiState.name,
+                isDeleting = uiState.isDeleting,
+                onConfirm = { onEvent(ProductDetailUiEvent.DeleteConfirmed) },
+                onDismiss = { onEvent(ProductDetailUiEvent.DeleteDismissed) },
             )
         }
 
@@ -273,6 +287,38 @@ private fun EditForm(
             onCancel = { onEvent(ProductDetailUiEvent.CancelRequested) },
             onSave = { onEvent(ProductDetailUiEvent.Save) },
         )
+        DeleteProductAction(
+            enabled = !uiState.isSaving && !uiState.isDeleting,
+            onClick = { onEvent(ProductDetailUiEvent.DeleteRequested) },
+        )
+    }
+}
+
+/**
+ * "Eliminar producto", under Cancelar and Guardar: full width, in the error colour and apart from
+ * the form actions, since it is the one action here that cannot be undone. It asks first.
+ */
+@Composable
+private fun DeleteProductAction(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(Dimens.ButtonHeight),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Delete,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.size(Dimens.SpaceXs))
+        Text(stringResource(R.string.detail_delete_product), style = MaterialTheme.typography.labelLarge)
     }
 }
 

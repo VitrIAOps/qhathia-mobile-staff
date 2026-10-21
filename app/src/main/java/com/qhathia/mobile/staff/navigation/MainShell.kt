@@ -37,6 +37,8 @@ import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RE
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_PLAN_LIMIT
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_REGISTER_RESULT_SUCCESS
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_ALREADY_DELETED
+import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_DELETED
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_UPDATED
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_ROUTE
 import com.qhathia.mobile.staff.feature.productinventory.navigation.inventoryGraph
@@ -204,6 +206,13 @@ fun MainShell(
                 onSaved = {
                     navController.previousBackStackEntry?.savedStateHandle
                         ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_RESULT_PRODUCT_UPDATED)
+                    navController.popBackStack()
+                },
+                onDeleted = { alreadyDeleted ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                        INVENTORY_REGISTER_RESULT_KEY,
+                        if (alreadyDeleted) INVENTORY_RESULT_PRODUCT_ALREADY_DELETED else INVENTORY_RESULT_PRODUCT_DELETED,
+                    )
                     navController.popBackStack()
                 },
                 onBack = { navController.popBackStack() },

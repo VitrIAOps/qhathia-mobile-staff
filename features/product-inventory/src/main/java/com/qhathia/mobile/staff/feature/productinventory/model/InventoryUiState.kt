@@ -22,6 +22,9 @@ import kotlinx.collections.immutable.persistentMapOf
  * The list endpoint carries no discount data, so whether a product has one is only learned when
  * its actions menu is opened. [knownDiscounts] remembers the answers (a null value means "looked
  * up, has none") and [discountLookupProductId] is the product being looked up right now.
+ *
+ * "Eliminar producto" asks first: [deleteCandidate] is non-null while the confirmation is open, and
+ * [isDeleting] while its request is in flight.
  */
 data class InventoryUiState(
     val loadedProducts: ImmutableList<Product> = persistentListOf(),
@@ -38,6 +41,8 @@ data class InventoryUiState(
     val discountDraft: DiscountDraft? = null,
     val isDiscountLoading: Boolean = false,
     val isDiscountSaving: Boolean = false,
+    val deleteCandidate: Product? = null,
+    val isDeleting: Boolean = false,
 ) {
     /** Number of products currently shown after filters + search. */
     val productCount: Int get() = visibleProducts.size
