@@ -51,8 +51,11 @@ internal fun previewOrderItem(
     productImageUrl = productImageUrl,
 )
 
-internal fun previewOrderDetail() = OrderDetail(
-    order = previewOrder(total = 150.0),
+internal fun previewOrderDetail(
+    status: OrderStatus = OrderStatus.PENDING,
+    expiresIn: Long? = 20 * 60L,
+) = OrderDetail(
+    order = previewOrder(total = 150.0, status = status, expiresIn = expiresIn),
     items = listOf(
         previewOrderItem(id = "item-1"),
         // The low-stock variant: a tracked stock at or below the warning threshold.

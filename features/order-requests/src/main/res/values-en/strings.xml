@@ -37,6 +37,11 @@
     <string name="order_detail_title_no_code">Request details</string>
     <string name="order_detail_close_cd">Close</string>
     <string name="order_detail_total">Order total:</string>
+    <!-- Shown instead of the actions on an order that can no longer be acted on. -->
+    <string name="order_detail_resolved_confirmed">This request was already confirmed</string>
+    <string name="order_detail_resolved_rejected">This request was already rejected</string>
+    <string name="order_detail_resolved_cancelled">This request was cancelled</string>
+    <string name="order_detail_resolved_expired">This request expired</string>
     <string name="order_action_confirm">Confirm order</string>
     <!-- "pcs" is an abbreviation that does not inflect. -->
     <string name="order_item_quantity" tools:ignore="PluralsCandidate">%1$d pcs</string>

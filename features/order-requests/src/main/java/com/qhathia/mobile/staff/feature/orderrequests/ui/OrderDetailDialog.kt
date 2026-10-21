@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -156,9 +155,7 @@ private fun OrderDetailBody(
     onConfirm: (String) -> Unit,
     onReject: () -> Unit,
 ) {
-    val canAct = detail.order.status == OrderStatus.PENDING &&
-        !isExpired(detail.order.expiresAt, now()) &&
-        !isSubmitting
+    val footer = orderDetailFooter(detail.order.status, detail.order.expiresAt, now())
 
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
         Column(
@@ -194,45 +191,76 @@ private fun OrderDetailBody(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(
-                onClick = onReject,
-                enabled = canAct,
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(
-                    text = stringResource(R.string.order_action_reject),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
-            Button(
-                onClick = { onConfirm(detail.order.id) },
-                enabled = canAct,
-                shape = RoundedCornerShape(Dimens.ButtonRadius),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+        when (footer) {
+            OrderDetailFooter.Actions -> OrderDetailActions(
+                isSubmitting = isSubmitting,
+                onConfirm = { onConfirm(detail.order.id) },
+                onReject = onReject,
+            )
+            is OrderDetailFooter.Resolved -> Text(
+                text = stringResource(footer.messageRes),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .weight(1f)
-                    .height(Dimens.ButtonHeight),
-            ) {
-                if (isSubmitting) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(20.dp),
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.order_action_confirm),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
+                    .fillMaxWidth()
+                    .padding(vertical = Dimens.SpaceSm),
+            )
+        }
+    }
+}
+
+/**
+ * Reject and confirm, side by side. While a request is in flight both stay visible but disabled,
+ * with progress on the confirm button.
+ */
+@Composable
+private fun OrderDetailActions(
+    isSubmitting: Boolean,
+    onConfirm: () -> Unit,
+    onReject: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TextButton(
+            onClick = onReject,
+            enabled = !isSubmitting,
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                text = stringResource(R.string.order_action_reject),
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+        Button(
+            onClick = onConfirm,
+            enabled = !isSubmitting,
+            shape = RoundedCornerShape(Dimens.ButtonRadius),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+            // A minimum, not a fixed height: at half the dialog width the label can wrap, and a
+            // fixed 48 dp clipped its second line.
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = Dimens.ButtonHeight),
+        ) {
+            if (isSubmitting) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(20.dp),
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.order_action_confirm),
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }
@@ -448,6 +476,61 @@ private fun OrderDetailDialogPreview() {
     QhathiaTheme {
         OrderDetailDialog(
             state = OrderDetailUiState(orderId = "order-1", order = previewOrderDetail()),
+            now = { PREVIEW_NOW },
+            onDismiss = {},
+            onConfirm = {},
+            onStartRejection = {},
+            onSelectRejectionReason = {},
+            onOtherRejectionReasonChange = {},
+            onCancelRejection = {},
+            onConfirmRejection = {},
+        )
+    }
+}
+
+// A resolved order: no actions, only its outcome.
+@Preview(name = "Order detail — confirmed", showBackground = true)
+@Preview(name = "Order detail — confirmed dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun OrderDetailDialogConfirmedPreview() {
+    OrderDetailDialogStatePreview(
+        OrderDetailUiState(
+            orderId = "order-1",
+            order = previewOrderDetail(status = OrderStatus.CONFIRMED, expiresIn = null),
+        ),
+    )
+}
+
+// Still PENDING on the server, but past its deadline: reads as expired.
+@Preview(name = "Order detail — pending past expiry", showBackground = true)
+@Composable
+private fun OrderDetailDialogExpiredPreview() {
+    OrderDetailDialogStatePreview(
+        OrderDetailUiState(
+            orderId = "order-1",
+            order = previewOrderDetail(expiresIn = -60L),
+        ),
+    )
+}
+
+// A confirm in flight: both actions stay, disabled, with progress on confirm.
+@Preview(name = "Order detail — submitting", showBackground = true)
+@Composable
+private fun OrderDetailDialogSubmittingPreview() {
+    OrderDetailDialogStatePreview(
+        OrderDetailUiState(
+            orderId = "order-1",
+            order = previewOrderDetail(),
+            isSubmitting = true,
+        ),
+    )
+}
+
+@Composable
+private fun OrderDetailDialogStatePreview(state: OrderDetailUiState) {
+    QhathiaTheme {
+        OrderDetailDialog(
+            state = state,
             now = { PREVIEW_NOW },
             onDismiss = {},
             onConfirm = {},
