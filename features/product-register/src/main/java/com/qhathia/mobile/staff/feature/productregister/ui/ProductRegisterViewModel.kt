@@ -99,12 +99,18 @@ class ProductRegisterViewModel @Inject constructor(
                 _uiState.update { it.copy(showPreview = false) }
             ProductRegisterUiEvent.Submit -> submit()
             ProductRegisterUiEvent.CancelRequested -> onCancelRequested()
+            // Disabled in the header while saving; ignored here too so a stray tap cannot leave.
+            ProductRegisterUiEvent.OrderRequestsRequested ->
+                if (!_uiState.value.isSubmitting) leave(Exit.ORDER_REQUESTS)
             ProductRegisterUiEvent.ConfirmDiscard -> {
                 _uiState.update { it.copy(showDiscardDialog = false) }
-                emit(ProductRegisterUiEffect.NavigateBackCancelled)
+                emit(pendingExit.effect)
+                pendingExit = Exit.BACK
             }
-            ProductRegisterUiEvent.DismissDiscard ->
+            ProductRegisterUiEvent.DismissDiscard -> {
                 _uiState.update { it.copy(showDiscardDialog = false) }
+                pendingExit = Exit.BACK
+            }
             ProductRegisterUiEvent.RetryCatalog -> loadCategories()
         }
     }
@@ -178,12 +184,27 @@ class ProductRegisterViewModel @Inject constructor(
         }
     }
 
-    private fun onCancelRequested() {
+    private fun onCancelRequested() = leave(Exit.BACK)
+
+    /**
+     * Back, cancel and the header bell all leave the form the same way: straight away when nothing
+     * changed, through the discard dialog otherwise. [pendingExit] remembers where to go once the
+     * merchant confirms.
+     */
+    private fun leave(exit: Exit) {
         if (_uiState.value.isDirty) {
+            pendingExit = exit
             _uiState.update { it.copy(showDiscardDialog = true) }
         } else {
-            emit(ProductRegisterUiEffect.NavigateBackCancelled)
+            emit(exit.effect)
         }
+    }
+
+    private var pendingExit = Exit.BACK
+
+    private enum class Exit(val effect: ProductRegisterUiEffect) {
+        BACK(ProductRegisterUiEffect.NavigateBackCancelled),
+        ORDER_REQUESTS(ProductRegisterUiEffect.NavigateToOrderRequests),
     }
 
     /**

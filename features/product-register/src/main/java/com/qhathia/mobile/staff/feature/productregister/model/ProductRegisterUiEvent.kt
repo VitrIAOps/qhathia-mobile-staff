@@ -32,6 +32,9 @@ sealed interface ProductRegisterUiEvent {
     data object PreviewDismissed : ProductRegisterUiEvent
     data object Submit : ProductRegisterUiEvent
     data object CancelRequested : ProductRegisterUiEvent
+
+    /** The header bell — leaves for Solicitudes through the same discard guard as back. */
+    data object OrderRequestsRequested : ProductRegisterUiEvent
     data object ConfirmDiscard : ProductRegisterUiEvent
     data object DismissDiscard : ProductRegisterUiEvent
     data object RetryCatalog : ProductRegisterUiEvent

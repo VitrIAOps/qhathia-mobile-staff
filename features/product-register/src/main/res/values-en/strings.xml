@@ -2,7 +2,7 @@
 <resources>
     <string name="register_title">Product registration</string>
     <string name="register_back_cd">Back</string>
-    <string name="register_notifications_cd">Notifications</string>
+    <string name="register_bell_cd">View requests</string>
 
     <string name="register_photos_title">Product photos</string>
     <string name="register_photos_subtitle">The first photo will be the main one.</string>

@@ -58,6 +58,7 @@ fun InventoryContent(
     onEvent: (InventoryUiEvent) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
+    onOpenOrderRequests: () -> Unit = {},
 ) {
     Box(
         modifier = modifier
@@ -68,6 +69,7 @@ fun InventoryContent(
             InventoryHeader(
                 searchQuery = uiState.searchQuery,
                 onSearch = { onEvent(InventoryUiEvent.Search(it)) },
+                onOpenOrderRequests = onOpenOrderRequests,
             )
             Spacer(Modifier.height(Dimens.SpaceMd))
             ProductCountAndFilterBar(

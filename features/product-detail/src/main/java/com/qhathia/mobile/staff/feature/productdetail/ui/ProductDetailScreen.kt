@@ -26,6 +26,7 @@ import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 fun ProductDetailScreen(
     onSaved: () -> Unit,
     onBack: () -> Unit,
+    onNavigateToOrderRequests: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProductDetailViewModel = hiltViewModel(),
 ) {
@@ -38,6 +39,7 @@ fun ProductDetailScreen(
             when (effect) {
                 ProductDetailUiEffect.NavigateBackSaved -> onSaved()
                 ProductDetailUiEffect.NavigateBackCancelled -> onBack()
+                ProductDetailUiEffect.NavigateToOrderRequests -> onNavigateToOrderRequests()
                 is ProductDetailUiEffect.ShowError ->
                     snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
             }

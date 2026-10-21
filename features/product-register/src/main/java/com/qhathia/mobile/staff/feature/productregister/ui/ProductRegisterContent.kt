@@ -70,7 +70,11 @@ fun ProductRegisterContent(
                 .fillMaxSize()
                 .padding(horizontal = Dimens.SpaceMd),
         ) {
-            ProductRegisterHeader(onBack = { onEvent(ProductRegisterUiEvent.CancelRequested) })
+            ProductRegisterHeader(
+                onBack = { onEvent(ProductRegisterUiEvent.CancelRequested) },
+                onOpenOrderRequests = { onEvent(ProductRegisterUiEvent.OrderRequestsRequested) },
+                bellEnabled = !uiState.isSubmitting,
+            )
 
             Surface(
                 modifier = Modifier

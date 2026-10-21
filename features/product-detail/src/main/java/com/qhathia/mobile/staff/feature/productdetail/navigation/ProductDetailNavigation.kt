@@ -18,16 +18,21 @@ fun productDetailRoute(productId: String): String = "product_detail/$productId"
 /**
  * Registers the product detail/edit destination. [onSaved] fires once the edit is persisted, so the
  * caller can hand a refresh signal back to the inventory list; [onBack] on discard, cancel or a
- * plain back press.
+ * plain back press; [onNavigateToOrderRequests] when the header bell leaves for Solicitudes.
  */
 fun NavGraphBuilder.productDetailGraph(
     onSaved: () -> Unit,
     onBack: () -> Unit,
+    onNavigateToOrderRequests: () -> Unit,
 ) {
     composable(
         route = PRODUCT_DETAIL_ROUTE,
         arguments = listOf(navArgument(PRODUCT_DETAIL_ARG_ID) { type = NavType.StringType }),
     ) {
-        ProductDetailScreen(onSaved = onSaved, onBack = onBack)
+        ProductDetailScreen(
+            onSaved = onSaved,
+            onBack = onBack,
+            onNavigateToOrderRequests = onNavigateToOrderRequests,
+        )
     }
 }

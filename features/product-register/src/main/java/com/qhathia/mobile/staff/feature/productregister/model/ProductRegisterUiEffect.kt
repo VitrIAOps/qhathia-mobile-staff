@@ -22,6 +22,9 @@ sealed interface ProductRegisterUiEffect {
     /** Cancelled / discarded — return to inventory without a result. */
     data object NavigateBackCancelled : ProductRegisterUiEffect
 
+    /** Leave the form and switch to the Solicitudes tab (header bell). */
+    data object NavigateToOrderRequests : ProductRegisterUiEffect
+
     /** Show an error snackbar on the registration screen. */
     data class ShowError(@param:StringRes val messageRes: Int) : ProductRegisterUiEffect
 }

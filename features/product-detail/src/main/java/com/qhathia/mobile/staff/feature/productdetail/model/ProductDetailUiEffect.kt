@@ -10,5 +10,8 @@ sealed interface ProductDetailUiEffect {
     /** The merchant discarded or never edited; the caller just pops back. */
     data object NavigateBackCancelled : ProductDetailUiEffect
 
+    /** Leave the form and switch to the Solicitudes tab (header bell). */
+    data object NavigateToOrderRequests : ProductDetailUiEffect
+
     data class ShowError(@param:StringRes val messageRes: Int) : ProductDetailUiEffect
 }

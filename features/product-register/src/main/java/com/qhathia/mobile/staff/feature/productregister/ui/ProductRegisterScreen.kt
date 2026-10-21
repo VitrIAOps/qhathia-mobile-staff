@@ -29,6 +29,7 @@ fun ProductRegisterScreen(
     onPlanLimit: () -> Unit,
     onDiscountFailed: (String) -> Unit,
     onCancelled: () -> Unit,
+    onNavigateToOrderRequests: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProductRegisterViewModel = hiltViewModel(),
 ) {
@@ -44,6 +45,7 @@ fun ProductRegisterScreen(
                 is ProductRegisterUiEffect.NavigateBackWithDiscountFailed ->
                     onDiscountFailed(effect.productId)
                 ProductRegisterUiEffect.NavigateBackCancelled -> onCancelled()
+                ProductRegisterUiEffect.NavigateToOrderRequests -> onNavigateToOrderRequests()
                 is ProductRegisterUiEffect.ShowError ->
                     snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
             }
