@@ -24,7 +24,7 @@
 
     <!-- Menu -->
     <string name="menu_personal_title">Datos personales</string>
-    <string name="menu_personal_subtitle">Tu cuenta y los datos de tu tienda</string>
+    <string name="menu_personal_subtitle">Nombre, correo y teléfono</string>
     <string name="menu_notifications_title">Notificaciones</string>
     <!-- Plural chosen by the total; %1$d active, %2$d total. -->
     <plurals name="menu_notifications_active">
