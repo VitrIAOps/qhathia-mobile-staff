@@ -102,6 +102,7 @@ fun InventoryContent(
                             listState = listState,
                             onProductClick = { onEvent(InventoryUiEvent.ProductClicked(it)) },
                             onEditDiscount = { onEvent(InventoryUiEvent.EditDiscountClicked(it)) },
+                            onDelete = { onEvent(InventoryUiEvent.DeleteProductClicked(it)) },
                             onActionsOpened = { onEvent(InventoryUiEvent.RowActionsOpened(it)) },
                             hasDiscount = uiState::hasDiscount,
                             discountLookupProductId = uiState.discountLookupProductId,
@@ -147,6 +148,15 @@ fun InventoryContent(
                 onDismiss = { onEvent(InventoryUiEvent.DiscountDismissed) },
             )
         }
+
+        uiState.deleteCandidate?.let { product ->
+            DeleteProductDialog(
+                productName = product.name,
+                isDeleting = uiState.isDeleting,
+                onConfirm = { onEvent(InventoryUiEvent.DeleteConfirmed) },
+                onDismiss = { onEvent(InventoryUiEvent.DeleteDismissed) },
+            )
+        }
     }
 }
 
@@ -161,6 +171,7 @@ private fun ProductListCard(
     listState: LazyListState,
     onProductClick: (String) -> Unit,
     onEditDiscount: (String) -> Unit,
+    onDelete: (String) -> Unit,
     onActionsOpened: (String) -> Unit,
     hasDiscount: (String) -> Boolean?,
     discountLookupProductId: String?,
@@ -182,6 +193,7 @@ private fun ProductListCard(
                     product = product,
                     onClick = { onProductClick(product.id) },
                     onEditDiscount = { onEditDiscount(product.id) },
+                    onDelete = { onDelete(product.id) },
                     onActionsOpened = { onActionsOpened(product.id) },
                     hasDiscount = hasDiscount(product.id),
                     isDiscountLookupLoading = discountLookupProductId == product.id,
@@ -313,6 +325,23 @@ private fun InventoryContentDiscountDialogPreview() {
                 searchQuery = "Taladro",
                 discountProductId = sampleProducts().first().id,
                 discountDraft = DiscountDraft(price = sampleProducts().first().price, input = "20"),
+            ),
+            onEvent = {},
+        )
+    }
+}
+
+@Preview(name = "Inventory — delete confirmation", showBackground = true)
+@Preview(name = "Inventory — delete confirmation dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun InventoryContentDeleteDialogPreview() {
+    QhathiaTheme {
+        InventoryContent(
+            uiState = InventoryUiState(
+                loadedProducts = sampleProducts(),
+                visibleProducts = sampleProducts(),
+                categories = sampleCategories(),
+                deleteCandidate = sampleProducts().first(),
             ),
             onEvent = {},
         )

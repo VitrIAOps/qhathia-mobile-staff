@@ -17,11 +17,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,6 +70,7 @@ internal fun ProductRow(
     product: Product,
     onClick: () -> Unit,
     onEditDiscount: () -> Unit,
+    onDelete: () -> Unit,
     onActionsOpened: () -> Unit,
     hasDiscount: Boolean?,
     isDiscountLookupLoading: Boolean,
@@ -146,6 +149,7 @@ internal fun ProductRow(
         ProductRowActions(
             onEditProduct = onClick,
             onEditDiscount = onEditDiscount,
+            onDelete = onDelete,
             onOpened = onActionsOpened,
             hasDiscount = hasDiscount,
             isDiscountLookupLoading = isDiscountLookupLoading,
@@ -159,11 +163,13 @@ internal fun ProductRow(
  *
  * The discount option reads "Registrar descuento" when the product is known to have none and
  * "Editar descuento" otherwise; while that is being looked up it shows a spinner and waits.
+ * "Eliminar producto" comes last, past a divider and in the error colour: it cannot be undone.
  */
 @Composable
 private fun ProductRowActions(
     onEditProduct: () -> Unit,
     onEditDiscount: () -> Unit,
+    onDelete: () -> Unit,
     onOpened: () -> Unit,
     hasDiscount: Boolean?,
     isDiscountLookupLoading: Boolean,
@@ -223,6 +229,26 @@ private fun ProductRowActions(
                 onClick = {
                     expanded = false
                     onEditDiscount()
+                },
+            )
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(R.string.inventory_action_delete_product),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onDelete()
                 },
             )
         }

@@ -36,4 +36,10 @@ interface ProductRepository {
      * must carry every field, not just the changed ones. Failures carry an `UpdateProductException`.
      */
     suspend fun updateProduct(id: String, product: ProductUpdate): Result<Unit>
+
+    /**
+     * Deletes the product [id]. It is a soft delete with no way back: the product leaves the
+     * inventory and the kiosk catalog. Failures carry an `UpdateProductException` (404 → not found).
+     */
+    suspend fun deleteProduct(id: String): Result<Unit>
 }

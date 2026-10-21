@@ -51,6 +51,15 @@
     <string name="inventory_action_edit_product">Editar producto</string>
     <string name="inventory_action_edit_discount">Editar descuento</string>
     <string name="inventory_action_register_discount">Registrar descuento</string>
+    <!-- Delete product: menu option, confirmation (%1$s = product name) and results. -->
+    <string name="inventory_action_delete_product">Eliminar producto</string>
+    <string name="inventory_delete_title">¿Eliminar producto?</string>
+    <string name="inventory_delete_message">«%1$s» dejará de verse en el inventario y en la tablet. Esta acción no se puede deshacer.</string>
+    <string name="inventory_delete_confirm">Eliminar</string>
+    <string name="inventory_delete_cancel">Cancelar</string>
+    <string name="inventory_product_deleted">Producto eliminado</string>
+    <string name="inventory_product_already_deleted">Este producto ya había sido eliminado</string>
+    <string name="inventory_delete_error">No se pudo eliminar el producto. Inténtalo de nuevo</string>
     <string name="inventory_discount_updated">Descuento actualizado correctamente</string>
     <string name="inventory_discount_load_error">No se pudo cargar el descuento</string>
     <string name="inventory_discount_save_error">No se pudo guardar el descuento. Inténtalo de nuevo</string>

@@ -50,6 +50,15 @@
     <string name="inventory_action_edit_product">Edit product</string>
     <string name="inventory_action_edit_discount">Edit discount</string>
     <string name="inventory_action_register_discount">Add discount</string>
+    <!-- Delete product: menu option, confirmation (%1$s = product name) and results. -->
+    <string name="inventory_action_delete_product">Delete product</string>
+    <string name="inventory_delete_title">Delete product?</string>
+    <string name="inventory_delete_message">“%1$s” will no longer show in the inventory or on the tablet. This cannot be undone.</string>
+    <string name="inventory_delete_confirm">Delete</string>
+    <string name="inventory_delete_cancel">Cancel</string>
+    <string name="inventory_product_deleted">Product deleted</string>
+    <string name="inventory_product_already_deleted">This product had already been deleted</string>
+    <string name="inventory_delete_error">Couldn’t delete the product. Please try again</string>
     <string name="inventory_discount_updated">Discount updated successfully</string>
     <string name="inventory_discount_load_error">Couldn\'t load the discount</string>
     <string name="inventory_discount_save_error">Couldn\'t save the discount. Try again</string>

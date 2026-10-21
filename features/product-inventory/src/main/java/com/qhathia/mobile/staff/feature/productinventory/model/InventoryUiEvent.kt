@@ -32,6 +32,15 @@ sealed interface InventoryUiEvent {
     data object DiscountApplied : InventoryUiEvent
     data object DiscountDismissed : InventoryUiEvent
 
+    /** "Eliminar producto" in a row's actions menu; asks for confirmation before anything is sent. */
+    data class DeleteProductClicked(val productId: String) : InventoryUiEvent
+
+    /** "Eliminar" in the confirmation dialog. */
+    data object DeleteConfirmed : InventoryUiEvent
+
+    /** "Cancelar" or a tap outside the confirmation dialog. Ignored while the delete is in flight. */
+    data object DeleteDismissed : InventoryUiEvent
+
     /**
      * "Ver producto" on the snackbar shown after a registration; brings the row of the product that
      * was just created into view, dropping the search and filters if they hide it.

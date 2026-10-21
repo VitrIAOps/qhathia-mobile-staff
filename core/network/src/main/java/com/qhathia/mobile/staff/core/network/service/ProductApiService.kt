@@ -149,6 +149,16 @@ class ProductApiService(
             }.body<DiscountDto>()
         }.toNetworkResult()
 
+    /**
+     * Soft-deletes a product (204, no body): the backend marks it inactive, so it leaves the
+     * inventory and the kiosk catalog. There is no endpoint to bring it back.
+     */
+    suspend fun deleteProduct(id: String): NetworkResult<Unit> =
+        runCatching {
+            client.delete("api/v1/products/$id")
+            Unit
+        }.toNetworkResult()
+
     /** Removes one discount of a product (204, no body). */
     suspend fun deleteDiscount(productId: String, discountId: String): NetworkResult<Unit> =
         runCatching {
