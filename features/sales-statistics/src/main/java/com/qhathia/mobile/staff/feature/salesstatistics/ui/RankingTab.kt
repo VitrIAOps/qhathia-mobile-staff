@@ -137,35 +137,8 @@ private fun RankingCard(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.semantics { heading() },
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, accent, RoundedCornerShape(SummaryBoxRadius))
-                .padding(SummaryBoxPadding)
-                .semantics(mergeDescendants = true) {},
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = trendIcon,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(TrendIconSize),
-            )
-            Text(
-                text = totalLabel,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = accent,
-                maxLines = 1,
-            )
-            Text(
-                text = caption,
-                style = MaterialTheme.typography.bodySmall,
-                color = accent,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        // An empty card says only that it is empty: a zero total, a trend glyph and a caption
+        // counting zero products would contradict the empty message.
         if (isEmpty) {
             Text(
                 text = emptyMessage,
@@ -174,6 +147,35 @@ private fun RankingCard(
                 modifier = Modifier.padding(vertical = Dimens.SpaceSm),
             )
         } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, accent, RoundedCornerShape(SummaryBoxRadius))
+                    .padding(SummaryBoxPadding)
+                    .semantics(mergeDescendants = true) {},
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = trendIcon,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(TrendIconSize),
+                )
+                Text(
+                    text = totalLabel,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = accent,
+                    maxLines = 1,
+                )
+                Text(
+                    text = caption,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = accent,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             Column { rows() }
         }
     }

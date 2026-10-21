@@ -23,7 +23,7 @@
 
     <!-- Menu -->
     <string name="menu_personal_title">Personal details</string>
-    <string name="menu_personal_subtitle">Your account and your store details</string>
+    <string name="menu_personal_subtitle">Name, email and phone</string>
     <string name="menu_notifications_title">Notifications</string>
     <plurals name="menu_notifications_active">
         <item quantity="one">%1$d of %2$d alert on</item>

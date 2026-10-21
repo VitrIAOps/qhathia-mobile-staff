@@ -8,7 +8,10 @@
 
     <string name="inventory_category_all">All</string>
 
-    <string name="inventory_product_count">%1$d products</string>
+    <plurals name="inventory_product_count">
+        <item quantity="one">%1$d product</item>
+        <item quantity="other">%1$d products</item>
+    </plurals>
     <string name="inventory_filter">Filters</string>
     <string name="inventory_filter_cd">Filter products</string>
     <string name="inventory_filter_categories">Category</string>

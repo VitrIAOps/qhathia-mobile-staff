@@ -282,6 +282,24 @@ private fun InventoryContentPreview() {
     }
 }
 
+// A single result reads "1 producto", not "1 productos".
+@Preview(name = "Inventory — one result", showBackground = true)
+@Preview(name = "Inventory — one result dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun InventoryContentOneResultPreview() {
+    QhathiaTheme {
+        InventoryContent(
+            uiState = InventoryUiState(
+                loadedProducts = sampleProducts(),
+                visibleProducts = sampleProducts().take(1).toImmutableList(),
+                categories = sampleCategories(),
+                searchQuery = "Taladro",
+            ),
+            onEvent = {},
+        )
+    }
+}
+
 @Preview(name = "Inventory — search and discount dialog", showBackground = true)
 @Preview(name = "Inventory — search and discount dialog dark", showBackground = true, uiMode = 0x20)
 @Composable
