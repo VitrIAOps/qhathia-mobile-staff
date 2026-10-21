@@ -241,9 +241,7 @@ object TestFixtures {
     fun storeSettings(
         storeId: String = "store-1",
         language: AppLanguage? = AppLanguage.SPANISH,
-        pricesIncludeIgv: Boolean = true,
-        igvRate: BigDecimal = BigDecimal("0.18"),
-    ) = StoreSettings(storeId, language, pricesIncludeIgv, igvRate)
+    ) = StoreSettings(storeId, language)
 
     fun selectedImage(
         uri: String = "content://images/1",

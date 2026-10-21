@@ -28,12 +28,6 @@ class StoreSettingsRepositoryImpl @Inject constructor(
                 .asDomainResult { it.toDomain() }
         }
 
-    override suspend fun updatePricesIncludeIgv(pricesIncludeIgv: Boolean): Result<StoreSettings> =
-        withActiveStore { storeId ->
-            apiService.updateStore(storeId, pricesIncludeIgv = pricesIncludeIgv)
-                .asDomainResult { it.toDomain() }
-        }
-
     private suspend fun withActiveStore(
         block: suspend (storeId: String) -> Result<StoreSettings>,
     ): Result<StoreSettings> {

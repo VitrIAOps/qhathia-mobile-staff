@@ -140,6 +140,5 @@ class ProfileMappersTest {
     fun `store settings resolve the language tag and keep unsupported ones null`() {
         assertEquals(AppLanguage.ENGLISH, StoreSettingsDto(id = "s1", language = "en").toDomain().language)
         assertNull(StoreSettingsDto(id = "s1", language = "fr").toDomain().language)
-        assertEquals(0, StoreSettingsDto(id = "s1").toDomain().igvRate.compareTo(BigDecimal("0.18")))
     }
 }

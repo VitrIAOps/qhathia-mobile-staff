@@ -26,12 +26,10 @@ class StoreApiService(private val client: HttpClient) {
     suspend fun updateStore(
         storeId: String,
         language: String? = null,
-        pricesIncludeIgv: Boolean? = null,
     ): NetworkResult<StoreSettingsDto> =
         runCatching {
             val body = buildJsonObject {
                 language?.let { put("language", it) }
-                pricesIncludeIgv?.let { put("pricesIncludeIgv", it) }
             }
             client.put("api/v1/stores/$storeId") { setBody(body) }.body<StoreSettingsDto>()
         }.toNetworkResult()
