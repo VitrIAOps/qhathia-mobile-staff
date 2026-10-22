@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommand
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
+import com.qhathia.mobile.staff.core.domain.model.DeviceCommandType
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaComingSoonTag
 import com.qhathia.mobile.staff.core.ui.component.time.label
 import com.qhathia.mobile.staff.core.ui.component.time.relativeTimeBetween
@@ -85,7 +86,11 @@ internal fun DeviceCard(
     ) {
         Column(modifier = Modifier.padding(Dimens.SpaceMd), verticalArrangement = Arrangement.spacedBy(Dimens.SpaceMd)) {
             DeviceIdentity(device = device, connected = connected, onOpenSettings = onOpenSettings)
-            CatalogBox(catalogCount = catalogCount, lastSyncAt = device.lastSyncAt, now = now)
+            CatalogBox(
+                catalogCount = catalogCount,
+                updatedAt = listOfNotNull(device.lastSyncAt, device.lastPingAt).maxOrNull(),
+                now = now,
+            )
             TileRow(
                 start = Tile(
                     icon = Icons.Rounded.BatteryChargingFull,
@@ -115,16 +120,6 @@ internal fun DeviceCard(
                     comingSoon = true,
                 ),
             )
-            if (!connected && device.lastPingAt != null) {
-                Text(
-                    text = stringResource(
-                        R.string.device_last_report,
-                        relativeTimeBetween(device.lastPingAt!!, now).label(),
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             CommandActions(
                 isRefreshBusy = isRefreshBusy,
                 isRestartBusy = isRestartBusy,
@@ -178,8 +173,12 @@ private fun DeviceIdentity(device: Device, connected: Boolean, onOpenSettings: (
     }
 }
 
+/**
+ * Product count and "Actualizado hace X". [updatedAt] is the most recent of the tablet's catalog
+ * sync and its last report, so the line shows the last time the tablet was in touch.
+ */
 @Composable
-private fun CatalogBox(catalogCount: Int?, lastSyncAt: Instant?, now: Instant) {
+private fun CatalogBox(catalogCount: Int?, updatedAt: Instant?, now: Instant) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -199,9 +198,9 @@ private fun CatalogBox(catalogCount: Int?, lastSyncAt: Instant?, now: Instant) {
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        if (lastSyncAt != null) {
+        if (updatedAt != null) {
             Text(
-                text = stringResource(R.string.device_catalog_updated, relativeTimeBetween(lastSyncAt, now).label()),
+                text = stringResource(R.string.device_catalog_updated, relativeTimeBetween(updatedAt, now).label()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -319,7 +318,9 @@ private fun CommandStatusLine(labelRes: Int, command: DeviceCommand?) {
 
 @Composable
 private fun DeviceCommand.statusLabel(): String? = when (status) {
-    DeviceCommandStatus.PENDING, DeviceCommandStatus.DELIVERED -> stringResource(R.string.device_command_sent)
+    DeviceCommandStatus.PENDING, DeviceCommandStatus.DELIVERED -> expiresAt
+        ?.let { stringResource(R.string.device_command_sent_retry_at, it.toShortLocalTime()) }
+        ?: stringResource(R.string.device_command_sent)
     DeviceCommandStatus.ACKED -> stringResource(R.string.device_command_ready)
     DeviceCommandStatus.FAILED -> resultDetail
         ?.let { stringResource(R.string.device_command_failed_detail, it) }
@@ -350,6 +351,32 @@ private fun DeviceCardPreview() {
             refreshCommand = null,
             restartCommand = null,
             isRefreshBusy = false,
+            isRestartBusy = false,
+            onRefreshCatalog = {},
+            onRestart = {},
+            modifier = Modifier.padding(Dimens.SpaceMd),
+        )
+    }
+}
+
+@Preview(name = "Device card — command in flight", showBackground = true, widthDp = 360)
+@Composable
+private fun DeviceCardCommandInFlightPreview() {
+    QhathiaTheme {
+        DeviceCard(
+            device = DeviceLinkingPreviewData.disconnected,
+            catalogCount = 12,
+            now = DeviceLinkingPreviewData.now,
+            refreshCommand = DeviceCommand(
+                id = "c1",
+                type = DeviceCommandType.REFRESH_CATALOG,
+                status = DeviceCommandStatus.PENDING,
+                requestedAt = DeviceLinkingPreviewData.now,
+                expiresAt = DeviceLinkingPreviewData.now.plusSeconds(600),
+                resultDetail = null,
+            ),
+            restartCommand = null,
+            isRefreshBusy = true,
             isRestartBusy = false,
             onRefreshCatalog = {},
             onRestart = {},

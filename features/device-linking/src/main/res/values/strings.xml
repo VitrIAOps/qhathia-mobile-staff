@@ -19,7 +19,6 @@
     </plurals>
     <!-- %1$s is a relative time, e.g. "hace 4 min". -->
     <string name="device_catalog_updated">Actualizado %1$s</string>
-    <string name="device_last_report">Último reporte %1$s</string>
     <string name="device_battery">Batería</string>
     <string name="device_connection">Conexión</string>
     <string name="device_store">Tienda</string>
@@ -39,6 +38,8 @@
     <!-- %1$s is the command label, %2$s its status. -->
     <string name="device_command_status_line">%1$s: %2$s</string>
     <string name="device_command_sent">Enviado</string>
+    <!-- %1$s is the local time the command expires, e.g. 15:42. -->
+    <string name="device_command_sent_retry_at">Enviado · Si la tablet no responde, podrás reintentar a las %1$s</string>
     <string name="device_command_ready">Listo</string>
     <string name="device_command_failed">Falló</string>
     <string name="device_command_failed_detail">Falló: %1$s</string>

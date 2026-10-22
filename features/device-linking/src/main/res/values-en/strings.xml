@@ -18,7 +18,6 @@
         <item quantity="other">%d products</item>
     </plurals>
     <string name="device_catalog_updated">Updated %1$s</string>
-    <string name="device_last_report">Last report %1$s</string>
     <string name="device_battery">Battery</string>
     <string name="device_connection">Connection</string>
     <string name="device_store">Store</string>
@@ -37,6 +36,8 @@
     <string name="device_command_restart_label">Restart</string>
     <string name="device_command_status_line">%1$s: %2$s</string>
     <string name="device_command_sent">Sent</string>
+    <!-- %1$s is the local time the command expires, e.g. 3:42 PM. -->
+    <string name="device_command_sent_retry_at">Sent · If the tablet doesn\'t respond, you can retry at %1$s</string>
     <string name="device_command_ready">Done</string>
     <string name="device_command_failed">Failed</string>
     <string name="device_command_failed_detail">Failed: %1$s</string>

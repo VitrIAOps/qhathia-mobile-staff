@@ -219,8 +219,9 @@ object TestFixtures {
         type: DeviceCommandType = DeviceCommandType.REFRESH_CATALOG,
         status: DeviceCommandStatus = DeviceCommandStatus.PENDING,
         requestedAt: Instant? = NOW,
+        expiresAt: Instant? = requestedAt?.plus(Duration.ofMinutes(10)),
         resultDetail: String? = null,
-    ) = DeviceCommand(id, type, status, requestedAt, resultDetail)
+    ) = DeviceCommand(id, type, status, requestedAt, expiresAt, resultDetail)
 
     fun userProfile(
         id: String = "user-1",
