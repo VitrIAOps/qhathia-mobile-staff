@@ -47,7 +47,7 @@ internal object ProfileHubPreviewData {
         profile = LoadState.Loaded(profile),
         subscription = LoadState.Loaded(subscription),
         alertCounts = AlertCounts(active = 6, total = 7),
-        connectedTablets = 1,
+        tablets = TabletCounts(linked = 2, connected = 1),
         now = now,
     )
 }

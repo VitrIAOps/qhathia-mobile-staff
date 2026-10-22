@@ -37,10 +37,16 @@
     <string name="menu_settings_title">Configuración</string>
     <string name="menu_settings_subtitle">Idioma de la app</string>
     <string name="menu_devices_title">Dispositivos</string>
-    <plurals name="menu_devices_connected">
-        <item quantity="one">%d tablet conectada</item>
-        <item quantity="other">%d tablets conectadas</item>
+    <plurals name="menu_devices_linked">
+        <item quantity="one">%d vinculado</item>
+        <item quantity="other">%d vinculados</item>
     </plurals>
+    <plurals name="menu_devices_connected">
+        <item quantity="one">%d activo</item>
+        <item quantity="other">%d activos</item>
+    </plurals>
+    <!-- "5 vinculados (1 activo)": %1$s linked, %2$s connected. -->
+    <string name="menu_devices_summary">%1$s (%2$s)</string>
     <string name="menu_devices_fallback">Tus tablets vitrina</string>
     <string name="menu_help_title">Ayuda</string>
     <string name="menu_help_subtitle">Soporte por WhatsApp y guías</string>

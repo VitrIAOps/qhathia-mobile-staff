@@ -93,7 +93,7 @@ class ProfileHubViewModel @Inject constructor(
                 add(launch { loadAlertCounts() })
                 if (_uiState.value.canManageStore) {
                     add(launch { loadSubscription() })
-                    add(launch { loadConnectedTablets() })
+                    add(launch { loadTabletCounts() })
                 }
             }
             jobs.forEach { it.join() }
@@ -121,12 +121,17 @@ class ProfileHubViewModel @Inject constructor(
             .onFailure { _uiState.update { it.copy(subscription = it.subscription.afterFailure()) } }
     }
 
-    private suspend fun loadConnectedTablets() {
+    private suspend fun loadTabletCounts() {
         getDevicesUseCase()
             .onSuccess { devices ->
                 val now = clock.instant()
                 _uiState.update { state ->
-                    state.copy(connectedTablets = devices.count { it.isConnected(now) })
+                    state.copy(
+                        tablets = TabletCounts(
+                            linked = devices.size,
+                            connected = devices.count { it.isConnected(now) },
+                        ),
+                    )
                 }
             }
     }

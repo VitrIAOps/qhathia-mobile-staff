@@ -8,6 +8,7 @@ import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsError
 import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsException
 import com.qhathia.mobile.staff.core.domain.usecase.GetDeviceSettingsUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetDevicesUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.UnlinkDeviceUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.UpdateDeviceSettingsUseCase
 import com.qhathia.mobile.staff.core.testing.FakeDeviceRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
@@ -46,6 +47,7 @@ class TabletSettingsViewModelTest {
         getDeviceSettingsUseCase = GetDeviceSettingsUseCase(repository),
         getDevicesUseCase = GetDevicesUseCase(repository),
         updateDeviceSettingsUseCase = UpdateDeviceSettingsUseCase(repository),
+        unlinkDeviceUseCase = UnlinkDeviceUseCase(repository),
     )
 
     private fun failure(error: DeviceSettingsError) = Result.failure<Nothing>(DeviceSettingsException(error))
@@ -243,5 +245,49 @@ class TabletSettingsViewModelTest {
 
         assertFalse(viewModel.uiState.value.pinDialog!!.isConfirmingRemoval)
         assertTrue(repository.settingsChanges.isEmpty())
+    }
+
+    // ---- Unlink ----
+
+    @Test
+    fun `unlink is sent only after confirmation and closes the screen`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(TabletSettingsUiEvent.UnlinkRequested)
+            assertTrue(viewModel.uiState.value.isUnlinkConfirmVisible)
+            assertTrue(repository.unlinkedDevices.isEmpty())
+
+            viewModel.onEvent(TabletSettingsUiEvent.UnlinkConfirmed)
+
+            assertEquals(TabletSettingsUiEffect.Unlinked(DEVICE_ID), awaitItem())
+        }
+        assertEquals(listOf(DEVICE_ID), repository.unlinkedDevices)
+        assertFalse(viewModel.uiState.value.isUnlinkConfirmVisible)
+    }
+
+    @Test
+    fun `dismissing the unlink dialog sends nothing`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(TabletSettingsUiEvent.UnlinkRequested)
+        viewModel.onEvent(TabletSettingsUiEvent.UnlinkDismissed)
+        viewModel.onEvent(TabletSettingsUiEvent.UnlinkConfirmed)
+
+        assertFalse(viewModel.uiState.value.isUnlinkConfirmVisible)
+        assertTrue(repository.unlinkedDevices.isEmpty())
+    }
+
+    @Test
+    fun `a failed unlink shows a message and keeps the screen usable`() = runTest {
+        repository.unlinkResult = Result.failure(IOException("offline"))
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(TabletSettingsUiEvent.UnlinkRequested)
+            viewModel.onEvent(TabletSettingsUiEvent.UnlinkConfirmed)
+            assertEquals(TabletSettingsUiEffect.ShowMessage(R.string.device_unlink_error), awaitItem())
+        }
+        assertFalse(viewModel.uiState.value.isUnlinking)
     }
 }

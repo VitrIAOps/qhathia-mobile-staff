@@ -10,8 +10,8 @@
     <!-- Device card -->
     <string name="device_unnamed">Tablet</string>
     <string name="device_missing">—</string>
-    <string name="device_connected">Connected</string>
-    <string name="device_disconnected">Disconnected</string>
+    <string name="device_connected">Active</string>
+    <string name="device_disconnected">Inactive</string>
     <string name="device_catalog_label">Visible catalog</string>
     <plurals name="device_catalog_products">
         <item quantity="one">%d product</item>
@@ -43,6 +43,15 @@
     <string name="device_command_expired">Couldn\'t be delivered</string>
     <string name="device_command_error">Couldn\'t send the command. Try again.</string>
 
+    <!-- Unlink -->
+    <string name="device_unlink">Unlink tablet</string>
+    <!-- %1$s is the tablet name. -->
+    <string name="device_unlink_title">Unlink %1$s?</string>
+    <string name="device_unlink_message">It will no longer appear in your store. To use it again you\'ll need to pair it with a new code.</string>
+    <string name="device_unlink_confirm">Unlink</string>
+    <string name="device_unlink_error">Couldn\'t unlink the tablet. Try again.</string>
+    <string name="device_unlinked">Tablet unlinked</string>
+
     <!-- Pair dialog -->
     <string name="device_pair_title">Link tablet</string>
     <string name="device_pair_close_cd">Close</string>
@@ -53,7 +62,6 @@
 
     <!-- Ajustes de la tablet -->
     <string name="tablet_settings_entry">Tablet settings</string>
-    <string name="tablet_settings_entry_subtitle">Kiosk mode, PIN, brightness and more</string>
     <string name="tablet_settings_title">Tablet settings</string>
     <string name="tablet_settings_group_display">Customer screen</string>
     <string name="tablet_settings_idle_showcase">Idle showcase mode</string>

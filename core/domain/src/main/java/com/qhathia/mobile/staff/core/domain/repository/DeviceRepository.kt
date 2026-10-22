@@ -21,6 +21,9 @@ interface DeviceRepository {
      */
     suspend fun pairDevice(code: String): Result<Unit>
 
+    /** Detaches [deviceId] from the store; it no longer appears in [getDevices]. */
+    suspend fun unlinkDevice(deviceId: String): Result<Unit>
+
     /** How many active products the store's catalog exposes. */
     suspend fun getCatalogCount(): Result<Int>
 

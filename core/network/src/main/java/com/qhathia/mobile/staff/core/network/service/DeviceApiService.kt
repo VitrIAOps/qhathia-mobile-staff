@@ -32,6 +32,12 @@ class DeviceApiService(private val client: HttpClient) {
             client.post("api/v1/devices/pair") { setBody(body) }.body<PairDeviceResponseDto>()
         }.toNetworkResult()
 
+    /** Detaches the tablet from the store (OWNER/ADMIN). It answers the device, now `INACTIVE`. */
+    suspend fun unlinkDevice(deviceId: String): NetworkResult<DeviceDto> =
+        runCatching {
+            client.post("api/v1/devices/$deviceId/unlink").body<DeviceDto>()
+        }.toNetworkResult()
+
     /** Queues a command (`202`). Idempotent while one of the same type is still in flight. */
     suspend fun sendCommand(
         deviceId: String,

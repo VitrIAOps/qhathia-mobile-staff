@@ -137,8 +137,12 @@ private fun ProfileMenu(
         if (uiState.canManageStore) {
             QhathiaNavigationRow(
                 title = stringResource(R.string.menu_devices_title),
-                subtitle = uiState.connectedTablets?.let {
-                    pluralStringResource(R.plurals.menu_devices_connected, it, it)
+                subtitle = uiState.tablets?.takeIf { it.linked > 0 }?.let { counts ->
+                    stringResource(
+                        R.string.menu_devices_summary,
+                        pluralStringResource(R.plurals.menu_devices_linked, counts.linked, counts.linked),
+                        pluralStringResource(R.plurals.menu_devices_connected, counts.connected, counts.connected),
+                    )
                 } ?: stringResource(R.string.menu_devices_fallback),
                 icon = Icons.Outlined.TabletAndroid,
                 onClick = open(ProfileDestination.DEVICES),
@@ -184,7 +188,7 @@ private fun ProfileHubLoadingPreview() {
                 profile = LoadState.Loading,
                 subscription = LoadState.Loaded(null),
                 alertCounts = null,
-                connectedTablets = null,
+                tablets = null,
             ),
             onEvent = {},
         )

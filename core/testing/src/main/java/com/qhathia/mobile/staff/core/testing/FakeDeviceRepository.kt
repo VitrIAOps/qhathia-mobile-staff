@@ -18,6 +18,10 @@ class FakeDeviceRepository : DeviceRepository {
     var devicesResult: Result<List<Device>> = Result.success(listOf(TestFixtures.device()))
     var pairResult: Result<Unit> = Result.success(Unit)
     var catalogCountResult: Result<Int> = Result.success(12)
+    var unlinkResult: Result<Unit> = Result.success(Unit)
+
+    /** Every device id sent to [unlinkDevice], in order. */
+    val unlinkedDevices: MutableList<String> = mutableListOf()
     var settingsResult: Result<DeviceSettings> = Result.success(TestFixtures.deviceSettings())
 
     /**
@@ -59,6 +63,11 @@ class FakeDeviceRepository : DeviceRepository {
         pairCallCount++
         lastPairedCode = code
         return pairResult
+    }
+
+    override suspend fun unlinkDevice(deviceId: String): Result<Unit> {
+        unlinkedDevices += deviceId
+        return unlinkResult
     }
 
     override suspend fun getCatalogCount(): Result<Int> = catalogCountResult

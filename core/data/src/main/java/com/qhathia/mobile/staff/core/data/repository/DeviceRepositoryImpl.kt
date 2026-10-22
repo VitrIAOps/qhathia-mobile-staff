@@ -53,6 +53,9 @@ class DeviceRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun unlinkDevice(deviceId: String): Result<Unit> =
+        apiService.unlinkDevice(deviceId).asDomainResult { }
+
     override suspend fun getCatalogCount(): Result<Int> =
         catalogApiService.getCount().asDomainResult { it.activeProducts.coerceAtLeast(0) }
 

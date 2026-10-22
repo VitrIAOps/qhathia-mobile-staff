@@ -47,6 +47,7 @@ import com.qhathia.mobile.staff.feature.productdetail.navigation.productDetailRo
 import com.qhathia.mobile.staff.feature.productregister.navigation.PRODUCT_REGISTER_ROUTE
 import com.qhathia.mobile.staff.feature.productregister.navigation.productRegisterGraph
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.DEVICE_LINKING_ROUTE
+import com.qhathia.mobile.staff.feature.devicelinking.navigation.TABLET_UNLINKED_RESULT_KEY
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.deviceLinkingGraph
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.tabletSettingsRoute
 import com.qhathia.mobile.staff.feature.orderrequests.navigation.ORDER_REQUESTS_ROUTE
@@ -252,6 +253,10 @@ fun MainShell(
             deviceLinkingGraph(
                 onBack = { navController.popBackStack() },
                 onOpenTabletSettings = { id -> navController.navigate(tabletSettingsRoute(id)) },
+                onTabletUnlinked = { id ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set(TABLET_UNLINKED_RESULT_KEY, id)
+                    navController.popBackStack()
+                },
             )
         }
     }
