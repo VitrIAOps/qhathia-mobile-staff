@@ -75,6 +75,7 @@ fun DeviceCommandDto.toDomain(): DeviceCommand? {
         status = DeviceCommandStatus.entries.firstOrNull { it.name == status }
             ?: DeviceCommandStatus.UNKNOWN,
         requestedAt = requestedAt.parseIsoInstant(),
+        expiresAt = expiresAt.parseIsoInstant(),
         resultDetail = resultDetail?.trim()?.takeIf { it.isNotEmpty() },
     )
 }

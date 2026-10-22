@@ -50,6 +50,21 @@ class DeviceMappersTest {
     }
 
     @Test
+    fun `command maps expiresAt, and leaves it null when absent`() {
+        val withExpiry = DeviceCommandDto(
+            id = "c1",
+            command = "REFRESH_CATALOG",
+            status = "PENDING",
+            requestedAt = "2026-09-13T09:41:55Z",
+            expiresAt = "2026-09-13T09:51:55Z",
+        ).toDomain()!!
+        val withoutExpiry = DeviceCommandDto(id = "c2", command = "REFRESH_CATALOG", status = "PENDING").toDomain()!!
+
+        assertEquals(Instant.parse("2026-09-13T09:51:55Z"), withExpiry.expiresAt)
+        assertNull(withoutExpiry.expiresAt)
+    }
+
+    @Test
     fun `command of an unknown type is dropped and an unknown status degrades`() {
         assertNull(DeviceCommandDto(id = "c1", command = "FORMAT_DISK", status = "PENDING").toDomain())
         assertEquals(

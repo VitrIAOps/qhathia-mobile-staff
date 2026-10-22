@@ -25,14 +25,14 @@ The Dispositivos screen SHALL show a gradient top bar with back and the title "D
 
 Each tablet SHALL be rendered as a card with:
 - **Identity**: a tablet icon, the device `name` (falling back to "Tablet" when absent), and a connection status: "Conectada" in success colour, or "Desconectada" in neutral colour.
-- **Catálogo visible**: "<activeProducts> productos" and "Actualizado <relative time of lastSyncAt>". The sync line is omitted when `lastSyncAt` is absent.
+- **Catálogo visible**: "<activeProducts> productos" and, below it, "Actualizado <relative time>", where the time is the most recent of `lastSyncAt` and `lastPingAt`. The line is shown whether the tablet is connected or not, uses whichever of the two is present when only one is, and is omitted when both are absent.
 - **Batería**: "<batteryLevel>%" with a battery glyph, or "—" when `batteryLevel` is null.
 - **Conexión**: the `networkStatus` label, where WIFI → "Wi Fi", MOBILE → "Datos móviles", other values as received, and absent → "—".
 - **Tienda**: the `storeName`.
 - **Clientes hoy**: "—" with a *Próximamente* tag.
 - **Actions**: "Actualizar catálogo" (primary) and "Reiniciar" (outlined).
 
-A tablet SHALL be considered connected when its status is ACTIVE and `lastPingAt` is within the last 10 minutes. When it is not connected, battery and connection SHALL be shown with the caption "Último reporte <relative time of lastPingAt>".
+A tablet SHALL be considered connected when its status is ACTIVE and `lastPingAt` is within the last 10 minutes. The card SHALL NOT show a separate "Último reporte" caption under battery and connection; the "Actualizado" line in Catálogo visible replaces it.
 
 #### Scenario: Store has paired devices
 
@@ -41,13 +41,23 @@ A tablet SHALL be considered connected when its status is ACTIVE and `lastPingAt
 
 #### Scenario: Recently seen tablet
 
-- **WHEN** a tablet is ACTIVE and its `lastPingAt` is 3 minutes ago
-- **THEN** its card shows "Conectada"
+- **WHEN** a tablet is ACTIVE, its `lastPingAt` is 3 minutes ago and its `lastSyncAt` is 20 minutes ago
+- **THEN** its card shows "Conectada" and "Actualizado hace 3 min" under the product count
+
+#### Scenario: Sync more recent than ping
+
+- **WHEN** a tablet's `lastSyncAt` is 5 minutes ago and its `lastPingAt` is 12 minutes ago
+- **THEN** its card shows "Actualizado hace 5 min" under the product count
 
 #### Scenario: Stale tablet
 
-- **WHEN** a tablet's `lastPingAt` is 2 hours ago
-- **THEN** its card shows "Desconectada" and "Último reporte hace 2 horas"
+- **WHEN** a tablet's `lastPingAt` is 2 hours ago and its `lastSyncAt` is absent
+- **THEN** its card shows "Desconectada" and "Actualizado hace 2 horas" under the product count, and no "Último reporte" caption
+
+#### Scenario: Tablet that never reported
+
+- **WHEN** a tablet's `lastPingAt` and `lastSyncAt` are both absent
+- **THEN** the Catálogo visible box shows only the product count, with no "Actualizado" line
 
 #### Scenario: Loading the list
 
@@ -109,17 +119,29 @@ Each card SHALL show the latest known state of each command under its actions:
 
 | Status | Shown |
 |---|---|
-| `PENDING`, `DELIVERED` | "Enviado" |
+| `PENDING`, `DELIVERED` | "Enviado · Si la tablet no responde, podrás reintentar a las <HH:MM>", or "Enviado" when the command has no `expiresAt` |
 | `ACKED` | "Listo" |
 | `FAILED` | "Falló: <resultDetail>", or "Falló" when there is no detail |
 | `EXPIRED` | "No se pudo entregar" |
+
+`<HH:MM>` SHALL be the command's `expiresAt` as returned by the backend, shown in the phone's local time zone and short time format. It SHALL be fixed text, not a countdown. The app SHALL NOT estimate the tablet's next heartbeat.
 
 While a command of that type is `PENDING` or `DELIVERED`, its button SHALL be disabled. A failed request SHALL show an error message and leave the button enabled.
 
 #### Scenario: Refresh catalog sent
 
-- **WHEN** the owner taps "Actualizar catálogo" and the API returns `202` with status `PENDING`
-- **THEN** the card shows "Enviado" and "Actualizar catálogo" is disabled
+- **WHEN** the owner taps "Actualizar catálogo" and the API returns `202` with status `PENDING` and `expiresAt` 10 minutes after `requestedAt`
+- **THEN** the card shows "Enviado · Si la tablet no responde, podrás reintentar a las <expiresAt in local time>" and "Actualizar catálogo" is disabled
+
+#### Scenario: In-flight command without expiry
+
+- **WHEN** an in-flight command is returned without `expiresAt`
+- **THEN** the card shows "Enviado" with no retry time
+
+#### Scenario: Finished command hides the retry time
+
+- **WHEN** a poll returns the command as `ACKED`, `FAILED` or `EXPIRED`
+- **THEN** the retry time is no longer shown and the line shows that status's text
 
 #### Scenario: Restart requires confirmation
 

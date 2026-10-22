@@ -214,10 +214,12 @@ private fun DeviceLinkingContentPreview() {
                 commands = mapOf(
                     "d1" to mapOf(
                         DeviceCommandType.REFRESH_CATALOG to DeviceCommand(
-                            "c1", DeviceCommandType.REFRESH_CATALOG, DeviceCommandStatus.PENDING, DeviceLinkingPreviewData.now, null,
+                            "c1", DeviceCommandType.REFRESH_CATALOG, DeviceCommandStatus.PENDING, DeviceLinkingPreviewData.now,
+                            DeviceLinkingPreviewData.now.plusSeconds(600), null,
                         ),
                         DeviceCommandType.RESTART_APP to DeviceCommand(
-                            "c2", DeviceCommandType.RESTART_APP, DeviceCommandStatus.FAILED, DeviceLinkingPreviewData.now, "sin conexión",
+                            "c2", DeviceCommandType.RESTART_APP, DeviceCommandStatus.FAILED, DeviceLinkingPreviewData.now,
+                            DeviceLinkingPreviewData.now.plusSeconds(600), "sin conexión",
                         ),
                     ),
                 ),
