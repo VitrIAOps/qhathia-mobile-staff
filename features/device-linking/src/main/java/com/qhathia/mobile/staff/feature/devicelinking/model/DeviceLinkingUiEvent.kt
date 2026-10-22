@@ -16,6 +16,9 @@ sealed interface DeviceLinkingUiEvent {
     data object RestartDismissed : DeviceLinkingUiEvent
     data object RestartConfirmed : DeviceLinkingUiEvent
 
+    /** The tablet was unlinked from its settings screen; its card leaves the list. */
+    data class DeviceUnlinked(val deviceId: String) : DeviceLinkingUiEvent
+
     data object OpenPairDialog : DeviceLinkingUiEvent
     data object DismissPairDialog : DeviceLinkingUiEvent
     data class PairCodeChanged(val code: String) : DeviceLinkingUiEvent
@@ -25,6 +28,7 @@ sealed interface DeviceLinkingUiEvent {
 /** One-shot outcomes of Dispositivos. */
 sealed interface DeviceLinkingUiEffect {
     data class ShowCommandError(val type: DeviceCommandType) : DeviceLinkingUiEffect
+    data object ShowUnlinked : DeviceLinkingUiEffect
 }
 
 /** Kept for call sites that only need the command type name. */

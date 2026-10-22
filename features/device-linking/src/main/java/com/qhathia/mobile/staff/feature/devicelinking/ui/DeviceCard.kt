@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -49,7 +50,6 @@ import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommand
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaComingSoonTag
-import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaNavigationRow
 import com.qhathia.mobile.staff.core.ui.component.time.label
 import com.qhathia.mobile.staff.core.ui.component.time.relativeTimeBetween
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
@@ -59,8 +59,8 @@ import com.qhathia.mobile.staff.feature.devicelinking.R
 import java.time.Instant
 
 /**
- * One tablet: identity and connection, the visible catalog, the last reported telemetry, and the
- * two remote actions with the state of their latest command.
+ * One tablet: identity and status (with the settings shortcut at the top right), the visible catalog,
+ * the last reported telemetry, and the two remote actions with the state of their latest command.
  */
 @Composable
 internal fun DeviceCard(
@@ -84,7 +84,7 @@ internal fun DeviceCard(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(Dimens.SpaceMd), verticalArrangement = Arrangement.spacedBy(Dimens.SpaceMd)) {
-            DeviceIdentity(device = device, connected = connected)
+            DeviceIdentity(device = device, connected = connected, onOpenSettings = onOpenSettings)
             CatalogBox(catalogCount = catalogCount, lastSyncAt = device.lastSyncAt, now = now)
             TileRow(
                 start = Tile(
@@ -133,24 +133,13 @@ internal fun DeviceCard(
             )
             CommandStatusLine(labelRes = R.string.device_command_refresh_label, command = refreshCommand)
             CommandStatusLine(labelRes = R.string.device_command_restart_label, command = restartCommand)
-            // Always available: settings are stored and applied when the tablet next reports.
-            QhathiaNavigationRow(
-                title = stringResource(R.string.tablet_settings_entry),
-                subtitle = stringResource(R.string.tablet_settings_entry_subtitle),
-                icon = Icons.Outlined.Settings,
-                onClick = onOpenSettings,
-                showDivider = false,
-            )
         }
     }
 }
 
 @Composable
-private fun DeviceIdentity(device: Device, connected: Boolean) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.semantics(mergeDescendants = true) { heading() },
-    ) {
+private fun DeviceIdentity(device: Device, connected: Boolean, onOpenSettings: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Icon(
             imageVector = Icons.Outlined.TabletAndroid,
             contentDescription = null,
@@ -158,7 +147,7 @@ private fun DeviceIdentity(device: Device, connected: Boolean) {
             modifier = Modifier.size(28.dp),
         )
         Spacer(Modifier.width(Dimens.SpaceMd))
-        Column {
+        Column(modifier = Modifier.weight(1f).semantics(mergeDescendants = true) { heading() }) {
             Text(
                 text = device.name ?: stringResource(R.string.device_unnamed),
                 style = MaterialTheme.typography.titleMedium,
@@ -177,6 +166,14 @@ private fun DeviceIdentity(device: Device, connected: Boolean) {
                     color = statusColor,
                 )
             }
+        }
+        // Always available: settings are stored and applied when the tablet next reports.
+        IconButton(onClick = onOpenSettings) {
+            Icon(
+                imageVector = Icons.Outlined.Settings,
+                contentDescription = stringResource(R.string.tablet_settings_entry),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

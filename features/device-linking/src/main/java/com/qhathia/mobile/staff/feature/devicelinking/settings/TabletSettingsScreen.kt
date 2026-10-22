@@ -15,10 +15,14 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-/** Stateful entry point of Ajustes de la tablet: binds the ViewModel and shows its messages. */
+/**
+ * Stateful entry point of Ajustes de la tablet: binds the ViewModel and shows its messages.
+ * [onUnlinked] receives the tablet's id once it is unlinked, to close the screen.
+ */
 @Composable
 fun TabletSettingsScreen(
     onBack: () -> Unit,
+    onUnlinked: (deviceId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TabletSettingsViewModel = hiltViewModel(),
 ) {
@@ -31,6 +35,7 @@ fun TabletSettingsScreen(
             when (effect) {
                 is TabletSettingsUiEffect.ShowMessage ->
                     snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
+                is TabletSettingsUiEffect.Unlinked -> onUnlinked(effect.deviceId)
             }
         }
     }

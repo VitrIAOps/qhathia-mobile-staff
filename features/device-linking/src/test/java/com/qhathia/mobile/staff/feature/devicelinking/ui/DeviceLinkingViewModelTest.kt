@@ -115,6 +115,20 @@ class DeviceLinkingViewModelTest {
     }
 
     @Test
+    fun `a tablet unlinked from its settings leaves the list with a message`() = runTest {
+        repository.devicesResult = Result.success(
+            listOf(TestFixtures.device(id = "d1"), TestFixtures.device(id = "d2")),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(DeviceLinkingUiEvent.DeviceUnlinked("d1"))
+            assertEquals(DeviceLinkingUiEffect.ShowUnlinked, awaitItem())
+        }
+        assertEquals(listOf("d2"), viewModel.uiState.value.devices.map { it.id })
+    }
+
+    @Test
     fun `restart is sent only after confirmation`() = runTest {
         val viewModel = createViewModel()
 

@@ -8,6 +8,7 @@ import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsError
 import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsException
 import com.qhathia.mobile.staff.core.domain.usecase.GetDeviceSettingsUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetDevicesUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.UnlinkDeviceUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.UpdateDeviceSettingsUseCase
 import com.qhathia.mobile.staff.feature.devicelinking.R
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.TABLET_SETTINGS_ARG_ID
@@ -29,6 +30,7 @@ import javax.inject.Inject
  * failure blocks the screen (a 404 means the tablet is no longer linked). Switches and brightness
  * save on change, like Notificaciones: the control moves at once, one request per control at a
  * time, and a failure puts back only that control. The exit PIN goes through its own dialog.
+ * Unlinking the tablet, at the end of the screen, asks for confirmation first.
  */
 @HiltViewModel
 class TabletSettingsViewModel @Inject constructor(
@@ -36,6 +38,7 @@ class TabletSettingsViewModel @Inject constructor(
     private val getDeviceSettingsUseCase: GetDeviceSettingsUseCase,
     private val getDevicesUseCase: GetDevicesUseCase,
     private val updateDeviceSettingsUseCase: UpdateDeviceSettingsUseCase,
+    private val unlinkDeviceUseCase: UnlinkDeviceUseCase,
 ) : ViewModel() {
 
     private val deviceId: String = checkNotNull(savedStateHandle[TABLET_SETTINGS_ARG_ID]) {
@@ -73,6 +76,10 @@ class TabletSettingsViewModel @Inject constructor(
             TabletSettingsUiEvent.RemovePinCancelled ->
                 updateDialog { if (it.isSaving) it else it.copy(isConfirmingRemoval = false) }
             TabletSettingsUiEvent.RemovePinConfirmed -> removePin()
+            TabletSettingsUiEvent.UnlinkRequested ->
+                _uiState.update { if (it.isUnlinking) it else it.copy(isUnlinkConfirmVisible = true) }
+            TabletSettingsUiEvent.UnlinkDismissed -> _uiState.update { it.copy(isUnlinkConfirmVisible = false) }
+            TabletSettingsUiEvent.UnlinkConfirmed -> unlink()
         }
     }
 
@@ -155,6 +162,20 @@ class TabletSettingsViewModel @Inject constructor(
                 }
                 .onFailure {
                     updateDialog { it.copy(isSaving = false, isConfirmingRemoval = false, errorRes = R.string.tablet_pin_error) }
+                }
+        }
+    }
+
+    private fun unlink() {
+        val state = _uiState.value
+        if (!state.isUnlinkConfirmVisible || state.isUnlinking) return
+        _uiState.update { it.copy(isUnlinkConfirmVisible = false, isUnlinking = true) }
+        viewModelScope.launch {
+            unlinkDeviceUseCase(deviceId)
+                .onSuccess { _uiEffect.emit(TabletSettingsUiEffect.Unlinked(deviceId)) }
+                .onFailure {
+                    _uiState.update { it.copy(isUnlinking = false) }
+                    _uiEffect.emit(TabletSettingsUiEffect.ShowMessage(R.string.device_unlink_error))
                 }
         }
     }

@@ -22,13 +22,16 @@ import com.qhathia.mobile.staff.feature.devicelinking.model.DeviceLinkingUiEvent
 /**
  * Stateful Dispositivos entry point: binds [DeviceLinkingViewModel], tells it when the screen is
  * visible (command polling follows that), and renders [DeviceLinkingContent]. [onBack] returns to
- * Mi perfil.
+ * Mi perfil. [unlinkedDeviceId] is the tablet just unlinked from its settings screen, handed back
+ * through navigation; [onUnlinkedConsumed] clears it once applied.
  */
 @Composable
 fun DeviceLinkingScreen(
     onBack: () -> Unit,
     onOpenTabletSettings: (String) -> Unit,
     modifier: Modifier = Modifier,
+    unlinkedDeviceId: String? = null,
+    onUnlinkedConsumed: () -> Unit = {},
     viewModel: DeviceLinkingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -40,7 +43,15 @@ fun DeviceLinkingScreen(
             when (effect) {
                 is DeviceLinkingUiEffect.ShowCommandError ->
                     snackbarHostState.showSnackbar(resources.getString(R.string.device_command_error))
+                DeviceLinkingUiEffect.ShowUnlinked ->
+                    snackbarHostState.showSnackbar(resources.getString(R.string.device_unlinked))
             }
+        }
+    }
+    LaunchedEffect(unlinkedDeviceId) {
+        unlinkedDeviceId?.let {
+            viewModel.onEvent(DeviceLinkingUiEvent.DeviceUnlinked(it))
+            onUnlinkedConsumed()
         }
     }
     LifecycleStartEffect(Unit) {

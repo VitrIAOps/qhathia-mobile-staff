@@ -63,7 +63,7 @@ class ProfileHubViewModelTest {
         )
 
     @Test
-    fun `an owner sees profile, subscription, alert counts and connected tablets`() = runTest {
+    fun `an owner sees profile, subscription, alert counts and linked and connected tablets`() = runTest {
         devices.devicesResult = Result.success(
             listOf(
                 TestFixtures.device(id = "d1", lastPingAt = clock.now.minus(Duration.ofMinutes(2))),
@@ -78,7 +78,7 @@ class ProfileHubViewModelTest {
         assertEquals(3, state.storeCount)
         assertTrue(state.subscription is LoadState.Loaded)
         assertEquals(AlertCounts(active = 6, total = 7), state.alertCounts)
-        assertEquals(1, state.connectedTablets)
+        assertEquals(TabletCounts(linked = 2, connected = 1), state.tablets)
     }
 
     @Test
@@ -103,7 +103,7 @@ class ProfileHubViewModelTest {
         assertEquals("Juan Pérez", state.displayName)
         assertNull(state.alertCounts)
         assertEquals(LoadState.Error, state.subscription)
-        assertEquals(1, state.connectedTablets)
+        assertEquals(TabletCounts(linked = 1, connected = 1), state.tablets)
     }
 
     @Test

@@ -134,6 +134,25 @@ class DeviceRepositoryImplTest {
         assertEquals(PairDeviceError.Network, error)
     }
 
+    // ---- Unlink ----
+
+    @Test
+    fun `unlinkDevice succeeds when the backend answers the device`() = runTest {
+        coEvery { api.unlinkDevice("d1") } returns NetworkResult.Success(deviceDto().copy(status = "INACTIVE"))
+
+        assertTrue(repository.unlinkDevice("d1").isSuccess)
+        coVerify(exactly = 1) { api.unlinkDevice("d1") }
+    }
+
+    @Test
+    fun `unlinkDevice fails on http and network errors`() = runTest {
+        coEvery { api.unlinkDevice("d1") } returns NetworkResult.HttpError(403, "Forbidden")
+        assertTrue(repository.unlinkDevice("d1").isFailure)
+
+        coEvery { api.unlinkDevice("d1") } returns NetworkResult.NetworkError(IOException("offline"))
+        assertTrue(repository.unlinkDevice("d1").isFailure)
+    }
+
     // ---- Settings ----
 
     @Test

@@ -10,7 +10,14 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,8 +56,8 @@ private val BrightnessOptions = persistentListOf(
 
 /**
  * Ajustes de la tablet: the three groups of settings the owner controls remotely, then the tablet's
- * Información (hidden when the device list could not be read) and a note that changes travel with
- * the tablet's next report.
+ * Información (hidden when the device list could not be read), a note that changes travel with
+ * the tablet's next report, and the "Desvincular tablet" action at the very end.
  */
 @Composable
 internal fun TabletSettingsContent(
@@ -86,6 +93,25 @@ internal fun TabletSettingsContent(
             state = dialog,
             hasPin = uiState.settings?.exitPinSet == true,
             onEvent = onEvent,
+        )
+    }
+
+    if (uiState.isUnlinkConfirmVisible) {
+        val name = uiState.device?.name ?: stringResource(R.string.device_unnamed)
+        AlertDialog(
+            onDismissRequest = { onEvent(TabletSettingsUiEvent.UnlinkDismissed) },
+            title = { Text(stringResource(R.string.device_unlink_title, name)) },
+            text = { Text(stringResource(R.string.device_unlink_message)) },
+            confirmButton = {
+                TextButton(onClick = { onEvent(TabletSettingsUiEvent.UnlinkConfirmed) }) {
+                    Text(stringResource(R.string.device_unlink_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onEvent(TabletSettingsUiEvent.UnlinkDismissed) }) {
+                    Text(stringResource(R.string.device_cancel))
+                }
+            },
         )
     }
 }
@@ -178,6 +204,21 @@ private fun SettingsList(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),
         )
+
+        TextButton(
+            onClick = { onEvent(TabletSettingsUiEvent.UnlinkRequested) },
+            enabled = !uiState.isUnlinking,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.LinkOff,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(Dimens.IconSm),
+            )
+            Spacer(Modifier.width(Dimens.SpaceXs))
+            Text(text = stringResource(R.string.device_unlink), color = MaterialTheme.colorScheme.error)
+        }
     }
 }
 

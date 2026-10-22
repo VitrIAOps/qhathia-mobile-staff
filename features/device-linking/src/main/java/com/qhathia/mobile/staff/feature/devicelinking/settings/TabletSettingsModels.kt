@@ -16,7 +16,8 @@ enum class SettingKey { IDLE_SHOWCASE, VOICE_ASSISTANT, BRIGHTNESS, KIOSK_MODE, 
  * Immutable snapshot of Ajustes de la tablet. [settings] is what the screen shows — a change in
  * flight is already applied — and [saving] the controls waiting for the server. [device] feeds the
  * Información group and is null when the device list could not be read. [pinDialog] is non-null
- * while the exit-PIN dialog is open.
+ * while the exit-PIN dialog is open. [isUnlinkConfirmVisible] is the "¿Desvincular?" dialog and
+ * [isUnlinking] the unlink request in flight.
  */
 data class TabletSettingsUiState(
     val load: TabletSettingsLoad = TabletSettingsLoad.LOADING,
@@ -24,6 +25,8 @@ data class TabletSettingsUiState(
     val device: Device? = null,
     val saving: Set<SettingKey> = emptySet(),
     val pinDialog: ExitPinDialogState? = null,
+    val isUnlinkConfirmVisible: Boolean = false,
+    val isUnlinking: Boolean = false,
 ) {
     fun isSaving(key: SettingKey): Boolean = key in saving
 
@@ -65,10 +68,17 @@ sealed interface TabletSettingsUiEvent {
     data object RemovePinRequested : TabletSettingsUiEvent
     data object RemovePinConfirmed : TabletSettingsUiEvent
     data object RemovePinCancelled : TabletSettingsUiEvent
+
+    data object UnlinkRequested : TabletSettingsUiEvent
+    data object UnlinkDismissed : TabletSettingsUiEvent
+    data object UnlinkConfirmed : TabletSettingsUiEvent
 }
 
 sealed interface TabletSettingsUiEffect {
     data class ShowMessage(@param:StringRes val messageRes: Int) : TabletSettingsUiEffect
+
+    /** The tablet left the store; the screen closes and Dispositivos drops its card. */
+    data class Unlinked(val deviceId: String) : TabletSettingsUiEffect
 }
 
 /** Which control a change belongs to; PIN changes go through the dialog instead. */

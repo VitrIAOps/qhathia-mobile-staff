@@ -97,6 +97,16 @@ class DeviceLinkingViewModel @Inject constructor(
                 _uiState.update { it.copy(pendingRestartDeviceId = null) }
                 sendCommand(deviceId, DeviceCommandType.RESTART_APP)
             }
+            is DeviceLinkingUiEvent.DeviceUnlinked -> {
+                _uiState.update { state ->
+                    state.copy(
+                        devices = state.devices.filterNot { it.id == event.deviceId }.toImmutableList(),
+                        commands = state.commands - event.deviceId,
+                        sendingCommands = state.sendingCommands.filterNot { it.deviceId == event.deviceId }.toSet(),
+                    )
+                }
+                _uiEffect.tryEmit(DeviceLinkingUiEffect.ShowUnlinked)
+            }
             DeviceLinkingUiEvent.OpenPairDialog ->
                 _uiState.update {
                     it.copy(isPairDialogVisible = true, pairCode = "", pairErrorRes = null)

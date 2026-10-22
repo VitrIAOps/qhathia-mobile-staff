@@ -25,7 +25,7 @@ enum class ProfileDestination {
  *
  * @property subscription `Loaded(null)` means the store has no subscription.
  * @property alertCounts active and total notification toggles, or `null` when unknown.
- * @property connectedTablets tablets currently connected, or `null` when unknown.
+ * @property tablets linked and connected tablets, or `null` when unknown.
  */
 data class ProfileHubUiState(
     val sessionName: String = "",
@@ -34,7 +34,7 @@ data class ProfileHubUiState(
     val profile: LoadState<UserProfile> = LoadState.Loading,
     val subscription: LoadState<Subscription?> = LoadState.Loading,
     val alertCounts: AlertCounts? = null,
-    val connectedTablets: Int? = null,
+    val tablets: TabletCounts? = null,
     val isLogoutConfirmVisible: Boolean = false,
     val now: Instant = Instant.EPOCH,
 ) {
@@ -48,6 +48,9 @@ data class ProfileHubUiState(
 }
 
 data class AlertCounts(val active: Int, val total: Int)
+
+/** [linked] tablets paired to the store, of which [connected] reported recently. */
+data class TabletCounts(val linked: Int, val connected: Int)
 
 sealed interface ProfileHubUiEvent {
     /** Reload every block — sent on start and whenever the screen resumes. */

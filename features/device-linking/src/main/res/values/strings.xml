@@ -10,8 +10,8 @@
     <!-- Device card -->
     <string name="device_unnamed">Tablet</string>
     <string name="device_missing">—</string>
-    <string name="device_connected">Conectada</string>
-    <string name="device_disconnected">Desconectada</string>
+    <string name="device_connected">Activo</string>
+    <string name="device_disconnected">Inactivo</string>
     <string name="device_catalog_label">Catálogo visible</string>
     <plurals name="device_catalog_products">
         <item quantity="one">%d producto</item>
@@ -45,6 +45,15 @@
     <string name="device_command_expired">No se pudo entregar</string>
     <string name="device_command_error">No se pudo enviar la orden. Inténtalo de nuevo.</string>
 
+    <!-- Unlink -->
+    <string name="device_unlink">Desvincular tablet</string>
+    <!-- %1$s is the tablet name. -->
+    <string name="device_unlink_title">¿Desvincular %1$s?</string>
+    <string name="device_unlink_message">Dejará de aparecer en tu tienda. Para volver a usarla tendrás que vincularla de nuevo con un código.</string>
+    <string name="device_unlink_confirm">Desvincular</string>
+    <string name="device_unlink_error">No se pudo desvincular la tablet. Inténtalo de nuevo.</string>
+    <string name="device_unlinked">Tablet desvinculada</string>
+
     <!-- Pair dialog -->
     <string name="device_pair_title">Vincular tablet</string>
     <string name="device_pair_close_cd">Cerrar</string>
@@ -55,7 +64,6 @@
 
     <!-- Ajustes de la tablet -->
     <string name="tablet_settings_entry">Ajustes de la tablet</string>
-    <string name="tablet_settings_entry_subtitle">Modo kiosco, PIN, brillo y más</string>
     <string name="tablet_settings_title">Ajustes de la tablet</string>
     <string name="tablet_settings_group_display">Pantalla del cliente</string>
     <string name="tablet_settings_idle_showcase">Modo Vitrina en reposo</string>
