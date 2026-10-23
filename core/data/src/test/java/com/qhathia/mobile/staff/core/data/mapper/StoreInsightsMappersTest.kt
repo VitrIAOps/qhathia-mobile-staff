@@ -121,16 +121,16 @@ class StoreInsightsMappersTest {
     }
 
     @Test
-    fun `an unmet search is named after its most frequent raw text`() {
+    fun `an unmet search is named after its canonical term, not its raw texts`() {
         val dto = UnmetSearchesDto(
             groups = listOf(
                 UnmetSearchGroupDto(
-                    term = "taladro",
+                    term = "amoladora",
                     personCount = 9,
                     searchCount = 14,
                     examples = listOf(
-                        UnmetSearchExampleDto(rawText = "taladro para concreto", count = 4),
-                        UnmetSearchExampleDto(rawText = "taladro percutor bosch", count = 5),
+                        UnmetSearchExampleDto(rawText = "quiero una amoladora", count = 5),
+                        UnmetSearchExampleDto(rawText = "amoladora bosch", count = 4),
                     ),
                 ),
             ),
@@ -138,24 +138,9 @@ class StoreInsightsMappersTest {
 
         val suggestion = dto.toMissingProductSuggestions().single()
 
-        assertEquals("taladro", suggestion.id)
-        assertEquals("Taladro percutor bosch", suggestion.name)
+        assertEquals("amoladora", suggestion.id)
+        assertEquals("Amoladora", suggestion.name)
         assertEquals(9, suggestion.personCount)
-    }
-
-    @Test
-    fun `an unmet search without usable examples falls back to its term`() {
-        val dto = UnmetSearchesDto(
-            groups = listOf(
-                UnmetSearchGroupDto(
-                    term = "amoladora",
-                    personCount = 3,
-                    examples = listOf(UnmetSearchExampleDto(rawText = "  ", count = 2)),
-                ),
-            ),
-        )
-
-        assertEquals("Amoladora", dto.toMissingProductSuggestions().single().name)
     }
 
     @Test
