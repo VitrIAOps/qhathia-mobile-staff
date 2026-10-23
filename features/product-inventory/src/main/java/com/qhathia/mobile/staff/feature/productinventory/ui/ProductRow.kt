@@ -256,10 +256,10 @@ private fun ProductRowActions(
 }
 
 /**
- * The row's price. With a discount in effect the original price is struck through and the
- * server's [discountedPrice] follows it in bold, styled like the discount dialog; the two wrap onto
- * a second line rather than squeeze the stock label. Screen readers get one sentence naming both
- * prices instead of two bare numbers.
+ * The row's price. With a discount in effect the original price is struck through in a light
+ * weight, so it reads as a reference, and the server's [discountedPrice] follows it styled exactly
+ * like a plain price; the two wrap onto a second line rather than squeeze the stock label. Screen readers get one sentence
+ * naming both prices instead of two bare numbers.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -282,13 +282,13 @@ private fun ProductPrice(price: Double, discountedPrice: Double?, modifier: Modi
         Text(
             text = stringResource(R.string.inventory_price_format, price),
             style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Light,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textDecoration = TextDecoration.LineThrough,
         )
         Text(
             text = stringResource(R.string.inventory_price_format, discountedPrice),
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
     }

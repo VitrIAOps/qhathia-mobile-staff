@@ -14,6 +14,10 @@ import com.qhathia.mobile.staff.core.ui.R
  * Urbanist ships as a single variable font (one `wght` axis), so every weight the DS uses is the
  * same file pinned to a different axis value — see `res/raw/license_urbanist_ofl.txt` for its SIL
  * Open Font License. Variable axes need API 26, which is the project's `minSdk`.
+ *
+ * Only the weights registered in [UrbanistFamily] render as such: asking for any other weight falls
+ * back to the closest registered one. Light (300) is there for secondary text drawn lighter than
+ * the body, such as the struck-through original price of a discounted product.
  */
 @OptIn(ExperimentalTextApi::class)
 private fun urbanist(weight: FontWeight) = Font(
@@ -23,6 +27,7 @@ private fun urbanist(weight: FontWeight) = Font(
 )
 
 private val UrbanistFamily = FontFamily(
+    urbanist(FontWeight.Light),
     urbanist(FontWeight.Normal),
     urbanist(FontWeight.Medium),
     urbanist(FontWeight.SemiBold),
