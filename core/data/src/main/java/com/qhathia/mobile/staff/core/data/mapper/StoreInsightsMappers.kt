@@ -109,10 +109,10 @@ fun StoreActivityDto.toStoreActivity(): StoreActivity = StoreActivity(
 )
 
 /**
- * Maps `GET /insights/unmet-searches`. Each group is named after the raw text shoppers typed most
- * often — "taladro percutor bosch" says what to stock, "taladro" does not — and keyed by its
- * canonical term. Blank terms are dropped and repeated terms kept once: the row is a `LazyRow`
- * keyed by id, and a duplicate key crashes it.
+ * Maps `GET /insights/unmet-searches`. Each group is named and keyed by its canonical term: the raw
+ * texts in `examples` are whole phrases ("Quiero una amoladora"), not product names. Blank terms
+ * are dropped and repeated terms kept once: the row is a `LazyRow` keyed by id, and a duplicate key
+ * crashes it.
  */
 fun UnmetSearchesDto.toMissingProductSuggestions(): List<MissingProductSuggestion> =
     groups.mapNotNull { it.toMissingProductSuggestion() }.distinctBy { it.id }
@@ -133,14 +133,9 @@ fun RestockDto.toRestockSuggestions(): List<RestockSuggestion> =
 
 private fun UnmetSearchGroupDto.toMissingProductSuggestion(): MissingProductSuggestion? {
     val canonical = term.trim().takeIf { it.isNotEmpty() } ?: return null
-    val mostFrequent = examples
-        .filter { it.rawText.isNotBlank() }
-        .maxByOrNull { it.count }
-        ?.rawText
-        ?.trim()
     return MissingProductSuggestion(
         id = canonical,
-        name = (mostFrequent ?: canonical).replaceFirstChar { it.titlecase(SPANISH_PERU) },
+        name = canonical.replaceFirstChar { it.titlecase(SPANISH_PERU) },
         personCount = personCount,
     )
 }
