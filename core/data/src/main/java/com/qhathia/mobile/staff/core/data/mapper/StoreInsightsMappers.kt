@@ -18,6 +18,7 @@ import com.qhathia.mobile.staff.core.network.dto.UnmetSearchGroupDto
 import com.qhathia.mobile.staff.core.network.dto.UnmetSearchesDto
 import java.math.BigDecimal
 import java.math.MathContext
+import java.text.Normalizer
 import java.time.Instant
 import java.util.Locale
 
@@ -115,7 +116,14 @@ fun StoreActivityDto.toStoreActivity(): StoreActivity = StoreActivity(
  * crashes it.
  */
 fun UnmetSearchesDto.toMissingProductSuggestions(): List<MissingProductSuggestion> =
-    groups.mapNotNull { it.toMissingProductSuggestion() }.distinctBy { it.id }
+    groups.toSuggestions()
+
+/** Maps the `otherRequests` of `GET /insights/unmet-searches`: demand outside the store's line. */
+fun UnmetSearchesDto.toOtherRequestSuggestions(): List<MissingProductSuggestion> =
+    otherRequests.toSuggestions()
+
+private fun List<UnmetSearchGroupDto>.toSuggestions(): List<MissingProductSuggestion> =
+    mapNotNull { it.toMissingProductSuggestion() }.distinctBy { it.id }
 
 /** Maps `GET /dashboard/restock`, de-duplicated by product for the same `LazyRow` reason. */
 fun RestockDto.toRestockSuggestions(): List<RestockSuggestion> =
@@ -137,8 +145,33 @@ private fun UnmetSearchGroupDto.toMissingProductSuggestion(): MissingProductSugg
         id = canonical,
         name = canonical.replaceFirstChar { it.titlecase(SPANISH_PERU) },
         personCount = personCount,
+        example = mostFrequentExample(canonical),
     )
 }
+
+/**
+ * The raw text shoppers used most often, kept only when it says something the term does not:
+ * "una lámpara solar" stays under "lampara solar", "Amoladora." does not under "amoladora".
+ */
+private fun UnmetSearchGroupDto.mostFrequentExample(canonical: String): String? =
+    examples
+        .filter { it.rawText.isNotBlank() }
+        .maxByOrNull { it.count }
+        ?.rawText
+        ?.trim()
+        ?.takeUnless { it.normalizedForComparison() == canonical.normalizedForComparison() }
+
+/** Lowercase, without accents, punctuation or repeated spaces — only for comparing two texts. */
+private fun String.normalizedForComparison(): String =
+    Normalizer.normalize(lowercase(SPANISH_PERU), Normalizer.Form.NFD)
+        .replace(COMBINING_MARKS, "")
+        .replace(NON_WORD, " ")
+        .trim()
+        .replace(SPACES, " ")
+
+private val COMBINING_MARKS = Regex("\\p{Mn}+")
+private val NON_WORD = Regex("[^\\p{L}\\p{N}]+")
+private val SPACES = Regex("\\s+")
 
 private fun Double.toMoney(): BigDecimal = BigDecimal.valueOf(this)
 

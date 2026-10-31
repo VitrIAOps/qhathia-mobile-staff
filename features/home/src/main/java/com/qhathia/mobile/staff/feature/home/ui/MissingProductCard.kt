@@ -31,15 +31,17 @@ internal val MissingCardWidth = 209.dp
 
 /**
  * A product kiosk shoppers searched for and did not find: how many distinct people asked for it,
- * the way they most often named it, and an `Agregar` action.
+ * its canonical term, how they most often asked for it (when that says more than the term), and
+ * an `Agregar` action.
  *
  * [onAdd] is deliberately a no-op today — there is no flow that creates a product from a search
- * yet, so the button renders as designed and goes nowhere.
+ * yet, so the button renders as designed and goes nowhere. A null [onAdd] draws no button, for
+ * "También te piden", where there is nothing for the store to add.
  */
 @Composable
 internal fun MissingProductCard(
     suggestion: MissingProductSuggestion,
-    onAdd: () -> Unit,
+    onAdd: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -55,17 +57,32 @@ internal fun MissingProductCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             PersonCountBlock(personCount = suggestion.personCount)
-            Text(
-                text = suggestion.name,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
+            Column(
                 modifier = Modifier.weight(1f),
-            )
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = suggestion.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                suggestion.example?.let { example ->
+                    Text(
+                        text = stringResource(R.string.home_missing_example, example),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
-        SuggestionActionButton(text = stringResource(R.string.home_add_product), onClick = onAdd)
+        if (onAdd != null) {
+            SuggestionActionButton(text = stringResource(R.string.home_add_product), onClick = onAdd)
+        }
     }
 }
 
@@ -110,6 +127,19 @@ private fun MissingProductCardPreview() {
         MissingProductCard(
             suggestion = HomePreviewData.missingProducts.first(),
             onAdd = {},
+            modifier = Modifier.padding(Dimens.SpaceMd),
+        )
+    }
+}
+
+@Preview(name = "Other request card — light", showBackground = true)
+@Preview(name = "Other request card — dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun OtherRequestCardPreview() {
+    QhathiaTheme {
+        MissingProductCard(
+            suggestion = HomePreviewData.otherRequests.first(),
+            onAdd = null,
             modifier = Modifier.padding(Dimens.SpaceMd),
         )
     }

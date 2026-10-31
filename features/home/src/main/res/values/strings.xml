@@ -25,6 +25,10 @@
         <item quantity="other">Personas</item>
     </plurals>
     <string name="home_add_product">Agregar</string>
+    <!-- How shoppers asked for a missing product, in quotes under its name. -->
+    <string name="home_missing_example">“%1$s”</string>
+    <!-- Row of what shoppers asked for outside the store's line of business. -->
+    <string name="home_other_requests_title">También te piden</string>
     <string name="home_restock_product">Reabastecer</string>
     <plurals name="home_remaining_stock">
         <item quantity="one">Solo queda %1$d</item>

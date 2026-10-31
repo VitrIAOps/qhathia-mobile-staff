@@ -105,7 +105,7 @@ internal fun HomeContent(
             }
         }
 
-        if (uiState.missingProducts.isNotEmpty() || uiState.restockProducts.isNotEmpty()) {
+        if (uiState.hasSuggestions) {
             item(key = "suggestions-heading") {
                 SuggestionsHeading(modifier = Modifier.padding(horizontal = Dimens.SpaceMd))
             }
@@ -116,6 +116,10 @@ internal fun HomeContent(
                 suggestions = uiState.missingProducts,
                 onAdd = { /* Inert by design — see MissingProductCard. */ },
             )
+        }
+
+        item(key = "other-requests") {
+            OtherRequestsSection(requests = uiState.otherRequests)
         }
 
         item(key = "restock-products") {

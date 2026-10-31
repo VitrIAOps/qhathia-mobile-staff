@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
  * `GET /api/v1/insights/unmet-searches` (vo-api) — kiosk searches that found no product, grouped by
  * canonical term and ordered by [UnmetSearchGroupDto.personCount]. The endpoint is fail-open: an
  * aggregation failure answers `groups: []` rather than an error.
+ *
+ * [groups] is what the store could stock (its line of business); [otherRequests] (Fase 32) is what
+ * shoppers asked for outside it, with the same shape. Empty when the backend predates it.
  */
 @Serializable
 data class UnmetSearchesDto(
@@ -13,6 +16,7 @@ data class UnmetSearchesDto(
     val periodEnd: String? = null,
     val totalPeople: Int = 0,
     val groups: List<UnmetSearchGroupDto> = emptyList(),
+    val otherRequests: List<UnmetSearchGroupDto> = emptyList(),
 )
 
 /**

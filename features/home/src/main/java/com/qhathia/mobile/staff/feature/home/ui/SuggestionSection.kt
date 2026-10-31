@@ -1,6 +1,5 @@
 package com.qhathia.mobile.staff.feature.home.ui
 
-import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,12 +15,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -50,7 +53,7 @@ internal fun MissingProductsSection(
     if (suggestions.isEmpty()) return
     SuggestionSection(
         titleRes = R.string.home_missing_products_title,
-        iconRes = CoreUiR.drawable.ic_search,
+        icon = painterResource(CoreUiR.drawable.ic_search),
         modifier = modifier,
     ) {
         LazyRow(
@@ -59,6 +62,33 @@ internal fun MissingProductsSection(
         ) {
             items(suggestions, key = { it.id }) { suggestion ->
                 MissingProductCard(suggestion = suggestion, onAdd = { onAdd(suggestion) })
+            }
+        }
+    }
+}
+
+/**
+ * "También te piden": what shoppers asked for outside the store's line of business. Same cards as
+ * "Productos no encontrados" but without "Agregar" — it is information about the aisle's demand,
+ * not something this store is expected to stock. Omitted when empty.
+ */
+@Composable
+internal fun OtherRequestsSection(
+    requests: List<MissingProductSuggestion>,
+    modifier: Modifier = Modifier,
+) {
+    if (requests.isEmpty()) return
+    SuggestionSection(
+        titleRes = R.string.home_other_requests_title,
+        icon = rememberVectorPainter(Icons.Outlined.ChatBubbleOutline),
+        modifier = modifier,
+    ) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(CardSpacing),
+            contentPadding = PaddingValues(horizontal = Dimens.SpaceMd),
+        ) {
+            items(requests, key = { it.id }) { request ->
+                MissingProductCard(suggestion = request, onAdd = null)
             }
         }
     }
@@ -74,7 +104,7 @@ internal fun RestockProductsSection(
     if (suggestions.isEmpty()) return
     SuggestionSection(
         titleRes = R.string.home_restock_products_title,
-        iconRes = CoreUiR.drawable.ic_alert,
+        icon = painterResource(CoreUiR.drawable.ic_alert),
         modifier = modifier,
     ) {
         LazyRow(
@@ -95,7 +125,7 @@ internal fun RestockProductsSection(
 @Composable
 private fun SuggestionSection(
     @StringRes titleRes: Int,
-    @DrawableRes iconRes: Int,
+    icon: Painter,
     modifier: Modifier = Modifier,
     row: @Composable () -> Unit,
 ) {
@@ -109,7 +139,7 @@ private fun SuggestionSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                painter = painterResource(iconRes),
+                painter = icon,
                 // The heading right beside it names the row.
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onBackground,
@@ -169,6 +199,7 @@ private fun SuggestionSectionsPreview() {
                 suggestions = HomePreviewData.missingProducts,
                 onAdd = {},
             )
+            OtherRequestsSection(requests = HomePreviewData.otherRequests)
             RestockProductsSection(
                 suggestions = HomePreviewData.restockProducts,
                 onRestock = {},
