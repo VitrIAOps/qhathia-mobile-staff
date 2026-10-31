@@ -11,6 +11,7 @@ import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.ProductImage
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import java.time.Instant
 
 /**
  * Immutable snapshot of the product detail/edit form. Mirrors the registration form's shape — field
@@ -96,11 +97,27 @@ data class ProductDetailUiState(
         get() {
             val applied = discount ?: return null
             val server = serverPricing
-            if (server != null && price == server.priceText && discount == loadedDiscount) {
+            if (server != null && isPricingAsLoaded) {
                 return server.discountedPrice ?: parsePrice(price)
             }
             return parsePrice(price)?.let { applied.applyTo(it) }
         }
+
+    /**
+     * When the discount in force ends, as the backend reports it. Only for the discount loaded with
+     * the product and while the backend applies it: an edited or unsaved discount has no end yet,
+     * and one the backend does not apply (`discountedPrice` null) is not counting down.
+     */
+    val discountEndsAt: Instant?
+        get() {
+            val server = serverPricing ?: return null
+            if (discount == null || !isPricingAsLoaded || server.discountedPrice == null) return null
+            return server.discountEndsAt
+        }
+
+    /** True while the form's price and discount are exactly the ones loaded with the product. */
+    private val isPricingAsLoaded: Boolean
+        get() = serverPricing?.priceText == price && discount == loadedDiscount
 
     /** True when saving has a discount change to persist. */
     val isDiscountChanged: Boolean
@@ -151,9 +168,13 @@ data class ProductDetailUiState(
 /**
  * The backend's pricing of the product as loaded: [priceText] is the price exactly as the form was
  * seeded with it, and [discountedPrice] is the server-computed `discountedPrice` (`null` when no
- * discount is in force).
+ * discount is in force), ending at [discountEndsAt].
  */
-data class ServerPricing(val priceText: String, val discountedPrice: Double?)
+data class ServerPricing(
+    val priceText: String,
+    val discountedPrice: Double?,
+    val discountEndsAt: Instant? = null,
+)
 
 /** The backend's per-product photo limit. */
 const val MAX_PHOTOS = 10

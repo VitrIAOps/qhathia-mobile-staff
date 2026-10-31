@@ -240,7 +240,11 @@ class ProductDetailViewModel @Inject constructor(
     private fun ProductDetailUiState.seededFrom(product: ProductDetail) = copy(
         name = product.name,
         price = formatPrice(product.price),
-        serverPricing = ServerPricing(formatPrice(product.price), product.discountedPrice),
+        serverPricing = ServerPricing(
+            priceText = formatPrice(product.price),
+            discountedPrice = product.discountedPrice,
+            discountEndsAt = product.discountEndsAt,
+        ),
         quantity = product.stock?.toString().orEmpty(),
         description = product.description.orEmpty(),
         tags = product.tags.joinToString(", "),
