@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
+import java.time.Instant
 
 class ProductDetailViewModelTest {
 
@@ -550,6 +551,44 @@ class ProductDetailViewModelTest {
         viewModel.applyDiscount("20")
 
         assertEquals(151.2, viewModel.uiState.value.discountedPrice)
+    }
+
+    @Test
+    fun `the end of the discount in force is shown while the pricing is as loaded`() = runTest {
+        val endsAt = Instant.parse("2026-11-07T06:00:00Z")
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = 174.0, discountEndsAt = endsAt),
+        )
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+        )
+        val viewModel = createViewModel()
+        assertEquals(endsAt, viewModel.uiState.value.discountEndsAt)
+
+        viewModel.onEvent(ProductDetailUiEvent.PriceChanged("100"))
+        assertNull(viewModel.uiState.value.discountEndsAt)
+
+        viewModel.onEvent(ProductDetailUiEvent.PriceChanged("189"))
+        assertEquals(endsAt, viewModel.uiState.value.discountEndsAt)
+
+        viewModel.applyDiscount("20")
+        assertNull(viewModel.uiState.value.discountEndsAt)
+    }
+
+    @Test
+    fun `no end is shown for a discount the server does not apply or without a discount`() = runTest {
+        val endsAt = Instant.parse("2026-11-07T06:00:00Z")
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = null, discountEndsAt = endsAt),
+        )
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+        )
+        val viewModel = createViewModel()
+        assertNull(viewModel.uiState.value.discountEndsAt)
+
+        viewModel.onEvent(ProductDetailUiEvent.DiscountToggled(false))
+        assertNull(viewModel.uiState.value.discountEndsAt)
     }
 
     @Test

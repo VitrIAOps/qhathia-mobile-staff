@@ -48,8 +48,11 @@ import com.qhathia.mobile.staff.feature.productdetail.R
 import com.qhathia.mobile.staff.feature.productdetail.model.FormPhoto
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiState
+import com.qhathia.mobile.staff.feature.productdetail.model.ServerPricing
 import com.qhathia.mobile.staff.feature.productdetail.model.toPreviewData
 import kotlinx.collections.immutable.persistentListOf
+import java.time.Duration
+import java.time.Instant
 
 /**
  * Stateless detail/edit form — a pure function of [uiState]. Mirrors the registration screen's
@@ -263,6 +266,7 @@ private fun EditForm(
                 finalPrice = uiState.discountedPrice,
                 onSummaryClick = { onEvent(ProductDetailUiEvent.DiscountSummaryClicked) },
             )
+            uiState.discountEndsAt?.let { endsAt -> DiscountCountdown(endsAt = endsAt) }
             if (uiState.isDiscountError) {
                 DiscountLoadError(
                     enabled = enabled,
@@ -467,6 +471,11 @@ private fun ProductDetailContentDiscountPreview() {
             uiState = loadedState().copy(
                 loadedDiscount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
                 discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+                serverPricing = ServerPricing(
+                    priceText = "189.90",
+                    discountedPrice = 174.9,
+                    discountEndsAt = Instant.now().plus(Duration.ofDays(6).plusHours(4)),
+                ),
             ),
             onEvent = {},
         )

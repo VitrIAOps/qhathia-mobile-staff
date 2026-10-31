@@ -46,6 +46,18 @@
     <string name="detail_error_unknown">Algo salió mal. Inténtalo de nuevo</string>
     <string name="detail_error_discount_save">El producto se guardó, pero no se pudo actualizar el descuento. Guarda de nuevo para reintentar</string>
     <string name="detail_discount_load_error">No se pudo cargar el descuento</string>
+    <!-- Countdown under the discount summary: "Termina en 6 días y 4 horas". -->
+    <string name="detail_discount_ends_in">Termina en %1$s</string>
+    <string name="detail_discount_ends_in_days_hours">Termina en %1$s y %2$s</string>
+    <string name="detail_discount_ends_soon">Termina en menos de 1 hora</string>
+    <plurals name="detail_discount_days">
+        <item quantity="one">%d día</item>
+        <item quantity="other">%d días</item>
+    </plurals>
+    <plurals name="detail_discount_hours">
+        <item quantity="one">%d hora</item>
+        <item quantity="other">%d horas</item>
+    </plurals>
     <string name="detail_error_ai">No se pudo optimizar con IA. Inténtalo de nuevo</string>
 
     <string name="detail_discard_title">¿Descartar cambios?</string>
