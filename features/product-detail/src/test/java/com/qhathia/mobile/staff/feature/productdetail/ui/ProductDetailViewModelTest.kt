@@ -473,7 +473,10 @@ class ProductDetailViewModelTest {
     }
 
     @Test
-    fun `the final price is the form price with the discount applied`() = runTest {
+    fun `once edited the final price is the form price with the discount applied`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = 174.0),
+        )
         discountRepository.discounts += TestFixtures.productDiscount(
             discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
         )
@@ -485,6 +488,127 @@ class ProductDetailViewModelTest {
 
         viewModel.onEvent(ProductDetailUiEvent.DiscountToggled(false))
         assertNull(viewModel.uiState.value.discountedPrice)
+    }
+
+    @Test
+    fun `on load the final price is the server's discounted price, not a client computation`() = runTest {
+        // The server prices with the cheapest discount in force; the client would compute 174.0.
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = 160.65),
+        )
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+        )
+
+        val viewModel = createViewModel()
+
+        assertEquals(160.65, viewModel.uiState.value.discountedPrice)
+    }
+
+    @Test
+    fun `a discount the server says is not in force shows the regular price`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = null),
+        )
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.PERCENTAGE, 20.0),
+        )
+
+        val state = createViewModel().uiState.value
+
+        assertEquals(Discount(DiscountType.PERCENTAGE, 20.0), state.discount)
+        assertEquals(189.0, state.discountedPrice)
+    }
+
+    @Test
+    fun `typing the loaded price back shows the server's price again`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = 160.65),
+        )
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.onEvent(ProductDetailUiEvent.PriceChanged("18"))
+        assertEquals(3.0, viewModel.uiState.value.discountedPrice)
+
+        viewModel.onEvent(ProductDetailUiEvent.PriceChanged("189"))
+        assertEquals(160.65, viewModel.uiState.value.discountedPrice)
+    }
+
+    @Test
+    fun `applying a different discount shows the live computation`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = 160.65),
+        )
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+        )
+        val viewModel = createViewModel()
+
+        viewModel.applyDiscount("20")
+
+        assertEquals(151.2, viewModel.uiState.value.discountedPrice)
+    }
+
+    @Test
+    fun `retrying a failed discount load shows the server's price`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = 160.65),
+        )
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+        )
+        discountRepository.getFailure = DiscountException(DiscountError.Network)
+        val viewModel = createViewModel()
+        assertNull(viewModel.uiState.value.discountedPrice)
+
+        discountRepository.getFailure = null
+        viewModel.onEvent(ProductDetailUiEvent.RetryDiscount)
+
+        assertEquals(160.65, viewModel.uiState.value.discountedPrice)
+    }
+
+    @Test
+    fun `after a save that failed on the photos the final price is computed on the form`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = 160.65),
+        )
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+        )
+        productRepository.addImagesResult = Result.failure(IllegalStateException("upload failed"))
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(1)))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertTrue(awaitItem() is ProductDetailUiEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertNull(viewModel.uiState.value.serverPricing)
+        assertEquals(174.0, viewModel.uiState.value.discountedPrice)
+    }
+
+    @Test
+    fun `after a save that failed on the discount the server price is no longer trusted`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = 160.65),
+        )
+        val viewModel = createViewModel()
+        viewModel.applyDiscount("20")
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertTrue(awaitItem() is ProductDetailUiEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertNull(viewModel.uiState.value.serverPricing)
+        assertEquals(151.2, viewModel.uiState.value.discountedPrice)
     }
 
     @Test
@@ -633,6 +757,20 @@ class ProductDetailViewModelTest {
         viewModel.applyDiscount("20")
 
         assertEquals(151.2, viewModel.uiState.value.toPreviewData()?.price)
+    }
+
+    @Test
+    fun `preview data opened right after load shows the server's discounted price`() = runTest {
+        productRepository.productDetailResult = Result.success(
+            TestFixtures.productDetail(price = 189.0, discountedPrice = 160.65),
+        )
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.FIXED_AMOUNT, 15.0),
+        )
+
+        val data = checkNotNull(createViewModel().uiState.value.toPreviewData())
+
+        assertEquals(160.65, data.price)
     }
 
     @Test

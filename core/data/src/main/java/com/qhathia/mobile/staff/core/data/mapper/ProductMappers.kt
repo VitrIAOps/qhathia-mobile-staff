@@ -50,6 +50,8 @@ fun ProductDetailDto.toDomain(): ProductDetail = ProductDetail(
         .map { ProductImage(id = it.id, url = it.url) },
     allowDiscountInquiry = allowDiscountInquiry,
     position = position,
+    discountedPrice = discountedPrice,
+    discountEndsAt = discountEndsAt.toInstantOrNull(),
 )
 
 /**
