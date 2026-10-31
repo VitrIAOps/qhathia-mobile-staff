@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.core.domain.model
 
+import java.time.Instant
+
 /**
  * A single product with everything the detail screen needs. Kept apart from [Product] because the
  * list endpoint (`GET /api/v1/products`) exposes neither description, stock, tags nor the full media
@@ -7,6 +9,9 @@ package com.qhathia.mobile.staff.core.domain.model
  *
  * [stock] is null for products the merchant registered as "consultar disponibilidad".
  * [images] are ordered as the DS shows them: the primary photo first, then by backend position.
+ * [discountedPrice] is what the product costs right now, as the backend prices it (cheapest
+ * discount in force wins); `null` means no discount is in force. [discountEndsAt] is when that
+ * discount ends, `null` without one.
  */
 data class ProductDetail(
     val id: String,
@@ -20,4 +25,6 @@ data class ProductDetail(
     val images: List<ProductImage>,
     val allowDiscountInquiry: Boolean,
     val position: Int,
+    val discountedPrice: Double? = null,
+    val discountEndsAt: Instant? = null,
 )

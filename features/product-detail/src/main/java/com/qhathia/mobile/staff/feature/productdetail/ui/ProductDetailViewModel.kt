@@ -27,6 +27,7 @@ import com.qhathia.mobile.staff.feature.productdetail.model.MAX_PHOTOS
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEffect
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiState
+import com.qhathia.mobile.staff.feature.productdetail.model.ServerPricing
 import com.qhathia.mobile.staff.feature.productdetail.model.parseTags
 import com.qhathia.mobile.staff.feature.productdetail.navigation.PRODUCT_DETAIL_ARG_ID
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -233,10 +234,13 @@ class ProductDetailViewModel @Inject constructor(
     /**
      * Seeds the form from the loaded product. A null stock renders as an empty quantity field, which
      * the merchant must fill before saving — the backend derives availability from it either way.
+     * The backend's discounted price is kept against the exact price text the form starts with, so
+     * it is shown only while that price is untouched.
      */
     private fun ProductDetailUiState.seededFrom(product: ProductDetail) = copy(
         name = product.name,
         price = formatPrice(product.price),
+        serverPricing = ServerPricing(formatPrice(product.price), product.discountedPrice),
         quantity = product.stock?.toString().orEmpty(),
         description = product.description.orEmpty(),
         tags = product.tags.joinToString(", "),
@@ -405,7 +409,8 @@ class ProductDetailViewModel @Inject constructor(
                         // server has, and the form stays dirty so saving again retries what is left.
                         // The discount is not attempted: one failure, one message.
                         resyncPhotos(current, uploaded = false)
-                        _uiState.update { it.copy(isSaving = false) }
+                        // The server may now price the product differently from what was loaded.
+                        _uiState.update { it.copy(isSaving = false, serverPricing = null) }
                         emit(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save))
                         return@onSuccess
                     }
@@ -422,6 +427,7 @@ class ProductDetailViewModel @Inject constructor(
                         _uiState.update { state ->
                             state.copy(
                                 isSaving = false,
+                                serverPricing = null,
                                 loadedDiscount = stored.fold(
                                     onSuccess = { it?.discount },
                                     onFailure = { state.loadedDiscount },

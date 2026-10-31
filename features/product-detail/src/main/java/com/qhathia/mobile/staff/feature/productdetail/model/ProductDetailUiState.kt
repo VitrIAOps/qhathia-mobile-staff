@@ -26,8 +26,10 @@ import kotlinx.collections.immutable.persistentListOf
  *
  * The discount is a form field like the rest: [loadedDiscount] is what the product has stored,
  * [discount] is what the form shows, and the difference is only persisted on save.
- * [discountDraft] is non-null while the "Aplicar descuento" dialog is open. [showPreview] is true
- * while the "Vista previa" dialog is open; it reads the form but never changes it.
+ * [discountDraft] is non-null while the "Aplicar descuento" dialog is open. [serverPricing] is what
+ * the backend priced for the product as loaded; it is dropped once a save has reached the server.
+ * [showPreview] is true while the "Vista previa" dialog is open; it reads the form but never
+ * changes it.
  *
  * "Eliminar producto" asks first: [showDeleteDialog] while the confirmation is open, [isDeleting]
  * while its request is in flight (the form is locked meanwhile).
@@ -47,6 +49,7 @@ data class ProductDetailUiState(
     val loadedDiscount: Discount? = null,
     val discount: Discount? = null,
     val discountDraft: DiscountDraft? = null,
+    val serverPricing: ServerPricing? = null,
     val isDiscountLoading: Boolean = false,
     val isDiscountError: Boolean = false,
     @param:StringRes val nameError: Int? = null,
@@ -81,10 +84,21 @@ data class ProductDetailUiState(
             isValidQuantity(quantity) &&
             selectedCategoryId != null
 
-    /** What the product costs with [discount] applied; null without a discount or a valid price. */
+    /**
+     * What the product costs with [discount] applied; null without a discount or a valid price.
+     *
+     * While the price and the discount are the ones loaded, this is the backend's number, so the
+     * detail matches the inventory list and the kiosk. A `null` from the backend means no discount
+     * is in force right now (for example one that has not started), so the regular price is shown.
+     * Once either is edited the backend cannot price the draft, and the live preview is computed here.
+     */
     val discountedPrice: Double?
         get() {
             val applied = discount ?: return null
+            val server = serverPricing
+            if (server != null && price == server.priceText && discount == loadedDiscount) {
+                return server.discountedPrice ?: parsePrice(price)
+            }
             return parsePrice(price)?.let { applied.applyTo(it) }
         }
 
@@ -133,6 +147,13 @@ data class ProductDetailUiState(
     val isAiActionEnabled: Boolean
         get() = description.isNotBlank() && !isAiLoading && !isSaving && !isLoading
 }
+
+/**
+ * The backend's pricing of the product as loaded: [priceText] is the price exactly as the form was
+ * seeded with it, and [discountedPrice] is the server-computed `discountedPrice` (`null` when no
+ * discount is in force).
+ */
+data class ServerPricing(val priceText: String, val discountedPrice: Double?)
 
 /** The backend's per-product photo limit. */
 const val MAX_PHOTOS = 10

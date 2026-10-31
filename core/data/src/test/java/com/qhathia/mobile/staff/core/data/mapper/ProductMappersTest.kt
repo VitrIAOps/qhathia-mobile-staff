@@ -128,4 +128,40 @@ class ProductMappersTest {
         assertEquals(30.9, product.discountedPrice)
         assertNull(product.discountEndsAt)
     }
+
+    @Test
+    fun `ProductDetailDto toDomain carries the server-computed discount`() {
+        val detail = ProductDetailDto(
+            id = "p1",
+            name = "Foco LED",
+            price = 35.9,
+            discountedPrice = 30.9,
+            discountEndsAt = "2026-10-25T05:00:00Z",
+        ).toDomain()
+
+        assertEquals(30.9, detail.discountedPrice)
+        assertEquals(Instant.parse("2026-10-25T05:00:00Z"), detail.discountEndsAt)
+    }
+
+    @Test
+    fun `ProductDetailDto toDomain keeps no discount as null`() {
+        val detail = ProductDetailDto(id = "p1", name = "Foco LED", price = 35.9).toDomain()
+
+        assertNull(detail.discountedPrice)
+        assertNull(detail.discountEndsAt)
+    }
+
+    @Test
+    fun `ProductDetailDto toDomain maps an unparsable discount end to null`() {
+        val detail = ProductDetailDto(
+            id = "p1",
+            name = "Foco LED",
+            price = 35.9,
+            discountedPrice = 30.9,
+            discountEndsAt = "next friday",
+        ).toDomain()
+
+        assertEquals(30.9, detail.discountedPrice)
+        assertNull(detail.discountEndsAt)
+    }
 }

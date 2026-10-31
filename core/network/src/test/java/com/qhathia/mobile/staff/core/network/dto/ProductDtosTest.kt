@@ -60,4 +60,28 @@ class ProductDtosTest {
         assertNull(row.discountedPrice)
         assertNull(row.discountEndsAt)
     }
+
+    @Test
+    fun `a product detail carries the server-computed discount`() {
+        val detail = lenientJson.decodeFromString(
+            ProductDetailDto.serializer(),
+            """{"id":"p1","name":"Foco LED","price":35.90,"stock":1,""" +
+                """"discountedPrice":30.90,"discountEndsAt":"2026-10-25T05:00:00Z",""" +
+                """"discounts":[{"id":"d1","discountType":"FIXED_AMOUNT","value":5.00}]}""",
+        )
+
+        assertEquals(30.90, detail.discountedPrice)
+        assertEquals("2026-10-25T05:00:00Z", detail.discountEndsAt)
+    }
+
+    @Test
+    fun `a product detail without a discount in force leaves it null`() {
+        val detail = lenientJson.decodeFromString(
+            ProductDetailDto.serializer(),
+            """{"id":"p1","name":"Foco LED","price":35.90,"discountedPrice":null}""",
+        )
+
+        assertNull(detail.discountedPrice)
+        assertNull(detail.discountEndsAt)
+    }
 }

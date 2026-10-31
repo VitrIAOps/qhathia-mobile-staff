@@ -40,7 +40,9 @@ data class ProductMediaDto(
  * Response of `GET /api/v1/products/{id}` and `PUT /api/v1/products/{id}` — the full product, with
  * the fields the list row ([ProductDto]) omits: description, stock, tags and the whole media set.
  * Every optional field is defaulted because legacy products predate `stock` and the media/tag
- * arrays may be absent. `discounts[]` is present in the payload but not consumed.
+ * arrays may be absent. [discountedPrice] is the server-computed price with the discount in force
+ * (`null` when nothing is in force right now) and [discountEndsAt] (ISO-8601) is when that discount
+ * ends. `discounts[]` is present in the payload but not consumed.
  */
 @Serializable
 data class ProductDetailDto(
@@ -57,6 +59,8 @@ data class ProductDetailDto(
     val position: Int = 0,
     val active: Boolean = true,
     val media: List<ProductMediaDto> = emptyList(),
+    val discountedPrice: Double? = null,
+    val discountEndsAt: String? = null,
 )
 
 /**

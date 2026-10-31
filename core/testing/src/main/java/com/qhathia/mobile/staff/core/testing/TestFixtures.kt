@@ -112,6 +112,8 @@ object TestFixtures {
         images: List<ProductImage> = listOf(productImage()),
         allowDiscountInquiry: Boolean = false,
         position: Int = 0,
+        discountedPrice: Double? = null,
+        discountEndsAt: Instant? = null,
     ) = ProductDetail(
         id = id,
         name = name,
@@ -124,6 +126,8 @@ object TestFixtures {
         images = images,
         allowDiscountInquiry = allowDiscountInquiry,
         position = position,
+        discountedPrice = discountedPrice,
+        discountEndsAt = discountEndsAt,
     )
 
     fun deviceSettings(
