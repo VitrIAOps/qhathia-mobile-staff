@@ -34,7 +34,10 @@ class StoreInsightsRepositoryImplTest {
     private val repository = StoreInsightsRepositoryImpl(dashboard, insights)
 
     private val restock = RestockDto(items = listOf(RestockItemDto(productId = "p-1", name = "Foco", stock = 1)))
-    private val unmet = UnmetSearchesDto(groups = listOf(UnmetSearchGroupDto(term = "taladro", personCount = 9)))
+    private val unmet = UnmetSearchesDto(
+        groups = listOf(UnmetSearchGroupDto(term = "taladro", personCount = 9)),
+        otherRequests = listOf(UnmetSearchGroupDto(term = "pintura", personCount = 3)),
+    )
 
     @Test
     fun `every period asks for its own granularity and four buckets`() = runTest {
@@ -95,6 +98,7 @@ class StoreInsightsRepositoryImplTest {
 
         assertEquals(listOf("taladro"), suggestions.missingProducts.map { it.id })
         assertEquals(listOf("p-1"), suggestions.restockProducts.map { it.id })
+        assertEquals(listOf("pintura"), suggestions.otherRequests.map { it.id })
     }
 
     @Test

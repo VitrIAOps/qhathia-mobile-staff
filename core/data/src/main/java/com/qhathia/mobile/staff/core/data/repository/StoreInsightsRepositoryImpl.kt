@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.core.data.repository
 
 import com.qhathia.mobile.staff.core.data.mapper.toMissingProductSuggestions
+import com.qhathia.mobile.staff.core.data.mapper.toOtherRequestSuggestions
 import com.qhathia.mobile.staff.core.data.mapper.toRestockSuggestions
 import com.qhathia.mobile.staff.core.data.mapper.toSalesRanking
 import com.qhathia.mobile.staff.core.data.mapper.toSalesSummary
@@ -43,11 +44,19 @@ class StoreInsightsRepositoryImpl @Inject constructor(
         val missing = async { insightsApi.getUnmetSearches(days = null, limit = null) }
         val restock = async { dashboardApi.getRestock(limit = null) }
 
-        val missingProducts = missing.await().toResult { it.toMissingProductSuggestions() }
+        val unmet = missing.await().toResult { it }
         val restockProducts = restock.await().toResult { it.toRestockSuggestions() }
 
-        missingProducts.fold(
-            onSuccess = { found -> restockProducts.map { StoreSuggestions(found, it) } },
+        unmet.fold(
+            onSuccess = { searches ->
+                restockProducts.map {
+                    StoreSuggestions(
+                        missingProducts = searches.toMissingProductSuggestions(),
+                        restockProducts = it,
+                        otherRequests = searches.toOtherRequestSuggestions(),
+                    )
+                }
+            },
             onFailure = { Result.failure(it) },
         )
     }

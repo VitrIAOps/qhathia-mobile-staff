@@ -43,12 +43,18 @@ internal object HomePreviewData {
             id = "taladro",
             name = "Taladro percutor Bosch GSB 13 RE Professional",
             personCount = 9,
+            example = "quiero un taladro percutor bosch",
         ),
         MissingProductSuggestion(
             id = "amoladora",
             name = "Amoladora angular DeWalt DWE4020",
             personCount = 1,
         ),
+    )
+
+    val otherRequests = persistentListOf(
+        MissingProductSuggestion(id = "pintura", name = "Pintura", personCount = 3, example = "pintura blanca"),
+        MissingProductSuggestion(id = "zapatillas", name = "Zapatillas", personCount = 1),
     )
 
     val restockProducts = persistentListOf(
@@ -72,6 +78,7 @@ internal object HomePreviewData {
         summary = summary,
         missingProducts = missingProducts,
         restockProducts = restockProducts,
+        otherRequests = otherRequests,
         pendingOrderCount = 2,
         lastUpdatedAt = generatedAt,
     )

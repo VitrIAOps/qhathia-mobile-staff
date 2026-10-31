@@ -141,6 +141,68 @@ class StoreInsightsMappersTest {
         assertEquals("amoladora", suggestion.id)
         assertEquals("Amoladora", suggestion.name)
         assertEquals(9, suggestion.personCount)
+        assertEquals("quiero una amoladora", suggestion.example)
+    }
+
+    private fun groupWith(term: String, vararg examples: Pair<String, Int>) = UnmetSearchesDto(
+        groups = listOf(
+            UnmetSearchGroupDto(
+                term = term,
+                personCount = 1,
+                examples = examples.map { (text, count) -> UnmetSearchExampleDto(rawText = text, count = count) },
+            ),
+        ),
+    )
+
+    @Test
+    fun `the example is kept when it says more than the term, accents included`() {
+        val suggestion = groupWith("lampara solar", " una lámpara solar " to 4).toMissingProductSuggestions().single()
+
+        assertEquals("una lámpara solar", suggestion.example)
+    }
+
+    @Test
+    fun `an example equal to the term ignoring case, accents and punctuation is dropped`() {
+        assertNull(groupWith("amoladora", "Amoladora." to 3).toMissingProductSuggestions().single().example)
+        assertNull(groupWith("lampara solar", "Lámpara  solar" to 3).toMissingProductSuggestions().single().example)
+    }
+
+    @Test
+    fun `the most frequent non-blank example is chosen`() {
+        val suggestion = groupWith("taladro", "  " to 9, "taladro bosch" to 2, "taladro percutor" to 5)
+            .toMissingProductSuggestions()
+            .single()
+
+        assertEquals("taladro percutor", suggestion.example)
+    }
+
+    @Test
+    fun `a group without examples has no example`() {
+        assertNull(groupWith("taladro").toMissingProductSuggestions().single().example)
+    }
+
+    @Test
+    fun `other requests are mapped apart and de-duplicated`() {
+        val dto = UnmetSearchesDto(
+            groups = listOf(UnmetSearchGroupDto(term = "taladro", personCount = 9)),
+            otherRequests = listOf(
+                UnmetSearchGroupDto(
+                    term = "pintura",
+                    personCount = 3,
+                    examples = listOf(UnmetSearchExampleDto(rawText = "pintura blanca", count = 2)),
+                ),
+                UnmetSearchGroupDto(term = "pintura", personCount = 1),
+                UnmetSearchGroupDto(term = "", personCount = 1),
+            ),
+        )
+
+        val others = dto.toOtherRequestSuggestions()
+
+        assertEquals(listOf("pintura"), others.map { it.id })
+        assertEquals("Pintura", others.single().name)
+        assertEquals(3, others.single().personCount)
+        assertEquals("pintura blanca", others.single().example)
+        assertEquals(listOf("taladro"), dto.toMissingProductSuggestions().map { it.id })
     }
 
     @Test

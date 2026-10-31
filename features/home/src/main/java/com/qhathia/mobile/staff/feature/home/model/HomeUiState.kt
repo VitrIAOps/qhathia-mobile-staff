@@ -28,6 +28,8 @@ data class HomeUiState(
     val summary: SalesSummary? = null,
     val missingProducts: ImmutableList<MissingProductSuggestion> = persistentListOf(),
     val restockProducts: ImmutableList<RestockSuggestion> = persistentListOf(),
+    /** Demand outside the store's line of business ("También te piden"); no action is offered. */
+    val otherRequests: ImmutableList<MissingProductSuggestion> = persistentListOf(),
     val pendingOrderCount: Int = 0,
     val isLoading: Boolean = false,
     val isError: Boolean = false,
@@ -35,4 +37,8 @@ data class HomeUiState(
 ) {
     /** True only before anything has ever loaded — the one case that replaces the card entirely. */
     val isInitialLoading: Boolean get() = isLoading && summary == null
+
+    /** The "Sugerencias para vender más" heading shows when any of its rows has something. */
+    val hasSuggestions: Boolean
+        get() = missingProducts.isNotEmpty() || otherRequests.isNotEmpty() || restockProducts.isNotEmpty()
 }

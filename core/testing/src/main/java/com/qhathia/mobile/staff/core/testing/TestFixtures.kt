@@ -395,7 +395,8 @@ object TestFixtures {
         id: String = "taladro",
         name: String = "Taladro percutor bosch",
         personCount: Int = 9,
-    ) = MissingProductSuggestion(id, name, personCount)
+        example: String? = null,
+    ) = MissingProductSuggestion(id, name, personCount, example)
 
     fun restockSuggestion(
         id: String = "restock-1",
@@ -407,7 +408,8 @@ object TestFixtures {
     fun storeSuggestions(
         missingProducts: List<MissingProductSuggestion> = listOf(missingProductSuggestion()),
         restockProducts: List<RestockSuggestion> = listOf(restockSuggestion()),
-    ) = StoreSuggestions(missingProducts, restockProducts)
+        otherRequests: List<MissingProductSuggestion> = emptyList(),
+    ) = StoreSuggestions(missingProducts, restockProducts, otherRequests)
 
     /** A pending order expiring 20 minutes after [NOW]. */
     fun order(

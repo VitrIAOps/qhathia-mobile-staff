@@ -148,6 +148,8 @@ class HomeViewModel @Inject constructor(
                     ?: state.missingProducts,
                 restockProducts = suggestions?.restockProducts?.toImmutableList()
                     ?: state.restockProducts,
+                otherRequests = suggestions?.otherRequests?.toImmutableList()
+                    ?: state.otherRequests,
                 lastUpdatedAt = summary?.generatedAt ?: state.lastUpdatedAt,
                 isLoading = false,
                 isError = summary == null || suggestions == null,

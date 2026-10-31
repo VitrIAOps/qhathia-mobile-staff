@@ -239,6 +239,26 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `requests outside the line of business load into their own row and survive a failed refresh`() = runTest {
+        val pintura = TestFixtures.missingProductSuggestion(id = "pintura", name = "Pintura", personCount = 3)
+        insights.suggestionsResult = Result.success(
+            TestFixtures.storeSuggestions(missingProducts = emptyList(), restockProducts = emptyList(), otherRequests = listOf(pintura)),
+        )
+        val viewModel = createViewModel()
+        runCurrent()
+
+        val loaded = viewModel.uiState.value
+        assertEquals(listOf(pintura), loaded.otherRequests.toList())
+        assertTrue(loaded.hasSuggestions)
+
+        insights.failEverything(IOException("offline"))
+        viewModel.onEvent(HomeUiEvent.Refresh)
+        runCurrent()
+
+        assertEquals(listOf(pintura), viewModel.uiState.value.otherRequests.toList())
+    }
+
+    @Test
     fun `the greeting takes the session's first name`() = runTest {
         session = FakeSessionRepository(
             TestFixtures.session(user = TestFixtures.user(fullName = "Maria Lopez")),
