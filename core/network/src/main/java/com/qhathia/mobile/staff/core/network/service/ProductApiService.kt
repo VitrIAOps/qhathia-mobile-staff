@@ -44,13 +44,13 @@ class ProductApiService(
                 categoryId?.let { parameter("categoryId", it) }
                 availability?.let { parameter("availability", it) }
             }.body<List<ProductDto>>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /** Loads one product with its media and every field the list row omits. */
     suspend fun getProduct(id: String): NetworkResult<ProductDetailDto> =
         runCatching {
             client.get("api/v1/products/$id").body<ProductDetailDto>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /**
      * Replaces the editable fields of a product. The endpoint is a full replace and takes the same
@@ -64,7 +64,7 @@ class ProductApiService(
             client.put("api/v1/products/$id") {
                 setBody(product)
             }.body<ProductDetailDto>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /**
      * Creates a product and its images in a single atomic multipart request: a `product` JSON part
@@ -96,7 +96,7 @@ class ProductApiService(
             client.post("api/v1/products/with-images") {
                 setBody(MultiPartFormDataContent(parts))
             }.body<ProductResponseDto>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /**
      * Drafts a description, suggested category and tags from a single product [image] via the LLM.
@@ -117,7 +117,7 @@ class ProductApiService(
             client.post("api/v1/products/draft-from-image") {
                 setBody(MultiPartFormDataContent(parts))
             }.body<DraftFromImageResponseDto>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /**
      * Optimizes an existing description via the LLM, preserving all facts. Fail-open: on LLM failure
@@ -130,13 +130,13 @@ class ProductApiService(
             client.post("api/v1/products/regenerate-description") {
                 setBody(body)
             }.body<RegenerateDescriptionResponseDto>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /** Lists every discount of a product, active or not. */
     suspend fun getDiscounts(productId: String): NetworkResult<List<DiscountDto>> =
         runCatching {
             client.get("api/v1/products/$productId/discounts").body<List<DiscountDto>>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /** Adds a discount to a product. The API has no update call: replacing means delete + create. */
     suspend fun createDiscount(
@@ -147,7 +147,7 @@ class ProductApiService(
             client.post("api/v1/products/$productId/discounts") {
                 setBody(body)
             }.body<DiscountDto>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /**
      * Appends photos to an existing product: one `images` part per photo (201). The backend adds
@@ -172,14 +172,14 @@ class ProductApiService(
                 setBody(MultiPartFormDataContent(parts))
             }
             Unit
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /** Removes one photo of a product (204, no body). */
     suspend fun deleteProductMedia(id: String, mediaId: String): NetworkResult<Unit> =
         runCatching {
             client.delete("api/v1/products/$id/media/$mediaId")
             Unit
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /**
      * Soft-deletes a product (204, no body): the backend marks it inactive, so it leaves the
@@ -189,12 +189,12 @@ class ProductApiService(
         runCatching {
             client.delete("api/v1/products/$id")
             Unit
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /** Removes one discount of a product (204, no body). */
     suspend fun deleteDiscount(productId: String, discountId: String): NetworkResult<Unit> =
         runCatching {
             client.delete("api/v1/products/$productId/discounts/$discountId")
             Unit
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 }

@@ -41,7 +41,7 @@ class DeviceApiServiceTest {
                 contentType(ContentType.Application.Json)
             }
         }
-        return DeviceApiService(client)
+        return DeviceApiService(client, Json { ignoreUnknownKeys = true })
     }
 
     @Test
@@ -132,5 +132,25 @@ class DeviceApiServiceTest {
         val result = service.pairDevice(pairRequest)
 
         assertInstanceOf(NetworkResult.NetworkError::class.java, result)
+    }
+
+    @Test
+    fun `given 400 with ProblemDetail when pairDevice then exposes errorCode`() = runTest {
+        val service = serviceReturning(
+            MockEngine {
+                respond(
+                    content = """{"errorCode":"PAIRING_TOKEN_EXPIRED","detail":"El código venció."}""",
+                    status = HttpStatusCode.BadRequest,
+                    headers = headersOf("Content-Type", "application/problem+json"),
+                )
+            },
+        )
+
+        val result = service.pairDevice(pairRequest)
+
+        val error = assertInstanceOf(NetworkResult.HttpError::class.java, result)
+        assertEquals(400, error.code)
+        assertEquals("PAIRING_TOKEN_EXPIRED", error.problem?.errorCode)
+        assertEquals("El código venció.", error.problem?.detail)
     }
 }
