@@ -1,7 +1,9 @@
 package com.qhathia.mobile.staff.feature.productregister.ui
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.qhathia.mobile.staff.core.common.validation.MAX_PRODUCT_PHOTOS
 import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.parsePrice
 import com.qhathia.mobile.staff.core.common.validation.parseQuantity
@@ -32,6 +34,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -42,15 +45,25 @@ import javax.inject.Inject
  *
  * An optional discount is kept on the form and only sent once registration returns the new
  * product's id, since a discount cannot exist before its product does.
+ *
+ * The form has one idempotency key, kept in [SavedStateHandle] so it survives process death, and
+ * sent on every submit: a retry after a lost answer gets the product already created instead of a
+ * duplicate. While submitting nothing leaves the screen, since leaving cancels the request.
  */
 @HiltViewModel
 class ProductRegisterViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val registerProductUseCase: RegisterProductUseCase,
     private val draftProductFromImageUseCase: DraftProductFromImageUseCase,
     private val optimizeDescriptionUseCase: OptimizeDescriptionUseCase,
     private val saveProductDiscountUseCase: SaveProductDiscountUseCase,
 ) : ViewModel() {
+
+    private val idempotencyKey: String =
+        savedStateHandle.get<String>(KEY_IDEMPOTENCY) ?: UUID.randomUUID().toString().also {
+            savedStateHandle[KEY_IDEMPOTENCY] = it
+        }
 
     private val _uiState = MutableStateFlow(ProductRegisterUiState())
     val uiState: StateFlow<ProductRegisterUiState> = _uiState.asStateFlow()
@@ -98,7 +111,8 @@ class ProductRegisterViewModel @Inject constructor(
             ProductRegisterUiEvent.PreviewDismissed ->
                 _uiState.update { it.copy(showPreview = false) }
             ProductRegisterUiEvent.Submit -> submit()
-            ProductRegisterUiEvent.CancelRequested -> onCancelRequested()
+            ProductRegisterUiEvent.CancelRequested ->
+                if (!_uiState.value.isSubmitting) onCancelRequested()
             // Disabled in the header while saving; ignored here too so a stray tap cannot leave.
             ProductRegisterUiEvent.OrderRequestsRequested ->
                 if (!_uiState.value.isSubmitting) leave(Exit.ORDER_REQUESTS)
@@ -159,17 +173,26 @@ class ProductRegisterViewModel @Inject constructor(
         _uiState.update { it.copy(quantity = value, quantityError = error, isDirty = true) }
     }
 
+    /**
+     * Adds the picked photos: only JPG and PNG, no duplicates, and only as many as fit under
+     * [MAX_PRODUCT_PHOTOS]. Anything left out is explained with a message (the format first).
+     */
     private fun onImagesPicked(picked: List<SelectedImage>) {
+        if (_uiState.value.isSubmitting) return
         val (valid, invalid) = picked.partition { it.mimeType.lowercase() in SUPPORTED_MIME_TYPES }
-        if (valid.isNotEmpty()) {
+        val current = _uiState.value.images
+        val existingUris = current.map { it.uri }.toSet()
+        val fresh = valid.filter { it.uri !in existingUris }.distinctBy { it.uri }
+        val room = (MAX_PRODUCT_PHOTOS - current.size).coerceAtLeast(0)
+        val accepted = fresh.take(room)
+        if (accepted.isNotEmpty()) {
             _uiState.update { state ->
-                val existingUris = state.images.map { it.uri }.toSet()
-                val merged = state.images + valid.filter { it.uri !in existingUris }
-                state.copy(images = merged.toImmutableList(), isDirty = true)
+                state.copy(images = (state.images + accepted).toImmutableList(), isDirty = true)
             }
         }
-        if (invalid.isNotEmpty()) {
-            emit(ProductRegisterUiEffect.ShowError(R.string.register_error_image_format))
+        when {
+            invalid.isNotEmpty() -> emit(ProductRegisterUiEffect.ShowError(R.string.register_error_image_format))
+            fresh.size > accepted.size -> emit(ProductRegisterUiEffect.ShowError(R.string.register_photos_limit_reached))
         }
     }
 
@@ -284,6 +307,7 @@ class ProductRegisterViewModel @Inject constructor(
             categoryId = categoryId,
             tags = parseTags(current.tags),
             images = current.images.toList(),
+            idempotencyKey = idempotencyKey,
         )
 
         viewModelScope.launch {
@@ -343,6 +367,7 @@ class ProductRegisterViewModel @Inject constructor(
     }
 
     private companion object {
+        const val KEY_IDEMPOTENCY = "register_idempotency_key"
         val SUPPORTED_MIME_TYPES = setOf("image/jpeg", "image/jpg", "image/png")
     }
 }

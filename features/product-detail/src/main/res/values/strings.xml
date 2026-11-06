@@ -10,7 +10,7 @@
     <string name="detail_photos_min_hint">El producto necesita al menos una foto</string>
     <string name="detail_photos_limit_reached">Solo se pueden tener 10 fotos; algunas no se agregaron</string>
     <string name="detail_photos_unsupported">Solo se aceptan fotos JPG o PNG</string>
-    <string name="detail_error_photos_save">Se guardó el producto, pero no se pudieron actualizar las fotos</string>
+    <string name="detail_error_photos_save">Se guardaron los datos del producto, pero no las fotos. Toca Guardar para reintentar</string>
 
     <string name="detail_name_label">Nombre</string>
     <string name="detail_name_placeholder">Ej: Taladro inalámbrico</string>
@@ -44,7 +44,7 @@
     <string name="detail_error_network">Sin conexión. Inténtalo de nuevo</string>
     <string name="detail_error_validation">Revisa los datos ingresados</string>
     <string name="detail_error_unknown">Algo salió mal. Inténtalo de nuevo</string>
-    <string name="detail_error_discount_save">El producto se guardó, pero no se pudo actualizar el descuento. Guarda de nuevo para reintentar</string>
+    <string name="detail_error_discount_save">Se guardaron los datos del producto, pero no el descuento. Toca Guardar para reintentar</string>
     <string name="detail_discount_load_error">No se pudo cargar el descuento</string>
     <!-- Countdown under the discount summary: "Termina en 6 días y 4 horas". -->
     <string name="detail_discount_ends_in">Termina en %1$s</string>
@@ -74,4 +74,10 @@
     <string name="detail_discount_removed_over_price">Quitamos el descuento porque es mayor que el nuevo precio. Revisa y vuelve a guardar.</string>
     <string name="detail_quantity_consult_placeholder">A consultar</string>
     <string name="detail_quantity_consult_hint">Déjalo vacío para seguir mostrándolo como «Consultar disponibilidad»</string>
+    <string name="detail_partial_save_discount">Se guardaron los datos del producto, pero no el descuento. Toca Guardar para reintentar.</string>
+    <string name="detail_partial_save_photos">Se guardaron los datos del producto, pero no las fotos. Toca Guardar para reintentar.</string>
+    <string name="detail_discard_message_partial_discount">El descuento no se guardó. Si sales, el producto queda sin ese cambio.</string>
+    <string name="detail_discard_message_partial_photos">Las fotos no se guardaron. Si sales, el producto queda sin ese cambio.</string>
+    <string name="detail_deleted_title">Este producto fue eliminado</string>
+    <string name="detail_deleted_back">Volver</string>
 </resources>

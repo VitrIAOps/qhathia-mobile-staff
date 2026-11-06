@@ -54,6 +54,7 @@ fun ProductDetailDto.toDomain(): ProductDetail = ProductDetail(
     discountedPrice = discountedPrice,
     discountEndsAt = discountEndsAt.toInstantOrNull(),
     version = version,
+    active = active,
 )
 
 /**

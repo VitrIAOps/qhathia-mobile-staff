@@ -26,6 +26,7 @@ import com.qhathia.mobile.staff.core.testing.MutableClock
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEffect
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
+import com.qhathia.mobile.staff.feature.productdetail.model.PartialSave
 import com.qhathia.mobile.staff.feature.productdetail.model.SaveConflict
 import com.qhathia.mobile.staff.feature.productdetail.model.toPreviewData
 import com.qhathia.mobile.staff.feature.productdetail.navigation.PRODUCT_DETAIL_ARG_ID
@@ -355,7 +356,7 @@ class ProductDetailViewModelTest {
     @Test
     fun `a failed save keeps the form open and shows the mapped error`() = runTest {
         productRepository.updateResult =
-            Result.failure(UpdateProductException(UpdateProductError.NotFound))
+            Result.failure(UpdateProductException(UpdateProductError.Network))
         val viewModel = createViewModel()
         viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro Pro"))
 
@@ -602,7 +603,7 @@ class ProductDetailViewModelTest {
         }
         assertEquals(1, productRepository.updateCallCount)
         assertEquals(
-            listOf("get:$PRODUCT_ID", "delete:old", "create:$PRODUCT_ID"),
+            listOf("get:$PRODUCT_ID", "create:$PRODUCT_ID", "delete:old"),
             discountCallsAfterLoad(),
         )
         assertEquals(Discount(DiscountType.PERCENTAGE, 50.0), discountRepository.discounts.single().discount)
@@ -674,7 +675,7 @@ class ProductDetailViewModelTest {
             assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals(2, productRepository.updateCallCount)
+        assertEquals(1, productRepository.updateCallCount)
         assertEquals(1, discountRepository.discounts.size)
     }
 
@@ -688,11 +689,12 @@ class ProductDetailViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductDetailUiEvent.Save)
-            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_error_discount_save), awaitItem())
+            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_error_discount_save, long = true), awaitItem())
         }
         assertEquals(9L, viewModel.uiState.value.loadedVersion)
 
         discountRepository.createFailure = null
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro corregido"))
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductDetailUiEvent.Save)
             assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
@@ -711,10 +713,11 @@ class ProductDetailViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductDetailUiEvent.Save)
-            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save), awaitItem())
+            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save, long = true), awaitItem())
         }
 
         productRepository.addImagesResult = Result.success(Unit)
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro corregido"))
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductDetailUiEvent.Save)
             assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
@@ -1419,7 +1422,7 @@ class ProductDetailViewModelTest {
 
             viewModel.uiEffect.test {
                 viewModel.onEvent(ProductDetailUiEvent.Save)
-                assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save), awaitItem())
+                assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save, long = true), awaitItem())
             }
             val state = viewModel.uiState.value
             assertEquals(listOf("m1", "m3", "content://pick/1"), state.photos.map { it.key })
@@ -1434,7 +1437,7 @@ class ProductDetailViewModelTest {
                 viewModel.onEvent(ProductDetailUiEvent.Save)
                 assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
             }
-            assertEquals(listOf("update", "addImages:1"), productRepository.writeLog)
+            assertEquals(listOf("addImages:1"), productRepository.writeLog)
         }
 
     @Test
@@ -1447,7 +1450,7 @@ class ProductDetailViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductDetailUiEvent.Save)
-            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save), awaitItem())
+            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save, long = true), awaitItem())
         }
         assertTrue(discountRepository.discounts.isEmpty())
         // The delete failed, so m2 is still on the server and still marked for removal.
@@ -1463,5 +1466,194 @@ class ProductDetailViewModelTest {
         viewModel.onEvent(ProductDetailUiEvent.CancelRequested)
 
         assertTrue(viewModel.uiState.value.showDiscardDialog)
+    }
+
+    // ---- Partial saves, leaving while saving, deleted products, pending orders ----
+
+    @Test
+    fun `a discount that fails after the update leaves a partial save and the retry sends only the discount`() =
+        runTest {
+            val viewModel = createViewModel()
+            viewModel.applyDiscount("20")
+            discountRepository.createFailure = DiscountException(DiscountError.Network)
+
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(PartialSave.DISCOUNT, viewModel.uiState.value.partialSave)
+
+            discountRepository.createFailure = null
+            viewModel.uiEffect.test {
+                viewModel.onEvent(ProductDetailUiEvent.Save)
+                assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+            }
+            assertEquals(1, productRepository.updateCallCount)
+            assertEquals(2, discountRepository.calls.count { it.startsWith("create:") })
+            assertNull(viewModel.uiState.value.partialSave)
+        }
+
+    @Test
+    fun `photos that fail after the update leave a partial save`() = runTest {
+        threePhotos()
+        productRepository.addImagesResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(1)))
+
+        viewModel.onEvent(ProductDetailUiEvent.Save)
+
+        assertEquals(PartialSave.PHOTOS, viewModel.uiState.value.partialSave)
+        assertTrue(viewModel.uiState.value.isDirty)
+    }
+
+    @Test
+    fun `an edit after a partial save sends the update again`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.applyDiscount("20")
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+        viewModel.onEvent(ProductDetailUiEvent.Save)
+        discountRepository.createFailure = null
+
+        viewModel.onEvent(ProductDetailUiEvent.QuantityChanged("40"))
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+        }
+        assertEquals(2, productRepository.updateCallCount)
+        assertEquals(40, productRepository.updatedProducts[1].stock)
+    }
+
+    @Test
+    fun `when the stored discount cannot be read after the failure the retry creates it again`() = runTest {
+        discountRepository.discounts += TestFixtures.productDiscount(id = "old")
+        val viewModel = createViewModel()
+        viewModel.applyDiscount("30")
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+        // The save reads the discounts fine; the re-read after the failed create does not answer.
+        discountRepository.getOutcomes += listOf(null, DiscountException(DiscountError.Network))
+
+        viewModel.onEvent(ProductDetailUiEvent.Save)
+
+        assertNull(viewModel.uiState.value.loadedDiscount)
+        assertTrue(viewModel.uiState.value.isDiscountChanged)
+
+        discountRepository.createFailure = null
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+        }
+        assertEquals(Discount(DiscountType.PERCENTAGE, 30.0), discountRepository.discounts.single().discount)
+    }
+
+    @Test
+    fun `back and the bell do nothing while saving`() = runTest {
+        productRepository.updateGate = CompletableDeferred()
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro Pro"))
+        viewModel.onEvent(ProductDetailUiEvent.Save)
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.CancelRequested)
+            viewModel.onEvent(ProductDetailUiEvent.OrderRequestsRequested)
+            expectNoEvents()
+        }
+        assertFalse(viewModel.uiState.value.showDiscardDialog)
+        productRepository.updateGate?.complete(Unit)
+    }
+
+    @Test
+    fun `saving a product deleted elsewhere returns to Inventario`() = runTest {
+        productRepository.updateResult = Result.failure(UpdateProductException(UpdateProductError.NotFound))
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Taladro Pro"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = true), awaitItem())
+        }
+    }
+
+    @Test
+    fun `a product deleted between the update and the photos returns without touching the discount`() = runTest {
+        threePhotos()
+        productRepository.addImagesResult = Result.failure(UpdateProductException(UpdateProductError.NotFound))
+        val viewModel = createViewModel()
+        viewModel.applyDiscount("20")
+        viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(1)))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = true), awaitItem())
+        }
+        assertTrue(discountCallsAfterLoad().isEmpty())
+    }
+
+    @Test
+    fun `a product deleted before the discount returns to Inventario`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.applyDiscount("20")
+        discountRepository.getFailure = DiscountException(DiscountError.NotFound)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = true), awaitItem())
+        }
+    }
+
+    @Test
+    fun `a deleted product opens as deleted, not as a form`() = runTest {
+        productRepository.productDetailResult = Result.success(TestFixtures.productDetail(active = false))
+
+        val state = createViewModel().uiState.value
+
+        assertTrue(state.isDeleted)
+        assertFalse(state.isLoading)
+    }
+
+    @Test
+    fun `a product in pending orders keeps the confirmation with the warning and deleting anyway forces`() =
+        runTest {
+            val warning = UpdateProductError.HasPendingOrders("Está en 1 pedido pendiente (#400776).", listOf("400776"))
+            productRepository.deleteResults += Result.failure(UpdateProductException(warning))
+            val viewModel = createViewModel()
+            viewModel.onEvent(ProductDetailUiEvent.DeleteRequested)
+
+            viewModel.uiEffect.test {
+                viewModel.onEvent(ProductDetailUiEvent.DeleteConfirmed)
+                expectNoEvents()
+            }
+            val state = viewModel.uiState.value
+            assertTrue(state.showDeleteDialog)
+            assertFalse(state.isDeleting)
+            assertEquals(warning, state.pendingOrders)
+
+            viewModel.uiEffect.test {
+                viewModel.onEvent(ProductDetailUiEvent.DeleteConfirmed)
+                assertEquals(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = false), awaitItem())
+            }
+            assertEquals(listOf(false, true), productRepository.deleteForces)
+        }
+
+    @Test
+    fun `dismissing the pending-orders warning clears it`() = runTest {
+        productRepository.deleteResults += Result.failure(
+            UpdateProductException(UpdateProductError.HasPendingOrders(null, listOf("400776"))),
+        )
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.DeleteRequested)
+        viewModel.onEvent(ProductDetailUiEvent.DeleteConfirmed)
+
+        viewModel.onEvent(ProductDetailUiEvent.DeleteDismissed)
+
+        assertFalse(viewModel.uiState.value.showDeleteDialog)
+        assertNull(viewModel.uiState.value.pendingOrders)
+        assertEquals(1, productRepository.deletedIds.size)
+    }
+
+    @Test
+    fun `the delete confirmation names the product as loaded`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.NameChanged("Otro nombre"))
+
+        assertEquals("Taladro Percutor Bosch GSB 13 RE", viewModel.uiState.value.loadedName)
+        assertTrue(viewModel.uiState.value.isDirty)
     }
 }

@@ -5,7 +5,7 @@
     <string name="register_bell_cd">View requests</string>
 
     <string name="register_photos_title">Product photos</string>
-    <string name="register_photos_subtitle">The first photo will be the main one.</string>
+    <string name="register_photos_subtitle">The first photo will be the main one. Up to 10 photos.</string>
 
     <string name="register_name_label">Name</string>
     <string name="register_name_placeholder">E.g. Cordless drill</string>
@@ -54,4 +54,5 @@
     <string name="register_ai_replace_dismiss">Cancel</string>
     <string name="register_discount_over_price">The discount is higher than the price. Edit or remove it.</string>
     <string name="register_discount_removed_over_price">We removed the discount because it is higher than the new price. Check and add again.</string>
+    <string name="register_photos_limit_reached">Only 10 photos can be added; some were left out</string>
 </resources>

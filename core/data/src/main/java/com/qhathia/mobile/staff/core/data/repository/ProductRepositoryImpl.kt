@@ -63,7 +63,7 @@ class ProductRepositoryImpl @Inject constructor(
             }
 
             when (
-                val result = apiService.createProductWithImages(product.toCreateRequestDto(), images)
+                val result = apiService.createProductWithImages(product.toCreateRequestDto(), images, product.idempotencyKey)
             ) {
                 is NetworkResult.Success ->
                     Result.success(result.data.toProductId())
@@ -94,8 +94,8 @@ class ProductRepositoryImpl @Inject constructor(
                 Result.failure(UpdateProductException(UpdateProductError.Network))
         }
 
-    override suspend fun deleteProduct(id: String): Result<Unit> =
-        when (val result = apiService.deleteProduct(id)) {
+    override suspend fun deleteProduct(id: String, force: Boolean): Result<Unit> =
+        when (val result = apiService.deleteProduct(id, force)) {
             is NetworkResult.Success ->
                 Result.success(Unit)
             is NetworkResult.HttpError ->
@@ -147,6 +147,10 @@ class ProductRepositoryImpl @Inject constructor(
             code == 404 -> UpdateProductError.NotFound
             code == 409 && errorCode == ERROR_VERSION_CONFLICT -> UpdateProductError.Conflict(problem?.currentVersion)
             code == 409 && errorCode == ERROR_CONCURRENT_MODIFICATION -> UpdateProductError.Conflict(null)
+            code == 409 && errorCode == ERROR_PENDING_ORDERS -> UpdateProductError.HasPendingOrders(
+                detail = problem?.detail,
+                orderCodes = problem?.pendingOrders.orEmpty().mapNotNull { it.orderCode },
+            )
             code == 400 || code == 422 -> UpdateProductError.InvalidInput
             code == 503 -> UpdateProductError.Network
             else -> UpdateProductError.Unknown(problem?.detail ?: "HTTP $code")
@@ -156,5 +160,6 @@ class ProductRepositoryImpl @Inject constructor(
     private companion object {
         const val ERROR_VERSION_CONFLICT = "PRODUCT_VERSION_CONFLICT"
         const val ERROR_CONCURRENT_MODIFICATION = "CONCURRENT_MODIFICATION"
+        const val ERROR_PENDING_ORDERS = "PRODUCT_IN_PENDING_ORDERS"
     }
 }

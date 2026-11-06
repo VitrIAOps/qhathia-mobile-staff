@@ -28,6 +28,18 @@ class FakeProductRepository : ProductRepository {
     var updateResult: Result<ProductDetail>? = null
     val updateResults: ArrayDeque<Result<ProductDetail>> = ArrayDeque()
     var deleteResult: Result<Unit> = Result.success(Unit)
+
+    /** One result per [deleteProduct] call, ahead of [deleteResult] (e.g. a 409 then a forced 204). */
+    val deleteResults: ArrayDeque<Result<Unit>> = ArrayDeque()
+
+    /** The `force` flag of every delete, in call order. */
+    val deleteForces: MutableList<Boolean> = mutableListOf()
+
+    /** Set to a pending deferred to hold [updateProduct] in flight (to observe saving). */
+    var updateGate: CompletableDeferred<Unit>? = null
+
+    /** Set to a pending deferred to hold [registerProduct] in flight (to observe submitting). */
+    var registerGate: CompletableDeferred<Unit>? = null
     var addImagesResult: Result<Unit> = Result.success(Unit)
     var deleteImageResult: Result<Unit> = Result.success(Unit)
 
@@ -48,6 +60,9 @@ class FakeProductRepository : ProductRepository {
         private set
     var registerCallCount: Int = 0
         private set
+
+    /** Every product sent to [registerProduct], in call order. */
+    val registeredProducts: MutableList<NewProduct> = mutableListOf()
 
     var lastRequestedId: String? = null
         private set
@@ -90,6 +105,8 @@ class FakeProductRepository : ProductRepository {
     override suspend fun registerProduct(product: NewProduct): Result<String> {
         registerCallCount++
         registeredProduct = product
+        registeredProducts += product
+        registerGate?.await()
         return registerResult
     }
 
@@ -105,6 +122,7 @@ class FakeProductRepository : ProductRepository {
         updatedId = id
         updatedProduct = product
         updatedProducts += product
+        updateGate?.await()
         updateResults.removeFirstOrNull()?.let { return it }
         updateResult?.let { return it }
         val stored = productDetailResult.getOrNull() ?: TestFixtures.productDetail()
@@ -120,9 +138,11 @@ class FakeProductRepository : ProductRepository {
         )
     }
 
-    override suspend fun deleteProduct(id: String): Result<Unit> {
+    override suspend fun deleteProduct(id: String, force: Boolean): Result<Unit> {
         deletedIds += id
+        deleteForces += force
         deleteGate?.await()
+        deleteResults.removeFirstOrNull()?.let { return it }
         return deleteResult
     }
 

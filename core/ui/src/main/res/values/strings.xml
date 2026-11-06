@@ -134,4 +134,8 @@
     <string name="photo_source_title">Agregar foto</string>
     <string name="photo_source_camera">Tomar foto</string>
     <string name="photo_source_gallery">Elegir de la galería</string>
+    <string name="delete_product_message_unsaved">«%1$s» dejará de verse en el inventario y en la tablet. También se perderán los cambios que no guardaste. Esta acción no se puede deshacer.</string>
+    <string name="delete_product_confirm_force">Eliminar igual</string>
+    <string name="delete_product_pending_orders_fallback">Este producto está en pedidos pendientes (%1$s). Confírmalos o recházalos antes, o elimínalo igual.</string>
+    <string name="saving_product_cd">Guardando producto…</string>
 </resources>

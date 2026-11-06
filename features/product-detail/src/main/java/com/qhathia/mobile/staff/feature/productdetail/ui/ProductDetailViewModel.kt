@@ -7,6 +7,8 @@ import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.parsePrice
 import com.qhathia.mobile.staff.core.common.validation.parseQuantity
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
+import com.qhathia.mobile.staff.core.domain.model.DiscountError
+import com.qhathia.mobile.staff.core.domain.model.DiscountException
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
@@ -24,6 +26,7 @@ import com.qhathia.mobile.staff.core.domain.usecase.UpdateProductUseCase
 import com.qhathia.mobile.staff.feature.productdetail.R
 import com.qhathia.mobile.staff.feature.productdetail.model.FormPhoto
 import com.qhathia.mobile.staff.feature.productdetail.model.MAX_PHOTOS
+import com.qhathia.mobile.staff.feature.productdetail.model.PartialSave
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEffect
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiState
@@ -119,8 +122,9 @@ class ProductDetailViewModel @Inject constructor(
             ProductDetailUiEvent.PreviewDismissed ->
                 _uiState.update { it.copy(showPreview = false) }
             ProductDetailUiEvent.Save -> save()
+            // Nothing leaves while a request is in flight: it would be cancelled midway.
             ProductDetailUiEvent.CancelRequested ->
-                if (!_uiState.value.isDeleting) onCancelRequested()
+                if (!_uiState.value.isDeleting && !_uiState.value.isSaving) onCancelRequested()
             // Disabled in the header while saving; ignored here too so a stray tap cannot leave.
             ProductDetailUiEvent.OrderRequestsRequested ->
                 if (!_uiState.value.isSaving && !_uiState.value.isDeleting) leave(Exit.ORDER_REQUESTS)
@@ -146,28 +150,32 @@ class ProductDetailViewModel @Inject constructor(
             ProductDetailUiEvent.ConflictOverwrite -> overwriteAfterConflict()
             ProductDetailUiEvent.ConflictDismissed -> _uiState.update { it.copy(conflict = null) }
             ProductDetailUiEvent.DeleteDismissed ->
-                _uiState.update { if (it.isDeleting) it else it.copy(showDeleteDialog = false) }
+                _uiState.update { if (it.isDeleting) it else it.copy(showDeleteDialog = false, pendingOrders = null) }
         }
     }
 
     /**
      * Deletes the product and leaves the form; unsaved edits go with it, and the confirmation
-     * already said so. A 404 also leaves, since the product is gone either way. Any other failure
-     * keeps the merchant on the form, edits intact.
+     * already said so. A 404 also leaves, since the product is gone either way. A product in
+     * pending orders keeps the confirmation open with the server's explanation; confirming again
+     * deletes it anyway (`force`). Any other failure keeps the merchant on the form, edits intact.
      */
     private fun deleteProduct() {
         val current = _uiState.value
         if (!current.showDeleteDialog || current.isDeleting) return
+        val force = current.pendingOrders != null
         viewModelScope.launch {
             _uiState.update { it.copy(isDeleting = true) }
-            val result = deleteProductUseCase(productId)
+            val result = deleteProductUseCase(productId, force)
             val error = (result.exceptionOrNull() as? UpdateProductException)?.error
             when {
                 result.isSuccess -> _uiEffect.emit(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = false))
                 error == UpdateProductError.NotFound ->
                     _uiEffect.emit(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = true))
+                error is UpdateProductError.HasPendingOrders && !force ->
+                    _uiState.update { it.copy(isDeleting = false, pendingOrders = error) }
                 else -> {
-                    _uiState.update { it.copy(isDeleting = false, showDeleteDialog = false) }
+                    _uiState.update { it.copy(isDeleting = false, showDeleteDialog = false, pendingOrders = null) }
                     _uiEffect.emit(ProductDetailUiEffect.ShowError(R.string.detail_delete_error))
                 }
             }
@@ -180,6 +188,7 @@ class ProductDetailViewModel @Inject constructor(
      * but a product failure puts the whole screen in its error state.
      */
     private fun load() {
+        lastAppliedUpdate = null
         viewModelScope.launch {
             _uiState.update {
                 it.copy(isLoading = true, isError = false, isCategoriesLoading = true, isCategoriesError = false)
@@ -259,10 +268,13 @@ class ProductDetailViewModel @Inject constructor(
         selectedCategoryId = product.categoryId,
         photos = product.images.map { FormPhoto.Saved(it) }.toImmutableList(),
         loadedImages = product.images.toImmutableList(),
+        loadedName = product.name,
         loadedVersion = product.version,
         loadedQuantity = product.stock?.toString().orEmpty(),
         isConsult = product.stock == null,
+        isDeleted = !product.active,
         conflict = null,
+        partialSave = null,
         nameError = null,
         priceError = null,
         quantityError = null,
@@ -389,6 +401,12 @@ class ProductDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The update the last successful `PUT` sent. When the next save would send the same edit, the
+     * `PUT` already went through and only the photos and the discount are retried.
+     */
+    private var lastAppliedUpdate: ProductUpdate? = null
+
     private fun save() {
         val current = _uiState.value
         if (!current.isSaveEnabled) return
@@ -415,63 +433,96 @@ class ProductDetailViewModel @Inject constructor(
             tags = parseTags(current.tags),
             version = current.loadedVersion,
         )
+        val alreadyApplied = lastAppliedUpdate?.let { product.isSameEditAs(it) } == true
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
-            updateProductUseCase(productId, product)
-                .onSuccess { updated ->
-                    // First, so any retry from this form is checked against this save, not the load.
-                    _uiState.update { it.adopting(updated) }
-                    if (persistPhotoChanges(current).isFailure) {
-                        // The product is saved; the photos are re-read so the strip shows what the
-                        // server has, and the form stays dirty so saving again retries what is left.
-                        // The discount is not attempted: one failure, one message.
-                        resyncPhotos(current, uploaded = false)
-                        // The server may now price the product differently from what was loaded.
-                        _uiState.update { it.copy(isSaving = false, serverPricing = null) }
-                        emit(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save))
-                        return@onSuccess
-                    }
-                    if (persistDiscountChange(current).isSuccess) {
-                        _uiState.update { it.copy(isSaving = false, isDirty = false) }
-                        emit(ProductDetailUiEffect.NavigateBackSaved)
-                    } else {
-                        // The product is saved; the form stays dirty so saving again retries the
-                        // discount. A failed replace may have left the product with no discount,
-                        // so what is stored is read again rather than assumed.
-                        // Photos that did go through must not be uploaded again on retry. Either
-                        // read also refreshes the version, which the discount write may have bumped.
-                        if (current.isPhotosChanged) {
-                            resyncPhotos(current, uploaded = true)
-                        } else {
-                            refreshVersion()
-                        }
-                        val stored = getProductDiscountUseCase(productId)
-                        _uiState.update { state ->
-                            state.copy(
-                                isSaving = false,
-                                serverPricing = null,
-                                loadedDiscount = stored.fold(
-                                    onSuccess = { it?.discount },
-                                    onFailure = { state.loadedDiscount },
-                                ),
-                            )
-                        }
-                        emit(ProductDetailUiEffect.ShowError(R.string.detail_error_discount_save))
-                    }
+            if (!alreadyApplied) {
+                val updated = updateProductUseCase(productId, product).getOrElse { throwable ->
+                    onUpdateFailed(throwable)
+                    return@launch
                 }
-                .onFailure { throwable ->
-                    val error = (throwable as? UpdateProductException)?.error
-                    if (error is UpdateProductError.Conflict) {
-                        // The dialog explains it; no message on top.
-                        _uiState.update { it.copy(isSaving = false, conflict = SaveConflict(error.currentVersion)) }
-                    } else {
-                        _uiState.update { it.copy(isSaving = false) }
-                        emit(ProductDetailUiEffect.ShowError(error.toMessageRes()))
-                    }
-                }
+                lastAppliedUpdate = product
+                // First, so any retry from this form is checked against this save, not the load.
+                _uiState.update { it.adopting(updated) }
+            }
+            persistPhotosAndDiscount(current)
         }
     }
+
+    /** The `PUT` failed: a conflict opens its dialog, a deleted product leaves, anything else says why. */
+    private suspend fun onUpdateFailed(throwable: Throwable) {
+        val error = (throwable as? UpdateProductException)?.error
+        when {
+            error is UpdateProductError.Conflict ->
+                // The dialog explains it; no message on top.
+                _uiState.update { it.copy(isSaving = false, conflict = SaveConflict(error.currentVersion)) }
+            error == UpdateProductError.NotFound -> leaveDeleted()
+            else -> {
+                _uiState.update { it.copy(isSaving = false) }
+                _uiEffect.emit(ProductDetailUiEffect.ShowError(error.toMessageRes()))
+            }
+        }
+    }
+
+    /**
+     * The steps after the product update. A failure keeps the merchant on the form with a banner
+     * saying what was not saved ([PartialSave]); saving again retries only what is left.
+     */
+    private suspend fun persistPhotosAndDiscount(submitted: ProductDetailUiState) {
+        val photos = persistPhotoChanges(submitted)
+        if (photos.isFailure) {
+            if (photos.exceptionOrNull().isProductGone()) return leaveDeleted()
+            // The photos are re-read so the strip shows what the server has. The discount is not
+            // attempted: one failure, one message.
+            resyncPhotos(submitted, uploaded = false)
+            // The server may now price the product differently from what was loaded.
+            _uiState.update { it.copy(isSaving = false, serverPricing = null, partialSave = PartialSave.PHOTOS) }
+            _uiEffect.emit(ProductDetailUiEffect.ShowError(R.string.detail_error_photos_save, long = true))
+            return
+        }
+        val discount = persistDiscountChange(submitted)
+        if (discount.isSuccess) {
+            lastAppliedUpdate = null
+            _uiState.update { it.copy(isSaving = false, isDirty = false, partialSave = null) }
+            _uiEffect.emit(ProductDetailUiEffect.NavigateBackSaved)
+            return
+        }
+        if (discount.exceptionOrNull().isProductGone()) return leaveDeleted()
+        // Photos that did go through must not be uploaded again on retry. Either read also refreshes
+        // the version, which the discount write may have bumped.
+        if (submitted.isPhotosChanged) resyncPhotos(submitted, uploaded = true) else refreshVersion()
+        // What is stored is read again rather than assumed. If that fails too, the form treats the
+        // product as having no discount, so the retry creates the form's discount again.
+        val stored = getProductDiscountUseCase(productId)
+        _uiState.update { state ->
+            state.copy(
+                isSaving = false,
+                serverPricing = null,
+                partialSave = PartialSave.DISCOUNT,
+                loadedDiscount = stored.getOrNull()?.discount,
+            )
+        }
+        _uiEffect.emit(ProductDetailUiEffect.ShowError(R.string.detail_error_discount_save, long = true))
+    }
+
+    /** The product was deleted elsewhere: back to Inventario, which says so. */
+    private suspend fun leaveDeleted() {
+        _uiState.update { it.copy(isSaving = false) }
+        _uiEffect.emit(ProductDetailUiEffect.NavigateBackDeleted(alreadyDeleted = true))
+    }
+
+    /** A 404 from the product's photos or discounts means the product itself is gone. */
+    private fun Throwable?.isProductGone(): Boolean =
+        (this as? UpdateProductException)?.error == UpdateProductError.NotFound ||
+            (this as? DiscountException)?.error == DiscountError.NotFound
+
+    /**
+     * Same edit as [last], the version aside: the `PUT` would change nothing. A stock left untouched
+     * since that save (`null`) counts as the same, since the baseline moved to what it stored.
+     */
+    private fun ProductUpdate.isSameEditAs(last: ProductUpdate): Boolean =
+        copy(version = null, stock = stock ?: last.stock) == last.copy(version = null)
 
     /**
      * "Guardar lo mío": the merchant accepts the server's current version as the one to overwrite.
@@ -581,6 +632,7 @@ class ProductDetailViewModel @Inject constructor(
         UpdateProductError.Network -> R.string.detail_error_network
         UpdateProductError.InvalidInput -> R.string.detail_error_validation
         is UpdateProductError.Conflict -> R.string.detail_error_conflict
+        is UpdateProductError.HasPendingOrders -> R.string.detail_delete_error
         is UpdateProductError.Unknown, null -> R.string.detail_error_unknown
     }
 }

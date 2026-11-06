@@ -43,7 +43,7 @@ interface ProductRepository {
      * Deletes the product [id]. It is a soft delete with no way back: the product leaves the
      * inventory and the kiosk catalog. Failures carry an `UpdateProductException` (404 → not found).
      */
-    suspend fun deleteProduct(id: String): Result<Unit>
+    suspend fun deleteProduct(id: String, force: Boolean = false): Result<Unit>
 
     /**
      * Compresses and uploads [images] to the existing product [id] in one request. They are added

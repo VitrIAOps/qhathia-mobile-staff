@@ -10,7 +10,7 @@
     <string name="detail_photos_min_hint">The product needs at least one photo</string>
     <string name="detail_photos_limit_reached">A product can have 10 photos; some were not added</string>
     <string name="detail_photos_unsupported">Only JPG or PNG photos are accepted</string>
-    <string name="detail_error_photos_save">The product was saved, but the photos could not be updated</string>
+    <string name="detail_error_photos_save">The product details were saved, but not the photos. Tap Save to try again</string>
 
     <string name="detail_name_label">Name</string>
     <string name="detail_name_placeholder">E.g. Cordless drill</string>
@@ -44,7 +44,7 @@
     <string name="detail_error_network">No connection. Try again</string>
     <string name="detail_error_validation">Check the details you entered</string>
     <string name="detail_error_unknown">Something went wrong. Try again</string>
-    <string name="detail_error_discount_save">The product was saved, but the discount couldn\'t be updated. Save again to retry</string>
+    <string name="detail_error_discount_save">The product details were saved, but not the discount. Tap Save to try again</string>
     <string name="detail_discount_load_error">Couldn\'t load the discount</string>
     <string name="detail_discount_ends_in">Ends in %1$s</string>
     <string name="detail_discount_ends_in_days_hours">Ends in %1$s and %2$s</string>
@@ -73,4 +73,10 @@
     <string name="detail_discount_removed_over_price">We removed the discount because it is higher than the new price. Check and save again.</string>
     <string name="detail_quantity_consult_placeholder">On request</string>
     <string name="detail_quantity_consult_hint">Leave it empty to keep showing it as “Ask for availability”</string>
+    <string name="detail_partial_save_discount">The product details were saved, but not the discount. Tap Save to try again.</string>
+    <string name="detail_partial_save_photos">The product details were saved, but not the photos. Tap Save to try again.</string>
+    <string name="detail_discard_message_partial_discount">The discount was not saved. If you leave, the product stays without that change.</string>
+    <string name="detail_discard_message_partial_photos">The photos were not saved. If you leave, the product stays without that change.</string>
+    <string name="detail_deleted_title">This product was deleted</string>
+    <string name="detail_deleted_back">Back</string>
 </resources>

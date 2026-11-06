@@ -68,6 +68,12 @@ class ProductMappersTest {
     }
 
     @Test
+    fun `ProductDetailDto toDomain carries whether the product is active`() {
+        assertEquals(false, ProductDetailDto(id = "p1", name = "Taladro", active = false).toDomain().active)
+        assertEquals(true, ProductDetailDto(id = "p1", name = "Taladro").toDomain().active)
+    }
+
+    @Test
     fun `ProductDetailDto toDomain orders media with the primary photo first`() {
         val dto = ProductDetailDto(
             id = "p1",

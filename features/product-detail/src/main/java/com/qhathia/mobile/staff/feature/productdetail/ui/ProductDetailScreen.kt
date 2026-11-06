@@ -3,6 +3,7 @@ package com.qhathia.mobile.staff.feature.productdetail.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -43,14 +44,18 @@ fun ProductDetailScreen(
                 ProductDetailUiEffect.NavigateBackCancelled -> onBack()
                 ProductDetailUiEffect.NavigateToOrderRequests -> onNavigateToOrderRequests()
                 is ProductDetailUiEffect.ShowError ->
-                    snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
+                    snackbarHostState.showSnackbar(
+                        message = resources.getString(effect.messageRes),
+                        duration = if (effect.long) SnackbarDuration.Long else SnackbarDuration.Short,
+                    )
             }
         }
     }
 
-    // While a delete is in flight back is swallowed: leaving would cancel the request mid-way.
-    BackHandler(enabled = uiState.isDeleting || (uiState.isDirty && !uiState.isSaving)) {
-        viewModel.onEvent(ProductDetailUiEvent.CancelRequested)
+    // While a save or a delete is in flight back is swallowed: leaving would cancel it midway.
+    val busy = uiState.isSaving || uiState.isDeleting
+    BackHandler(enabled = busy || uiState.isDirty) {
+        if (!busy) viewModel.onEvent(ProductDetailUiEvent.CancelRequested)
     }
 
     Box(modifier = modifier.fillMaxSize()) {

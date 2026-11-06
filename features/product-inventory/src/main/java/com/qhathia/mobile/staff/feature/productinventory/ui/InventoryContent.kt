@@ -37,6 +37,7 @@ import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.ui.R as CoreUiR
 import com.qhathia.mobile.staff.core.ui.component.QhathiaDeleteProductDialog
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
@@ -156,6 +157,12 @@ fun InventoryContent(
                 isDeleting = uiState.isDeleting,
                 onConfirm = { onEvent(InventoryUiEvent.DeleteConfirmed) },
                 onDismiss = { onEvent(InventoryUiEvent.DeleteDismissed) },
+                pendingOrdersDetail = uiState.pendingOrders?.let { warning ->
+                    warning.detail ?: stringResource(
+                        CoreUiR.string.delete_product_pending_orders_fallback,
+                        warning.orderCodes.joinToString { "#$it" },
+                    )
+                },
             )
         }
     }

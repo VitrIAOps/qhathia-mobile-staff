@@ -5,7 +5,7 @@
     <string name="register_bell_cd">Ver solicitudes</string>
 
     <string name="register_photos_title">Fotos del producto</string>
-    <string name="register_photos_subtitle">La primera foto será la principal.</string>
+    <string name="register_photos_subtitle">La primera foto será la principal. Máximo 10 fotos.</string>
 
     <string name="register_name_label">Nombre</string>
     <string name="register_name_placeholder">Ej: Taladro inalámbrico</string>
@@ -54,4 +54,5 @@
     <string name="register_ai_replace_dismiss">Cancelar</string>
     <string name="register_discount_over_price">El descuento es mayor que el precio. Edítalo o quítalo.</string>
     <string name="register_discount_removed_over_price">Quitamos el descuento porque es mayor que el nuevo precio. Revisa y vuelve a agregar.</string>
+    <string name="register_photos_limit_reached">Solo se pueden agregar 10 fotos; algunas no se agregaron</string>
 </resources>

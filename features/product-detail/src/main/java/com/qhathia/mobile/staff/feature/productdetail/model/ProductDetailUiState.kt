@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.feature.productdetail.model
 
 import androidx.annotation.StringRes
+import com.qhathia.mobile.staff.core.common.validation.MAX_PRODUCT_PHOTOS
 import com.qhathia.mobile.staff.core.common.validation.isValidPrice
 import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.isValidQuantity
@@ -9,6 +10,7 @@ import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.ProductImage
+import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import java.time.Instant
@@ -37,7 +39,12 @@ import java.time.Instant
  * changes it.
  *
  * "Eliminar producto" asks first: [showDeleteDialog] while the confirmation is open, [isDeleting]
- * while its request is in flight (the form is locked meanwhile).
+ * while its request is in flight (the form is locked meanwhile), and [pendingOrders] when the server
+ * said the product is in pending orders (confirming again deletes it anyway). The confirmation names
+ * the product as loaded ([loadedName]), not as edited.
+ *
+ * [partialSave] says which step after the product update failed, shown as a banner until a save
+ * completes. [isDeleted] marks a product loaded as deleted, which is shown instead of the form.
  */
 data class ProductDetailUiState(
     val name: String = "",
@@ -49,10 +56,14 @@ data class ProductDetailUiState(
     val selectedCategoryId: String? = null,
     val photos: ImmutableList<FormPhoto> = persistentListOf(),
     val loadedImages: ImmutableList<ProductImage> = persistentListOf(),
+    val loadedName: String = "",
     val loadedVersion: Long? = null,
     val loadedQuantity: String = "",
     val isConsult: Boolean = false,
     val conflict: SaveConflict? = null,
+    val partialSave: PartialSave? = null,
+    val isDeleted: Boolean = false,
+    val pendingOrders: UpdateProductError.HasPendingOrders? = null,
     val loadedDiscount: Discount? = null,
     val discount: Discount? = null,
     val discountDraft: DiscountDraft? = null,
@@ -199,8 +210,11 @@ data class ServerPricing(
  */
 data class SaveConflict(val currentVersion: Long?)
 
+/** The step after the product update that did not go through; the product fields did. */
+enum class PartialSave { PHOTOS, DISCOUNT }
+
 /** The backend's per-product photo limit. */
-const val MAX_PHOTOS = 10
+const val MAX_PHOTOS = MAX_PRODUCT_PHOTOS
 
 /** Splits the free-text tag input into trimmed, non-blank tag values. */
 fun parseTags(input: String): List<String> =

@@ -115,6 +115,7 @@ object TestFixtures {
         discountedPrice: Double? = null,
         discountEndsAt: Instant? = null,
         version: Long? = 7,
+        active: Boolean = true,
     ) = ProductDetail(
         id = id,
         name = name,
@@ -130,6 +131,7 @@ object TestFixtures {
         discountedPrice = discountedPrice,
         discountEndsAt = discountEndsAt,
         version = version,
+        active = active,
     )
 
     fun deviceSettings(
@@ -287,7 +289,8 @@ object TestFixtures {
         categoryId: String = "category-1",
         tags: List<String> = listOf("vintage"),
         images: List<SelectedImage> = listOf(selectedImage()),
-    ) = NewProduct(name, price, quantity, description, categoryId, tags, images)
+        idempotencyKey: String = "8a3f6f8e-1c2d-4e5f-9a0b-1c2d3e4f5a6b",
+    ) = NewProduct(name, price, quantity, description, categoryId, tags, images, idempotencyKey)
 
     fun salesBucket(
         label: String = "Sem 1",

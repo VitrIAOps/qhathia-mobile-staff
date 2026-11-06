@@ -52,8 +52,10 @@ fun ProductRegisterScreen(
         }
     }
 
-    BackHandler(enabled = uiState.isDirty && !uiState.isSubmitting) {
-        viewModel.onEvent(ProductRegisterUiEvent.CancelRequested)
+    // While submitting, back is swallowed: leaving would cancel the request while the backend may
+    // still create the product.
+    BackHandler(enabled = uiState.isSubmitting || uiState.isDirty) {
+        if (!uiState.isSubmitting) viewModel.onEvent(ProductRegisterUiEvent.CancelRequested)
     }
 
     Box(modifier = modifier.fillMaxSize()) {

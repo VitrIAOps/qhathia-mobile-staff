@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.feature.productregister.model
 
 import androidx.annotation.StringRes
+import com.qhathia.mobile.staff.core.common.validation.MAX_PRODUCT_PHOTOS
 import com.qhathia.mobile.staff.core.common.validation.isValidPrice
 import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.isValidQuantity
@@ -52,7 +53,12 @@ data class ProductRegisterUiState(
             isValidPrice(price) &&
             isValidQuantity(quantity) &&
             selectedCategoryId != null &&
-            images.isNotEmpty()
+            images.isNotEmpty() &&
+            images.size <= MAX_PRODUCT_PHOTOS
+
+    /** Another photo fits under the backend's limit. */
+    val canAddPhotos: Boolean
+        get() = images.size < MAX_PRODUCT_PHOTOS
 
     /** What the product costs with [discount] applied; null without a discount or a valid price. */
     val discountedPrice: Double?

@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.productregister.ui
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountError
@@ -25,6 +26,7 @@ import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiE
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEvent
 import com.qhathia.mobile.staff.feature.productregister.R
 import com.qhathia.mobile.staff.feature.productregister.model.toPreviewData
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -54,7 +56,10 @@ class ProductRegisterViewModelTest {
         discountRepository = FakeProductDiscountRepository()
     }
 
-    private fun createViewModel() = ProductRegisterViewModel(
+    private var savedState = SavedStateHandle()
+
+    private fun createViewModel(state: SavedStateHandle = savedState) = ProductRegisterViewModel(
+        savedStateHandle = state,
         getCategoriesUseCase = GetCategoriesUseCase(categoryRepository),
         registerProductUseCase = RegisterProductUseCase(productRepository),
         draftProductFromImageUseCase = DraftProductFromImageUseCase(aiRepository),
@@ -761,5 +766,88 @@ class ProductRegisterViewModelTest {
             assertEquals(ProductRegisterUiEffect.NavigateBackCancelled, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ---- Idempotency, leaving while submitting, photo limit ----
+
+    @Test
+    fun `every submit of the same form carries the same idempotency key`() = runTest {
+        productRepository.registerResult = Result.failure(RegisterProductException(RegisterProductError.Network))
+        val viewModel = createViewModel()
+        viewModel.fillValidForm()
+
+        viewModel.onEvent(ProductRegisterUiEvent.Submit)
+        viewModel.onEvent(ProductRegisterUiEvent.Submit)
+
+        val keys = productRepository.registeredProducts.map { it.idempotencyKey }
+        assertEquals(2, keys.size)
+        assertEquals(keys[0], keys[1])
+        assertTrue(keys[0].isNotBlank())
+    }
+
+    @Test
+    fun `the idempotency key survives a new view model on the same saved state`() = runTest {
+        val first = createViewModel()
+        first.fillValidForm()
+        first.onEvent(ProductRegisterUiEvent.Submit)
+
+        val second = createViewModel()
+        second.fillValidForm()
+        second.onEvent(ProductRegisterUiEvent.Submit)
+
+        val keys = productRepository.registeredProducts.map { it.idempotencyKey }
+        assertEquals(keys[0], keys[1])
+    }
+
+    @Test
+    fun `a new registration form gets a new key`() = runTest {
+        createViewModel().apply { fillValidForm(); onEvent(ProductRegisterUiEvent.Submit) }
+        createViewModel(SavedStateHandle()).apply { fillValidForm(); onEvent(ProductRegisterUiEvent.Submit) }
+
+        val keys = productRepository.registeredProducts.map { it.idempotencyKey }
+        assertTrue(keys[0] != keys[1])
+    }
+
+    @Test
+    fun `cancel and the bell do nothing while submitting`() = runTest {
+        productRepository.registerGate = CompletableDeferred()
+        val viewModel = createViewModel()
+        viewModel.fillValidForm()
+        viewModel.onEvent(ProductRegisterUiEvent.Submit)
+        assertTrue(viewModel.uiState.value.isSubmitting)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.CancelRequested)
+            viewModel.onEvent(ProductRegisterUiEvent.OrderRequestsRequested)
+            expectNoEvents()
+        }
+        assertFalse(viewModel.uiState.value.showDiscardDialog)
+
+        productRepository.registerGate?.complete(Unit)
+    }
+
+    @Test
+    fun `picking more than ten photos keeps ten and explains it`() = runTest {
+        val viewModel = createViewModel()
+        val eleven = (1..11).map { SelectedImage("content://photo/$it", "image/jpeg") }
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.ImagesPicked(eleven))
+            assertEquals(ProductRegisterUiEffect.ShowError(R.string.register_photos_limit_reached), awaitItem())
+        }
+        assertEquals(10, viewModel.uiState.value.images.size)
+        assertFalse(viewModel.uiState.value.canAddPhotos)
+    }
+
+    @Test
+    fun `at the limit a further pick adds nothing`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductRegisterUiEvent.ImagesPicked((1..10).map { SelectedImage("content://p/$it", "image/png") }))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.ImagesPicked(listOf(SelectedImage("content://p/11", "image/png"))))
+            assertEquals(ProductRegisterUiEffect.ShowError(R.string.register_photos_limit_reached), awaitItem())
+        }
+        assertEquals(10, viewModel.uiState.value.images.size)
     }
 }
