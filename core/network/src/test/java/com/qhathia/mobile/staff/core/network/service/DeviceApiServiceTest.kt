@@ -1,5 +1,12 @@
 package com.qhathia.mobile.staff.core.network.service
 
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertFalse
+import io.ktor.http.HttpMethod
+import io.ktor.client.request.HttpRequestData
+import io.ktor.client.engine.mock.toByteArray
+import com.qhathia.mobile.staff.core.network.dto.RenameDeviceRequestDto
+import com.qhathia.mobile.staff.core.network.dto.PairingSessionStatusDto
 import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.dto.DeviceDto
 import com.qhathia.mobile.staff.core.network.dto.PairDeviceRequestDto
@@ -152,5 +159,58 @@ class DeviceApiServiceTest {
         assertEquals(400, error.code)
         assertEquals("PAIRING_TOKEN_EXPIRED", error.problem?.errorCode)
         assertEquals("El código venció.", error.problem?.detail)
+    }
+
+    @Test
+    fun `the approve body omits the metadata left null`() = runTest {
+        val bodies = mutableListOf<String>()
+        val service = serviceReturning(
+            MockEngine { request ->
+                bodies += request.body.toByteArray().decodeToString()
+                respond("""{"sessionId":"s1","deviceId":"d1"}""", HttpStatusCode.OK, headersOf("Content-Type", "application/json"))
+            },
+        )
+
+        service.pairDevice(PairDeviceRequestDto(pairingToken = "AB3CD", decision = "APPROVE", deviceName = "Mostrador"))
+
+        val body = bodies.single()
+        assertTrue(body.contains("\"deviceName\":\"Mostrador\""))
+        assertFalse(body.contains("appVersion"))
+    }
+
+    @Test
+    fun `pairing status decodes tokenExchanged`() = runTest {
+        val service = serviceReturning(
+            MockEngine {
+                respond(
+                    """{"sessionId":"s1","status":"APPROVED","tokenExchanged":true}""",
+                    HttpStatusCode.OK,
+                    headersOf("Content-Type", "application/json"),
+                )
+            },
+        )
+
+        val status = assertInstanceOf(NetworkResult.Success::class.java, service.getPairingStatus("s1"))
+        assertTrue((status.data as PairingSessionStatusDto).tokenExchanged)
+    }
+
+    @Test
+    fun `rename sends a PATCH with the name`() = runTest {
+        val requests = mutableListOf<HttpRequestData>()
+        val service = serviceReturning(
+            MockEngine { request ->
+                requests += request
+                respond(
+                    """{"id":"d1","status":"ACTIVE","name":"Caja 2"}""",
+                    HttpStatusCode.OK,
+                    headersOf("Content-Type", "application/json"),
+                )
+            },
+        )
+
+        service.renameDevice("d1", RenameDeviceRequestDto("Caja 2"))
+
+        assertEquals(HttpMethod.Patch, requests.single().method)
+        assertTrue(requests.single().url.encodedPath.endsWith("api/v1/devices/d1"))
     }
 }

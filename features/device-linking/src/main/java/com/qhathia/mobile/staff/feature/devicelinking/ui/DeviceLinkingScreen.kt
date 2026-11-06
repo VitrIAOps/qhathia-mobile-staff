@@ -45,6 +45,17 @@ fun DeviceLinkingScreen(
                     snackbarHostState.showSnackbar(resources.getString(R.string.device_command_error))
                 DeviceLinkingUiEffect.ShowUnlinked ->
                     snackbarHostState.showSnackbar(resources.getString(R.string.device_unlinked))
+                is DeviceLinkingUiEffect.ShowPaired ->
+                    snackbarHostState.showSnackbar(
+                        resources.getString(
+                            R.string.device_pair_success,
+                            effect.name ?: resources.getString(R.string.device_unnamed),
+                        ),
+                    )
+                DeviceLinkingUiEffect.ShowPairRejected ->
+                    snackbarHostState.showSnackbar(resources.getString(R.string.device_pair_rejected))
+                DeviceLinkingUiEffect.ShowPairUndone ->
+                    snackbarHostState.showSnackbar(resources.getString(R.string.device_pair_undone))
             }
         }
     }

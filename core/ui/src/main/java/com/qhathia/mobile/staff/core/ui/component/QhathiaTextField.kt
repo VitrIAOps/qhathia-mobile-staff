@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.ui.component
 
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -47,6 +48,7 @@ private const val PlaceholderAlpha = 0.5f
  * When [isPassword] is true the value is masked and a visibility toggle is shown.
  *
  * @param errorText shown (in the error color) when [isError]; otherwise [helperText] is shown.
+ * @param keyboardActions what the keyboard's action key does (e.g. submit on Done).
  */
 @Composable
 fun QhathiaTextField(
@@ -62,6 +64,7 @@ fun QhathiaTextField(
     errorText: String? = null,
     isPassword: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     singleLine: Boolean = true,
     minLines: Int = 1,
@@ -108,6 +111,7 @@ fun QhathiaTextField(
                 } else {
                     keyboardOptions
                 },
+                keyboardActions = keyboardActions,
                 visualTransformation = if (isPassword && !passwordVisible) {
                     PasswordVisualTransformation()
                 } else {

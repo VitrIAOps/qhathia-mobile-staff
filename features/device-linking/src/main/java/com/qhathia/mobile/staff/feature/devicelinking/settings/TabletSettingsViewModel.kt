@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.devicelinking.settings
 
+import com.qhathia.mobile.staff.feature.devicelinking.model.MAX_TABLET_NAME_LENGTH
+import com.qhathia.mobile.staff.core.domain.usecase.RenameDeviceUseCase
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -39,6 +41,7 @@ class TabletSettingsViewModel @Inject constructor(
     private val getDevicesUseCase: GetDevicesUseCase,
     private val updateDeviceSettingsUseCase: UpdateDeviceSettingsUseCase,
     private val unlinkDeviceUseCase: UnlinkDeviceUseCase,
+    private val renameDeviceUseCase: RenameDeviceUseCase,
 ) : ViewModel() {
 
     private val deviceId: String = checkNotNull(savedStateHandle[TABLET_SETTINGS_ARG_ID]) {
@@ -80,6 +83,17 @@ class TabletSettingsViewModel @Inject constructor(
                 _uiState.update { if (it.isUnlinking) it else it.copy(isUnlinkConfirmVisible = true) }
             TabletSettingsUiEvent.UnlinkDismissed -> _uiState.update { it.copy(isUnlinkConfirmVisible = false) }
             TabletSettingsUiEvent.UnlinkConfirmed -> unlink()
+            TabletSettingsUiEvent.RenameClicked ->
+                _uiState.update { state ->
+                    val device = state.device ?: return@update state
+                    val current = device.name.orEmpty()
+                    state.copy(renameDialog = RenameDialogState(value = current, current = current))
+                }
+            is TabletSettingsUiEvent.RenameChanged ->
+                updateRename { it.copy(value = event.value.take(MAX_TABLET_NAME_LENGTH), errorRes = null) }
+            TabletSettingsUiEvent.RenameConfirmed -> rename()
+            TabletSettingsUiEvent.RenameDismissed ->
+                _uiState.update { if (it.renameDialog?.isSaving == true) it else it.copy(renameDialog = null) }
         }
     }
 
@@ -178,6 +192,34 @@ class TabletSettingsViewModel @Inject constructor(
                     _uiEffect.emit(TabletSettingsUiEffect.ShowMessage(R.string.device_unlink_error))
                 }
         }
+    }
+
+    /** Renames the tablet; a 404 means it left the store, which the whole screen then says. */
+    private fun rename() {
+        val dialog = _uiState.value.renameDialog ?: return
+        if (!dialog.canSave) return
+        updateRename { it.copy(isSaving = true, errorRes = null) }
+        viewModelScope.launch {
+            renameDeviceUseCase(deviceId, dialog.value)
+                .onSuccess { updated ->
+                    _uiState.update { it.copy(device = updated, renameDialog = null) }
+                    _uiEffect.emit(TabletSettingsUiEffect.ShowMessage(R.string.tablet_settings_renamed))
+                }
+                .onFailure { throwable ->
+                    when ((throwable as? DeviceSettingsException)?.error) {
+                        DeviceSettingsError.NotFound ->
+                            _uiState.update { it.copy(renameDialog = null, load = TabletSettingsLoad.NOT_FOUND) }
+                        DeviceSettingsError.InvalidInput ->
+                            updateRename { it.copy(isSaving = false, errorRes = R.string.tablet_settings_rename_invalid) }
+                        else ->
+                            updateRename { it.copy(isSaving = false, errorRes = R.string.tablet_settings_rename_network) }
+                    }
+                }
+        }
+    }
+
+    private fun updateRename(transform: (RenameDialogState) -> RenameDialogState) {
+        _uiState.update { state -> state.renameDialog?.let { state.copy(renameDialog = transform(it)) } ?: state }
     }
 
     private fun updateDialog(transform: (ExitPinDialogState) -> ExitPinDialogState) {
