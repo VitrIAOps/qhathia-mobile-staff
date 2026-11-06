@@ -52,4 +52,6 @@
     <string name="register_ai_replace_message">La generación con IA reemplazará la descripción, la categoría y los tags que ya ingresaste.</string>
     <string name="register_ai_replace_confirm">Reemplazar</string>
     <string name="register_ai_replace_dismiss">Cancelar</string>
+    <string name="register_discount_over_price">El descuento es mayor que el precio. Edítalo o quítalo.</string>
+    <string name="register_discount_removed_over_price">Quitamos el descuento porque es mayor que el nuevo precio. Revisa y vuelve a agregar.</string>
 </resources>

@@ -61,6 +61,16 @@ data class ProductRegisterUiState(
             return parsePrice(price)?.let { applied.applyTo(it) }
         }
 
+    /**
+     * The applied discount no longer fits the price typed: only a fixed amount above the price.
+     * Submitting removes it with a message instead of creating a product priced at zero.
+     */
+    val isDiscountOverPrice: Boolean
+        get() {
+            val applied = discount ?: return false
+            return parsePrice(price)?.let { !applied.fits(it) } == true
+        }
+
     /** A discount needs a price to be taken off, so the toggle stays locked until one is entered. */
     val isDiscountToggleEnabled: Boolean
         get() = !isSubmitting && isValidPrice(price)

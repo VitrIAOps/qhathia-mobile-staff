@@ -13,6 +13,7 @@ import com.qhathia.mobile.staff.core.network.dto.ProductDetailDto
 import com.qhathia.mobile.staff.core.network.dto.ProductDto
 import com.qhathia.mobile.staff.core.network.dto.ProductMediaDto
 import com.qhathia.mobile.staff.core.network.dto.ProductResponseDto
+import com.qhathia.mobile.staff.core.network.dto.UpdateProductRequestDto
 
 private const val MEDIA_TYPE_IMAGE = "IMAGE"
 
@@ -52,22 +53,21 @@ fun ProductDetailDto.toDomain(): ProductDetail = ProductDetail(
     position = position,
     discountedPrice = discountedPrice,
     discountEndsAt = discountEndsAt.toInstantOrNull(),
+    version = version,
 )
 
 /**
- * Maps a domain [ProductUpdate] to the body of `PUT /api/v1/products/{id}`, which takes the same
- * shape as the create request. As on create, `availability` is not set so the backend derives it
- * from the stock.
+ * Maps a domain [ProductUpdate] to the partial body of `PUT /api/v1/products/{id}`: a null stock or
+ * version is left out, so the backend keeps the stock and skips the version check.
  */
-fun ProductUpdate.toUpdateRequestDto(): CreateProductRequestDto = CreateProductRequestDto(
+fun ProductUpdate.toUpdateRequestDto(): UpdateProductRequestDto = UpdateProductRequestDto(
     name = name,
-    description = description,
     price = price,
+    description = description,
     stock = stock,
-    allowDiscountInquiry = allowDiscountInquiry,
     categoryId = categoryId,
     tags = tags,
-    position = position,
+    version = version,
 )
 
 /**

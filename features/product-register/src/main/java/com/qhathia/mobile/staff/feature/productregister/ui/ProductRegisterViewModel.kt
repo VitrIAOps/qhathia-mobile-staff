@@ -120,18 +120,13 @@ class ProductRegisterViewModel @Inject constructor(
         _uiState.update { it.copy(name = value, nameError = error, isDirty = true) }
     }
 
+    /**
+     * Never touches the discount: an empty or half-typed price ("150.") would otherwise drop it and
+     * the product would be created without it. A fixed amount over the price is caught on submit.
+     */
     private fun onPriceChanged(value: String) {
         val error = if (value.isNotBlank() && parsePrice(value) == null) R.string.register_error_price else null
-        val newPrice = parsePrice(value)
-        _uiState.update { state ->
-            state.copy(
-                price = value,
-                priceError = error,
-                // A discount that no longer fits the price (or has no price to apply to) is dropped.
-                discount = state.discount?.takeIf { newPrice != null && it.fits(newPrice) },
-                isDirty = true,
-            )
-        }
+        _uiState.update { it.copy(price = value, priceError = error, isDirty = true) }
     }
 
     private fun onDiscountToggled(enabled: Boolean) {
@@ -271,6 +266,12 @@ class ProductRegisterViewModel @Inject constructor(
     private fun submit() {
         val current = _uiState.value
         if (!current.isSubmitEnabled) return
+        // Checked before anything is sent: the backend would price the product at zero.
+        if (current.isDiscountOverPrice) {
+            _uiState.update { it.copy(discount = null, isDirty = true) }
+            emit(ProductRegisterUiEffect.ShowError(R.string.register_discount_removed_over_price))
+            return
+        }
         val price = parsePrice(current.price) ?: return
         val quantity = parseQuantity(current.quantity) ?: return
         val categoryId = current.selectedCategoryId ?: return

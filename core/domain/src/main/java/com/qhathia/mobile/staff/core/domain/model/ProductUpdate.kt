@@ -1,21 +1,24 @@
 package com.qhathia.mobile.staff.core.domain.model
 
 /**
- * The editable fields sent to `PUT /api/v1/products/{id}`, which is a full replace — every field
- * travels on every save, including the ones the form does not expose ([allowDiscountInquiry],
- * [position]), which the caller carries over from the loaded [ProductDetail] so the replace does not
- * silently reset them.
+ * The edit sent to `PUT /api/v1/products/{id}`. The update is partial (Fase 40): what is not sent is
+ * kept by the backend, so fields the form does not expose (brand, discount-inquiry flag, position)
+ * never travel and cannot overwrite another vendor's change.
  *
- * `availability` is deliberately absent: the backend derives it from [stock] the same way it does on
- * create (`0 → OUT_OF_STOCK`, `> 0 → AVAILABLE`).
+ * - [stock] `null` keeps the stored stock. The form sends it only when the merchant changed it, so
+ *   a sale confirmed while the form was open is not undone.
+ * - [description] is always sent; `""` clears it.
+ * - [version] is the version read with the product; a stale one fails with
+ *   [UpdateProductError.Conflict]. `null` skips the check.
+ *
+ * `availability` is deliberately absent: the backend derives it from the stock.
  */
 data class ProductUpdate(
     val name: String,
     val price: Double,
-    val stock: Int,
-    val description: String?,
+    val stock: Int?,
+    val description: String,
     val categoryId: String,
     val tags: List<String>,
-    val allowDiscountInquiry: Boolean,
-    val position: Int,
+    val version: Long?,
 )

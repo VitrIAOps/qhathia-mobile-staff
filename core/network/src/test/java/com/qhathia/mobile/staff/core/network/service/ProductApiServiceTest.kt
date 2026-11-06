@@ -1,7 +1,7 @@
 package com.qhathia.mobile.staff.core.network.service
 
 import com.qhathia.mobile.staff.core.network.NetworkResult
-import com.qhathia.mobile.staff.core.network.dto.CreateProductRequestDto
+import com.qhathia.mobile.staff.core.network.dto.UpdateProductRequestDto
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -46,7 +46,7 @@ class ProductApiServiceTest {
             HttpStatusCode.Conflict,
         )
 
-        val result = service.updateProduct("p1", CreateProductRequestDto(name = "Taladro", price = 199.0, stock = 3))
+        val result = service.updateProduct("p1", UpdateProductRequestDto(name = "Taladro", price = 199.0, stock = 3))
 
         val error = assertInstanceOf(NetworkResult.HttpError::class.java, result)
         assertEquals(409, error.code)

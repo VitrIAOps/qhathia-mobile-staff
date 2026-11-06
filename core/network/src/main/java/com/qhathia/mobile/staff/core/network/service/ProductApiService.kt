@@ -11,6 +11,7 @@ import com.qhathia.mobile.staff.core.network.dto.ProductDto
 import com.qhathia.mobile.staff.core.network.dto.ProductResponseDto
 import com.qhathia.mobile.staff.core.network.dto.RegenerateDescriptionRequestDto
 import com.qhathia.mobile.staff.core.network.dto.RegenerateDescriptionResponseDto
+import com.qhathia.mobile.staff.core.network.dto.UpdateProductRequestDto
 import com.qhathia.mobile.staff.core.network.toNetworkResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -53,12 +54,12 @@ class ProductApiService(
         }.toNetworkResult(json)
 
     /**
-     * Replaces the editable fields of a product. The endpoint is a full replace and takes the same
-     * body shape as the create request, so [product] must carry every field.
+     * Updates a product. The update is partial (Fase 40): what [product] leaves out is kept. Answers
+     * the updated product, with its new `version`.
      */
     suspend fun updateProduct(
         id: String,
-        product: CreateProductRequestDto,
+        product: UpdateProductRequestDto,
     ): NetworkResult<ProductDetailDto> =
         runCatching {
             client.put("api/v1/products/$id") {

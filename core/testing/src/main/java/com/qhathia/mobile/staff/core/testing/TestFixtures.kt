@@ -114,6 +114,7 @@ object TestFixtures {
         position: Int = 0,
         discountedPrice: Double? = null,
         discountEndsAt: Instant? = null,
+        version: Long? = 7,
     ) = ProductDetail(
         id = id,
         name = name,
@@ -128,6 +129,7 @@ object TestFixtures {
         position = position,
         discountedPrice = discountedPrice,
         discountEndsAt = discountEndsAt,
+        version = version,
     )
 
     fun deviceSettings(
@@ -168,12 +170,11 @@ object TestFixtures {
     fun productUpdate(
         name: String = "Taladro Percutor Bosch GSB 13 RE",
         price: Double = 189.0,
-        stock: Int = 12,
-        description: String? = "Taladro percutor de 650W con maletín",
+        stock: Int? = 12,
+        description: String = "Taladro percutor de 650W con maletín",
         categoryId: String = "category-1",
         tags: List<String> = listOf("herramientas", "bosch"),
-        allowDiscountInquiry: Boolean = false,
-        position: Int = 0,
+        version: Long? = 7,
     ) = ProductUpdate(
         name = name,
         price = price,
@@ -181,8 +182,7 @@ object TestFixtures {
         description = description,
         categoryId = categoryId,
         tags = tags,
-        allowDiscountInquiry = allowDiscountInquiry,
-        position = position,
+        version = version,
     )
 
     fun category(

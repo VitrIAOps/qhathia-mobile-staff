@@ -201,12 +201,16 @@ internal fun DetailQuantityField(
     enabled: Boolean,
     @StringRes errorRes: Int?,
     modifier: Modifier = Modifier,
+    isConsult: Boolean = false,
 ) {
     LabeledField(label = stringResource(R.string.detail_quantity_label), modifier = modifier) {
         QhathiaTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = stringResource(R.string.detail_quantity_placeholder),
+            placeholder = stringResource(
+                if (isConsult) R.string.detail_quantity_consult_placeholder else R.string.detail_quantity_placeholder,
+            ),
+            helperText = if (isConsult) stringResource(R.string.detail_quantity_consult_hint) else null,
             enabled = enabled,
             isError = errorRes != null,
             errorText = errorRes?.let { stringResource(it) },

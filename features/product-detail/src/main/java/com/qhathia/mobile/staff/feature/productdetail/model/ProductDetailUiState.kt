@@ -22,11 +22,15 @@ import java.time.Instant
  * [photos] is what the strip shows (saved photos plus pending picks), and the difference is only
  * persisted on save. A product keeps between one and [MAX_PHOTOS] photos.
  *
- * [allowDiscountInquiry] and [position] are not editable but are carried through from the loaded
- * product, because `PUT /products/{id}` is a full replace that would otherwise reset them.
+ * The update is partial: [loadedVersion] is the product's version, sent back so a stale edit is
+ * caught as a conflict ([conflict] holds the open "Otro usuario cambió este producto" dialog), and
+ * [loadedQuantity] is the stock text as seeded, so an untouched stock is not sent and a sale
+ * confirmed meanwhile is not undone. [isConsult] marks a product loaded without stock, which can be
+ * saved with the stock field empty.
  *
  * The discount is a form field like the rest: [loadedDiscount] is what the product has stored,
- * [discount] is what the form shows, and the difference is only persisted on save.
+ * [discount] is what the form shows, and the difference is only persisted on save. Editing the
+ * price never changes [discount]; [isDiscountOverPrice] flags a fixed amount that no longer fits.
  * [discountDraft] is non-null while the "Aplicar descuento" dialog is open. [serverPricing] is what
  * the backend priced for the product as loaded; it is dropped once a save has reached the server.
  * [showPreview] is true while the "Vista previa" dialog is open; it reads the form but never
@@ -45,8 +49,10 @@ data class ProductDetailUiState(
     val selectedCategoryId: String? = null,
     val photos: ImmutableList<FormPhoto> = persistentListOf(),
     val loadedImages: ImmutableList<ProductImage> = persistentListOf(),
-    val allowDiscountInquiry: Boolean = false,
-    val position: Int = 0,
+    val loadedVersion: Long? = null,
+    val loadedQuantity: String = "",
+    val isConsult: Boolean = false,
+    val conflict: SaveConflict? = null,
     val loadedDiscount: Discount? = null,
     val discount: Discount? = null,
     val discountDraft: DiscountDraft? = null,
@@ -70,7 +76,8 @@ data class ProductDetailUiState(
 ) {
     /**
      * The save gate: the product must be loaded and every required field valid (tags are
-     * optional — clearing them saves the product with none). Unlike the
+     * optional — clearing them saves the product with none; a "consultar" product may keep its
+     * stock empty). Unlike the
      * registration form there is no image requirement — the merchant may be editing a product whose
      * photos live on the backend.
      */
@@ -82,7 +89,7 @@ data class ProductDetailUiState(
             isDirty &&
             isValidProductName(name) &&
             isValidPrice(price) &&
-            isValidQuantity(quantity) &&
+            (isValidQuantity(quantity) || (isConsult && quantity.isBlank())) &&
             selectedCategoryId != null
 
     /**
@@ -118,6 +125,16 @@ data class ProductDetailUiState(
     /** True while the form's price and discount are exactly the ones loaded with the product. */
     private val isPricingAsLoaded: Boolean
         get() = serverPricing?.priceText == price && discount == loadedDiscount
+
+    /**
+     * The form's discount no longer fits the price typed: only a fixed amount above the price.
+     * Saving removes it with a message instead of pricing the product at zero.
+     */
+    val isDiscountOverPrice: Boolean
+        get() {
+            val applied = discount ?: return false
+            return parsePrice(price)?.let { !applied.fits(it) } == true
+        }
 
     /** True when saving has a discount change to persist. */
     val isDiscountChanged: Boolean
@@ -175,6 +192,12 @@ data class ServerPricing(
     val discountedPrice: Double?,
     val discountEndsAt: Instant? = null,
 )
+
+/**
+ * A save rejected because the product changed on the server. [currentVersion] is the server's
+ * version when the error carried it; `null` means it has to be read before saving again.
+ */
+data class SaveConflict(val currentVersion: Long?)
 
 /** The backend's per-product photo limit. */
 const val MAX_PHOTOS = 10

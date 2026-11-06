@@ -27,6 +27,7 @@ import com.qhathia.mobile.staff.feature.productdetail.model.MAX_PHOTOS
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEffect
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiState
+import com.qhathia.mobile.staff.feature.productdetail.model.SaveConflict
 import com.qhathia.mobile.staff.feature.productdetail.model.ServerPricing
 import com.qhathia.mobile.staff.feature.productdetail.model.parseTags
 import com.qhathia.mobile.staff.feature.productdetail.navigation.PRODUCT_DETAIL_ARG_ID
@@ -138,6 +139,12 @@ class ProductDetailViewModel @Inject constructor(
                     if (canDelete) it.copy(showDeleteDialog = true) else it
                 }
             ProductDetailUiEvent.DeleteConfirmed -> deleteProduct()
+            ProductDetailUiEvent.ConflictReload -> {
+                _uiState.update { it.copy(conflict = null) }
+                load()
+            }
+            ProductDetailUiEvent.ConflictOverwrite -> overwriteAfterConflict()
+            ProductDetailUiEvent.ConflictDismissed -> _uiState.update { it.copy(conflict = null) }
             ProductDetailUiEvent.DeleteDismissed ->
                 _uiState.update { if (it.isDeleting) it else it.copy(showDeleteDialog = false) }
         }
@@ -232,8 +239,9 @@ class ProductDetailViewModel @Inject constructor(
     }
 
     /**
-     * Seeds the form from the loaded product. A null stock renders as an empty quantity field, which
-     * the merchant must fill before saving — the backend derives availability from it either way.
+     * Seeds the form from the loaded product. A null stock ("consultar disponibilidad") renders as an
+     * empty quantity field that may stay empty on save. The version and the stock as loaded are kept
+     * so the update can be checked for conflicts and leave an untouched stock out.
      * The backend's discounted price is kept against the exact price text the form starts with, so
      * it is shown only while that price is untouched.
      */
@@ -251,8 +259,10 @@ class ProductDetailViewModel @Inject constructor(
         selectedCategoryId = product.categoryId,
         photos = product.images.map { FormPhoto.Saved(it) }.toImmutableList(),
         loadedImages = product.images.toImmutableList(),
-        allowDiscountInquiry = product.allowDiscountInquiry,
-        position = product.position,
+        loadedVersion = product.version,
+        loadedQuantity = product.stock?.toString().orEmpty(),
+        isConsult = product.stock == null,
+        conflict = null,
         nameError = null,
         priceError = null,
         quantityError = null,
@@ -302,18 +312,13 @@ class ProductDetailViewModel @Inject constructor(
         _uiState.update { it.copy(name = value, nameError = error, isDirty = true) }
     }
 
+    /**
+     * Never touches the discount: an empty or half-typed price ("150.") would otherwise drop it, and
+     * saving would then delete it on the server. A fixed amount over the price is caught on save.
+     */
     private fun onPriceChanged(value: String) {
         val error = if (value.isNotBlank() && parsePrice(value) == null) R.string.detail_error_price else null
-        val newPrice = parsePrice(value)
-        _uiState.update { state ->
-            state.copy(
-                price = value,
-                priceError = error,
-                // A discount that no longer fits the price (or has no price to apply to) is dropped.
-                discount = state.discount?.takeIf { newPrice != null && it.fits(newPrice) },
-                isDirty = true,
-            )
-        }
+        _uiState.update { it.copy(price = value, priceError = error, isDirty = true) }
     }
 
     private fun onDiscountToggled(enabled: Boolean) {
@@ -387,27 +392,36 @@ class ProductDetailViewModel @Inject constructor(
     private fun save() {
         val current = _uiState.value
         if (!current.isSaveEnabled) return
+        // Checked before anything is sent: the backend would price the product at zero.
+        if (current.isDiscountOverPrice) {
+            _uiState.update { it.copy(discount = null, isDirty = true) }
+            emit(ProductDetailUiEffect.ShowError(R.string.detail_discount_removed_over_price))
+            return
+        }
         val price = parsePrice(current.price) ?: return
-        val quantity = parseQuantity(current.quantity) ?: return
         val categoryId = current.selectedCategoryId ?: return
+        // An untouched stock is left out so a sale confirmed meanwhile is not undone; an empty one
+        // keeps a "consultar" product as it is.
+        val stockUntouched = current.quantity.trim() == current.loadedQuantity
+        val keepConsult = current.isConsult && current.quantity.isBlank()
+        val stock = if (stockUntouched || keepConsult) null else parseQuantity(current.quantity) ?: return
 
-        // The endpoint is a full replace, so the two fields the form does not expose travel back
-        // unchanged rather than defaulting.
         val product = ProductUpdate(
             name = current.name.trim(),
             price = price,
-            stock = quantity,
-            description = current.description.trim().ifBlank { null },
+            stock = stock,
+            description = current.description.trim(),
             categoryId = categoryId,
             tags = parseTags(current.tags),
-            allowDiscountInquiry = current.allowDiscountInquiry,
-            position = current.position,
+            version = current.loadedVersion,
         )
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
             updateProductUseCase(productId, product)
-                .onSuccess {
+                .onSuccess { updated ->
+                    // First, so any retry from this form is checked against this save, not the load.
+                    _uiState.update { it.adopting(updated) }
                     if (persistPhotoChanges(current).isFailure) {
                         // The product is saved; the photos are re-read so the strip shows what the
                         // server has, and the form stays dirty so saving again retries what is left.
@@ -425,8 +439,13 @@ class ProductDetailViewModel @Inject constructor(
                         // The product is saved; the form stays dirty so saving again retries the
                         // discount. A failed replace may have left the product with no discount,
                         // so what is stored is read again rather than assumed.
-                        // Photos that did go through must not be uploaded again on retry.
-                        if (current.isPhotosChanged) resyncPhotos(current, uploaded = true)
+                        // Photos that did go through must not be uploaded again on retry. Either
+                        // read also refreshes the version, which the discount write may have bumped.
+                        if (current.isPhotosChanged) {
+                            resyncPhotos(current, uploaded = true)
+                        } else {
+                            refreshVersion()
+                        }
                         val stored = getProductDiscountUseCase(productId)
                         _uiState.update { state ->
                             state.copy(
@@ -442,11 +461,64 @@ class ProductDetailViewModel @Inject constructor(
                     }
                 }
                 .onFailure { throwable ->
+                    val error = (throwable as? UpdateProductException)?.error
+                    if (error is UpdateProductError.Conflict) {
+                        // The dialog explains it; no message on top.
+                        _uiState.update { it.copy(isSaving = false, conflict = SaveConflict(error.currentVersion)) }
+                    } else {
+                        _uiState.update { it.copy(isSaving = false) }
+                        emit(ProductDetailUiEffect.ShowError(error.toMessageRes()))
+                    }
+                }
+        }
+    }
+
+    /**
+     * "Guardar lo mío": the merchant accepts the server's current version as the one to overwrite.
+     * When the conflict did not say which version that is, it is read first. The save itself goes
+     * through [save], so the over-price check and the untouched-stock rule still apply.
+     */
+    private fun overwriteAfterConflict() {
+        val conflict = _uiState.value.conflict ?: return
+        val known = conflict.currentVersion
+        if (known != null) {
+            _uiState.update { it.copy(conflict = null, loadedVersion = known) }
+            save()
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(conflict = null, isSaving = true) }
+            getProductDetailUseCase(productId).fold(
+                onSuccess = { read ->
+                    _uiState.update { it.copy(isSaving = false, loadedVersion = read.version) }
+                    save()
+                },
+                onFailure = { throwable ->
                     _uiState.update { it.copy(isSaving = false) }
                     val error = (throwable as? UpdateProductException)?.error
                     emit(ProductDetailUiEffect.ShowError(error.toMessageRes()))
-                }
+                },
+            )
         }
+    }
+
+    /**
+     * Adopts what the server stored after a save the merchant stays on: its version, and its stock
+     * as the new baseline (so it is not sent again unless edited).
+     */
+    private fun ProductDetailUiState.adopting(product: ProductDetail) = copy(
+        loadedVersion = product.version,
+        loadedQuantity = product.stock?.toString().orEmpty(),
+        isConsult = product.stock == null,
+    )
+
+    /**
+     * Re-reads the product after a later write (the discount) that may have bumped its version. If
+     * the read fails, the version from the update is kept: a retry then meets the conflict dialog
+     * at worst, never a silent overwrite.
+     */
+    private suspend fun refreshVersion() {
+        getProductDetailUseCase(productId).getOrNull()?.let { read -> _uiState.update { it.adopting(read) } }
     }
 
     /** Deletes the removed photos and uploads the added ones; nothing when photos did not change. */
@@ -465,15 +537,16 @@ class ProductDetailViewModel @Inject constructor(
      * they are deleted on retry). The upload is a single all-or-nothing request, so pending picks
      * stay pending unless it [uploaded] — then they are on the server already. If the
      * re-read itself fails the strip is left as it was: a retry deletes what is left (already-gone
-     * photos count as deleted) and uploads again.
+     * photos count as deleted) and uploads again. The read also refreshes the version and stock.
      */
     private suspend fun resyncPhotos(submitted: ProductDetailUiState, uploaded: Boolean) {
-        val server = getProductDetailUseCase(productId).getOrNull()?.images ?: return
+        val read = getProductDetailUseCase(productId).getOrNull() ?: return
+        val server = read.images
         val stillToRemove = submitted.removedImageIds.toSet()
         _uiState.update { state ->
             val saved = server.filterNot { it.id in stillToRemove }.map { FormPhoto.Saved(it) }
             val pending = if (uploaded) emptyList() else state.photos.filterIsInstance<FormPhoto.Pending>()
-            state.copy(
+            state.adopting(read).copy(
                 photos = (saved + pending).toImmutableList(),
                 loadedImages = server.toImmutableList(),
             )
@@ -507,6 +580,7 @@ class ProductDetailViewModel @Inject constructor(
         UpdateProductError.NotFound -> R.string.detail_error_not_found
         UpdateProductError.Network -> R.string.detail_error_network
         UpdateProductError.InvalidInput -> R.string.detail_error_validation
+        is UpdateProductError.Conflict -> R.string.detail_error_conflict
         is UpdateProductError.Unknown, null -> R.string.detail_error_unknown
     }
 }

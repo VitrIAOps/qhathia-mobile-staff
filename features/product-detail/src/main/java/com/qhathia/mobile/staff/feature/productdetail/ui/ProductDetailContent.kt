@@ -141,6 +141,14 @@ fun ProductDetailContent(
             )
         }
 
+        if (uiState.conflict != null) {
+            ConflictDialog(
+                onReload = { onEvent(ProductDetailUiEvent.ConflictReload) },
+                onOverwrite = { onEvent(ProductDetailUiEvent.ConflictOverwrite) },
+                onDismiss = { onEvent(ProductDetailUiEvent.ConflictDismissed) },
+            )
+        }
+
         if (uiState.showDiscardDialog) {
             DiscardChangesDialog(
                 onConfirm = { onEvent(ProductDetailUiEvent.ConfirmDiscard) },
@@ -265,6 +273,7 @@ private fun EditForm(
                 summary = uiState.discount?.summaryText(),
                 finalPrice = uiState.discountedPrice,
                 onSummaryClick = { onEvent(ProductDetailUiEvent.DiscountSummaryClicked) },
+                warning = if (uiState.isDiscountOverPrice) stringResource(R.string.detail_discount_over_price) else null,
             )
             uiState.discountEndsAt?.let { endsAt -> DiscountCountdown(endsAt = endsAt) }
             if (uiState.isDiscountError) {
@@ -279,6 +288,7 @@ private fun EditForm(
             onValueChange = { onEvent(ProductDetailUiEvent.QuantityChanged(it)) },
             enabled = enabled,
             errorRes = uiState.quantityError,
+            isConsult = uiState.isConsult,
         )
         DetailTagsField(
             value = uiState.tags,
@@ -434,6 +444,36 @@ private fun DiscardChangesDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.detail_discard_dismiss))
+            }
+        },
+    )
+}
+
+/**
+ * Shown when the save hit a newer version on the server. The three actions are stacked so they
+ * fit with large fonts: see the newer product, save anyway, or keep editing.
+ */
+@Composable
+private fun ConflictDialog(
+    onReload: () -> Unit,
+    onOverwrite: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.detail_conflict_title)) },
+        text = { Text(stringResource(R.string.detail_conflict_message)) },
+        confirmButton = {
+            Column(horizontalAlignment = Alignment.End) {
+                TextButton(onClick = onReload) {
+                    Text(stringResource(R.string.detail_conflict_reload))
+                }
+                TextButton(onClick = onOverwrite) {
+                    Text(stringResource(R.string.detail_conflict_overwrite))
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.detail_conflict_keep_editing))
+                }
             }
         },
     )

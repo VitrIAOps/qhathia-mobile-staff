@@ -14,6 +14,8 @@ import com.qhathia.mobile.staff.core.network.dto.ProductDetailDto
 import com.qhathia.mobile.staff.core.network.dto.ProductDto
 import com.qhathia.mobile.staff.core.network.dto.ProductMediaDto
 import com.qhathia.mobile.staff.core.network.dto.ProductResponseDto
+import com.qhathia.mobile.staff.core.network.dto.ProblemDto
+import com.qhathia.mobile.staff.core.network.dto.UpdateProductRequestDto
 import com.qhathia.mobile.staff.core.network.service.ProductApiService
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import io.mockk.coEvery
@@ -23,6 +25,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.io.IOException
@@ -230,21 +233,62 @@ class ProductRepositoryImplTest {
     }
 
     @Test
-    fun `given success when updateProduct then sends the full replace body`() = runTest {
-        val body = slot<CreateProductRequestDto>()
+    fun `given success when updateProduct then sends the partial body and returns the stored product`() = runTest {
+        val body = slot<UpdateProductRequestDto>()
         coEvery { api.updateProduct("p1", capture(body)) } returns
-            NetworkResult.Success(productDetailDto())
+            NetworkResult.Success(productDetailDto().copy(version = 8))
 
         val result = repository.updateProduct(
             "p1",
-            TestFixtures.productUpdate(name = "Taladro Pro", stock = 9, position = 3),
+            TestFixtures.productUpdate(name = "Taladro Pro", stock = null, description = "", version = 7),
         )
 
-        assertTrue(result.isSuccess)
+        assertEquals(8L, result.getOrThrow().version)
         assertEquals("Taladro Pro", body.captured.name)
-        assertEquals(9, body.captured.stock)
-        assertEquals(3, body.captured.position)
+        assertNull(body.captured.stock)
+        assertEquals("", body.captured.description)
+        assertEquals(7L, body.captured.version)
         coVerify(exactly = 1) { api.updateProduct("p1", any()) }
+    }
+
+    @Test
+    fun `given 409 PRODUCT_VERSION_CONFLICT when updateProduct then fails with Conflict and the current version`() =
+        runTest {
+            coEvery { api.updateProduct(any(), any()) } returns NetworkResult.HttpError(
+                409,
+                "Conflict",
+                ProblemDto(errorCode = "PRODUCT_VERSION_CONFLICT", currentVersion = 8),
+            )
+
+            val result = repository.updateProduct("p1", TestFixtures.productUpdate())
+
+            val error = (result.exceptionOrNull() as UpdateProductException).error
+            assertEquals(UpdateProductError.Conflict(8), error)
+        }
+
+    @Test
+    fun `given 409 CONCURRENT_MODIFICATION when updateProduct then fails with Conflict without version`() = runTest {
+        coEvery { api.updateProduct(any(), any()) } returns
+            NetworkResult.HttpError(409, "Conflict", ProblemDto(errorCode = "CONCURRENT_MODIFICATION"))
+
+        val result = repository.updateProduct("p1", TestFixtures.productUpdate())
+
+        val error = (result.exceptionOrNull() as UpdateProductException).error
+        assertEquals(UpdateProductError.Conflict(null), error)
+    }
+
+    @Test
+    fun `given another 409 when updateProduct then fails with Unknown carrying its detail`() = runTest {
+        coEvery { api.updateProduct(any(), any()) } returns NetworkResult.HttpError(
+            409,
+            "Conflict",
+            ProblemDto(errorCode = "PRODUCT_IN_PENDING_ORDERS", detail = "Está en 1 pedido pendiente."),
+        )
+
+        val result = repository.updateProduct("p1", TestFixtures.productUpdate())
+
+        val error = (result.exceptionOrNull() as UpdateProductException).error
+        assertEquals(UpdateProductError.Unknown("Está en 1 pedido pendiente."), error)
     }
 
     @Test

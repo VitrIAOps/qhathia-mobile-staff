@@ -64,4 +64,14 @@
     <string name="detail_discard_message">Si sales ahora, se borrarán todos los cambios no guardados.</string>
     <string name="detail_discard_confirm">Descartar</string>
     <string name="detail_discard_dismiss">Seguir editando</string>
+    <string name="detail_conflict_title">Otro usuario cambió este producto</string>
+    <string name="detail_conflict_message">Mientras lo editabas, otra persona (u otra venta) lo modificó.</string>
+    <string name="detail_conflict_reload">Ver lo nuevo</string>
+    <string name="detail_conflict_overwrite">Guardar lo mío</string>
+    <string name="detail_conflict_keep_editing">Seguir editando</string>
+    <string name="detail_error_conflict">Otra persona modificó este producto. Revisa los cambios y vuelve a guardar</string>
+    <string name="detail_discount_over_price">El descuento es mayor que el precio. Edítalo o quítalo.</string>
+    <string name="detail_discount_removed_over_price">Quitamos el descuento porque es mayor que el nuevo precio. Revisa y vuelve a guardar.</string>
+    <string name="detail_quantity_consult_placeholder">A consultar</string>
+    <string name="detail_quantity_consult_hint">Déjalo vacío para seguir mostrándolo como «Consultar disponibilidad»</string>
 </resources>

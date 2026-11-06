@@ -34,13 +34,13 @@ class ProductMappersTest {
     }
 
     @Test
-    fun `toUpdateRequestDto carries the non-editable fields through`() {
+    fun `toUpdateRequestDto maps the partial update`() {
         val product = TestFixtures.productUpdate(
             name = "Lámpara",
             price = 89.9,
             stock = 4,
-            allowDiscountInquiry = true,
-            position = 7,
+            description = "",
+            version = 7,
         )
 
         val dto = product.toUpdateRequestDto()
@@ -48,9 +48,23 @@ class ProductMappersTest {
         assertEquals("Lámpara", dto.name)
         assertEquals(89.9, dto.price)
         assertEquals(4, dto.stock)
-        // PUT is a full replace, so these must survive the round trip rather than reset to defaults.
-        assertEquals(true, dto.allowDiscountInquiry)
-        assertEquals(7, dto.position)
+        assertEquals("", dto.description)
+        assertEquals(7L, dto.version)
+    }
+
+    @Test
+    fun `toUpdateRequestDto leaves an untouched stock out`() {
+        val dto = TestFixtures.productUpdate(stock = null, version = null).toUpdateRequestDto()
+
+        assertEquals(null, dto.stock)
+        assertEquals(null, dto.version)
+    }
+
+    @Test
+    fun `ProductDetailDto toDomain carries the version`() {
+        val detail = ProductDetailDto(id = "p1", name = "Taladro", version = 8).toDomain()
+
+        assertEquals(8L, detail.version)
     }
 
     @Test

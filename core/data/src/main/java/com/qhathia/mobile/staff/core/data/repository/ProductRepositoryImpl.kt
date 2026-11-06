@@ -79,17 +79,17 @@ class ProductRepositoryImpl @Inject constructor(
             is NetworkResult.Success ->
                 Result.success(result.data.toDomain())
             is NetworkResult.HttpError ->
-                Result.failure(UpdateProductException(result.code.toUpdateError()))
+                Result.failure(UpdateProductException(result.toUpdateError()))
             is NetworkResult.NetworkError ->
                 Result.failure(UpdateProductException(UpdateProductError.Network))
         }
 
-    override suspend fun updateProduct(id: String, product: ProductUpdate): Result<Unit> =
+    override suspend fun updateProduct(id: String, product: ProductUpdate): Result<ProductDetail> =
         when (val result = apiService.updateProduct(id, product.toUpdateRequestDto())) {
             is NetworkResult.Success ->
-                Result.success(Unit)
+                Result.success(result.data.toDomain())
             is NetworkResult.HttpError ->
-                Result.failure(UpdateProductException(result.code.toUpdateError()))
+                Result.failure(UpdateProductException(result.toUpdateError()))
             is NetworkResult.NetworkError ->
                 Result.failure(UpdateProductException(UpdateProductError.Network))
         }
@@ -99,7 +99,7 @@ class ProductRepositoryImpl @Inject constructor(
             is NetworkResult.Success ->
                 Result.success(Unit)
             is NetworkResult.HttpError ->
-                Result.failure(UpdateProductException(result.code.toUpdateError()))
+                Result.failure(UpdateProductException(result.toUpdateError()))
             is NetworkResult.NetworkError ->
                 Result.failure(UpdateProductException(UpdateProductError.Network))
         }
@@ -126,7 +126,7 @@ class ProductRepositoryImpl @Inject constructor(
 
     private fun NetworkResult<Unit>.toUpdateResult(): Result<Unit> = when (this) {
         is NetworkResult.Success -> Result.success(Unit)
-        is NetworkResult.HttpError -> Result.failure(UpdateProductException(code.toUpdateError()))
+        is NetworkResult.HttpError -> Result.failure(UpdateProductException(toUpdateError()))
         is NetworkResult.NetworkError -> Result.failure(UpdateProductException(UpdateProductError.Network))
     }
 
@@ -137,10 +137,24 @@ class ProductRepositoryImpl @Inject constructor(
         else -> RegisterProductError.Unknown("HTTP $this")
     }
 
-    private fun Int.toUpdateError(): UpdateProductError = when (this) {
-        404 -> UpdateProductError.NotFound
-        400, 422 -> UpdateProductError.InvalidInput
-        503 -> UpdateProductError.Network
-        else -> UpdateProductError.Unknown("HTTP $this")
+    /**
+     * Reads the ProblemDetail `errorCode` before the status: two 409s mean different things. A 404
+     * covers `RESOURCE_NOT_FOUND` and `PRODUCT_DELETED` alike.
+     */
+    private fun NetworkResult.HttpError.toUpdateError(): UpdateProductError {
+        val errorCode = problem?.errorCode
+        return when {
+            code == 404 -> UpdateProductError.NotFound
+            code == 409 && errorCode == ERROR_VERSION_CONFLICT -> UpdateProductError.Conflict(problem?.currentVersion)
+            code == 409 && errorCode == ERROR_CONCURRENT_MODIFICATION -> UpdateProductError.Conflict(null)
+            code == 400 || code == 422 -> UpdateProductError.InvalidInput
+            code == 503 -> UpdateProductError.Network
+            else -> UpdateProductError.Unknown(problem?.detail ?: "HTTP $code")
+        }
+    }
+
+    private companion object {
+        const val ERROR_VERSION_CONFLICT = "PRODUCT_VERSION_CONFLICT"
+        const val ERROR_CONCURRENT_MODIFICATION = "CONCURRENT_MODIFICATION"
     }
 }

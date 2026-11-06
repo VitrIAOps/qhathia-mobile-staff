@@ -55,6 +55,15 @@ sealed interface ProductDetailUiEvent {
     data object ConfirmDiscard : ProductDetailUiEvent
     data object DismissDiscard : ProductDetailUiEvent
 
+    /** "Ver lo nuevo" in the conflict dialog: drops the edits and reloads the product. */
+    data object ConflictReload : ProductDetailUiEvent
+
+    /** "Guardar lo mío" in the conflict dialog: saves again against the server's current version. */
+    data object ConflictOverwrite : ProductDetailUiEvent
+
+    /** "Seguir editando" in the conflict dialog, or a tap outside it. */
+    data object ConflictDismissed : ProductDetailUiEvent
+
     /** "Eliminar producto" under the form actions; asks for confirmation first. */
     data object DeleteRequested : ProductDetailUiEvent
 

@@ -138,6 +138,11 @@ fun ProductRegisterContent(
                         summary = uiState.discount?.summaryText(),
                         finalPrice = uiState.discountedPrice,
                         onSummaryClick = { onEvent(ProductRegisterUiEvent.DiscountSummaryClicked) },
+                        warning = if (uiState.isDiscountOverPrice) {
+                            stringResource(R.string.register_discount_over_price)
+                        } else {
+                            null
+                        },
                     )
                     RegisterQuantityField(
                         value = uiState.quantity,

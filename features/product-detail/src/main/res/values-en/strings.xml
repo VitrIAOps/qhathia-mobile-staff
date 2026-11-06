@@ -63,4 +63,14 @@
     <string name="detail_discard_message">If you leave now, all unsaved changes will be lost.</string>
     <string name="detail_discard_confirm">Discard</string>
     <string name="detail_discard_dismiss">Keep editing</string>
+    <string name="detail_conflict_title">Someone else changed this product</string>
+    <string name="detail_conflict_message">While you were editing it, another person (or a sale) changed it.</string>
+    <string name="detail_conflict_reload">See the latest</string>
+    <string name="detail_conflict_overwrite">Save mine</string>
+    <string name="detail_conflict_keep_editing">Keep editing</string>
+    <string name="detail_error_conflict">Someone else changed this product. Check the changes and save again</string>
+    <string name="detail_discount_over_price">The discount is higher than the price. Edit or remove it.</string>
+    <string name="detail_discount_removed_over_price">We removed the discount because it is higher than the new price. Check and save again.</string>
+    <string name="detail_quantity_consult_placeholder">On request</string>
+    <string name="detail_quantity_consult_hint">Leave it empty to keep showing it as “Ask for availability”</string>
 </resources>
