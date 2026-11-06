@@ -463,6 +463,9 @@ object TestFixtures {
         productStock: Int? = 12,
         productAvailability: Availability? = Availability.AVAILABLE,
         productImageUrl: String? = null,
+        listPrice: Double? = null,
+        productActive: Boolean = true,
+        currentProductName: String? = null,
     ) = OrderItem(
         id = id,
         productId = productId,
@@ -473,6 +476,9 @@ object TestFixtures {
         productStock = productStock,
         productAvailability = productAvailability,
         productImageUrl = productImageUrl,
+        listPrice = listPrice,
+        productActive = productActive,
+        currentProductName = currentProductName,
     )
 
     fun orderDetail(

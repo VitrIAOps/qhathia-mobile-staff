@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.core.data.repository
 
+import kotlinx.coroutines.yield
+import kotlinx.coroutines.async
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderError
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderException
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
@@ -320,5 +322,51 @@ class OrderRepositoryImplTest {
         assertTrue(repository.refreshPendingOrderCount().isFailure)
         // Offline is not "nothing is pending"; the last known count stands.
         assertEquals(5, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `409 PRODUCT_NOT_SELLABLE maps to ProductNotSellable with the product and reason`() = runTest {
+        coEvery { api.confirmOrder("order-1") } returns OrderMutationResult.HttpError(
+            code = 409,
+            problem = OrderProblemDto(errorCode = "PRODUCT_NOT_SELLABLE", productName = "Taladro", reason = "INACTIVE"),
+        )
+
+        val error = repository.confirmOrder("order-1").errorOf<ConfirmOrderException>().error
+
+        assertEquals(ConfirmOrderError.ProductNotSellable("Taladro", "INACTIVE"), error)
+    }
+
+    @Test
+    fun `a confirm whose count cannot be re-read lowers the count by one`() = runTest {
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns pendingPageOf(2)
+        repository.refreshPendingOrderCount()
+        coEvery { api.confirmOrder("order-1") } returns OrderMutationResult.Success(detailDto())
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns
+            NetworkResult.NetworkError(IOException("offline"))
+
+        repository.confirmOrder("order-1")
+
+        assertEquals(1, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `a reject whose count cannot be re-read never goes below zero`() = runTest {
+        coEvery { api.rejectOrder("order-1", null) } returns OrderMutationResult.Success(detailDto())
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns
+            NetworkResult.NetworkError(IOException("offline"))
+
+        repository.rejectOrder("order-1", reason = null)
+
+        assertEquals(0, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `notifyOrdersChanged emits on ordersChanged`() = runTest {
+        val received = async { repository.ordersChanged.first() }
+        yield()
+
+        repository.notifyOrdersChanged()
+
+        assertEquals(Unit, received.await())
     }
 }

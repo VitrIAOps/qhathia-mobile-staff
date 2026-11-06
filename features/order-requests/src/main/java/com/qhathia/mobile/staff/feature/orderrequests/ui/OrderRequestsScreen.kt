@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
+import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiEvent
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.Lifecycle
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +37,9 @@ fun OrderRequestsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Back to the tab, back from the background, after unlocking: the restored list may be stale.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onEvent(OrderRequestsUiEvent.ScreenStarted) }
     val resources = LocalResources.current
 
     // The severity of the message currently being shown, so the host can colour it. Set before the

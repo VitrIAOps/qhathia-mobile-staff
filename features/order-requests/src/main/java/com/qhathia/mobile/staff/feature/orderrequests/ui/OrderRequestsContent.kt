@@ -157,6 +157,7 @@ fun OrderRequestsContent(
             onOtherRejectionReasonChange = onOtherRejectionReasonChange,
             onCancelRejection = onCancelRejection,
             onConfirmRejection = onConfirmRejection,
+            onRetryDetail = { onEvent(OrderRequestsUiEvent.OpenDetail(detail.orderId)) },
         )
     }
 }

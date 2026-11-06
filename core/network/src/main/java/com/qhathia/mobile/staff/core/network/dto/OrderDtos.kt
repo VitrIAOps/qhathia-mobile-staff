@@ -70,6 +70,12 @@ data class OrderItemDto(
     val productStock: Int? = null,
     val productAvailability: String? = null,
     val productImageUrl: String? = null,
+    /** The product's list price when the order was created (Fase 38); above [unitPriceSnapshot] when discounted. */
+    val listPriceSnapshot: Double? = null,
+    /** `false` once the product was deleted (Fase 39). */
+    val productActive: Boolean = true,
+    /** The product's name now, only when it was renamed after the order (Fase 39). */
+    val currentProductName: String? = null,
 )
 
 /**

@@ -25,6 +25,12 @@ sealed interface ConfirmOrderError {
      */
     data object AlreadyHandled : ConfirmOrderError
 
+    /**
+     * A product of the order can no longer be sold — typically it was deleted (`409
+     * PRODUCT_NOT_SELLABLE`). The order stays `PENDING`; the merchant should reject it.
+     */
+    data class ProductNotSellable(val productName: String?, val reason: String?) : ConfirmOrderError
+
     /** The order does not exist, or belongs to another store (HTTP 404). */
     data object NotFound : ConfirmOrderError
 

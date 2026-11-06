@@ -80,4 +80,9 @@
     <string name="order_error_not_found">Esta solicitud ya no está disponible</string>
     <string name="order_error_network">Sin conexión. Inténtalo nuevamente</string>
     <string name="order_error_unknown">No se pudo completar la acción</string>
+    <string name="order_item_list_price">antes %1$s</string>
+    <string name="order_item_product_deleted">Producto eliminado del inventario</string>
+    <string name="order_item_current_name">Ahora: %1$s</string>
+    <string name="order_error_not_sellable">No se puede confirmar: «%1$s» ya no está a la venta. Recházalo para avisar al cliente.</string>
+    <string name="order_error_not_sellable_generic">No se puede confirmar: un producto del pedido ya no está a la venta. Recházalo para avisar al cliente.</string>
 </resources>
