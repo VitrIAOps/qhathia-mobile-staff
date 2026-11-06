@@ -139,6 +139,7 @@ private fun DeviceList(
                 onRefreshCatalog = { onEvent(DeviceLinkingUiEvent.RefreshCatalog(device.id)) },
                 onRestart = { onEvent(DeviceLinkingUiEvent.RestartRequested(device.id)) },
                 onOpenSettings = { onOpenTabletSettings(device.id) },
+                restartPhase = uiState.restartPhase(device),
             )
         }
         item(key = "link") {

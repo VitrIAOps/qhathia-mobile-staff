@@ -232,7 +232,9 @@ object TestFixtures {
         requestedAt: Instant? = NOW,
         expiresAt: Instant? = requestedAt?.plus(Duration.ofMinutes(10)),
         resultDetail: String? = null,
-    ) = DeviceCommand(id, type, status, requestedAt, expiresAt, resultDetail)
+        deliveredAt: Instant? = null,
+        ackedAt: Instant? = null,
+    ) = DeviceCommand(id, type, status, requestedAt, expiresAt, resultDetail, deliveredAt, ackedAt)
 
     fun userProfile(
         id: String = "user-1",

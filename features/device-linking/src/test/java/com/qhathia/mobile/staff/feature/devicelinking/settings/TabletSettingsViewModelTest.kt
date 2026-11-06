@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.devicelinking.settings
 
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.TestResult
 import com.qhathia.mobile.staff.core.domain.usecase.RenameDeviceUseCase
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
@@ -43,6 +45,18 @@ class TabletSettingsViewModelTest {
         repository = FakeDeviceRepository()
     }
 
+    /** Every view model of the test, stopped at the end so their refresh loops do not run forever. */
+    private val viewModels = mutableListOf<TabletSettingsViewModel>()
+
+    /** `runTest` that stops every screen at the end, for the same reason as in Dispositivos. */
+    private fun screenTest(body: suspend TestScope.() -> Unit): TestResult = runTest {
+        try {
+            body()
+        } finally {
+            viewModels.forEach { it.onEvent(TabletSettingsUiEvent.ScreenStopped) }
+        }
+    }
+
     private fun createViewModel() = TabletSettingsViewModel(
         savedStateHandle = SavedStateHandle(mapOf(TABLET_SETTINGS_ARG_ID to DEVICE_ID)),
         getDeviceSettingsUseCase = GetDeviceSettingsUseCase(repository),
@@ -50,7 +64,7 @@ class TabletSettingsViewModelTest {
         updateDeviceSettingsUseCase = UpdateDeviceSettingsUseCase(repository),
         unlinkDeviceUseCase = UnlinkDeviceUseCase(repository),
         renameDeviceUseCase = RenameDeviceUseCase(repository),
-    )
+    ).also { viewModels += it }
 
     private fun failure(error: DeviceSettingsError) = Result.failure<Nothing>(DeviceSettingsException(error))
 
@@ -358,5 +372,95 @@ class TabletSettingsViewModelTest {
 
         viewModel.onEvent(TabletSettingsUiEvent.RenameConfirmed)
         assertTrue(repository.renames.isEmpty())
+    }
+
+    // ---- Silent refresh and unlink outcomes ----
+
+    private fun advanceRefresh() {
+        mainDispatcher.dispatcher.scheduler.advanceTimeBy(TabletSettingsViewModel.REFRESH_INTERVAL.toMillis())
+        mainDispatcher.dispatcher.scheduler.runCurrent()
+    }
+
+    @Test
+    fun `a visible screen shows a change made elsewhere within 30 seconds`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(TabletSettingsUiEvent.ScreenStarted)
+        repository.settingsResult = Result.success(TestFixtures.deviceSettings(voiceAssistantEnabled = false))
+
+        advanceRefresh()
+
+        assertEquals(false, viewModel.uiState.value.settings?.voiceAssistantEnabled)
+    }
+
+    @Test
+    fun `a later screen start re-reads at once`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(TabletSettingsUiEvent.ScreenStarted)
+        viewModel.onEvent(TabletSettingsUiEvent.ScreenStopped)
+        repository.settingsResult = Result.success(TestFixtures.deviceSettings(kioskMode = false))
+
+        viewModel.onEvent(TabletSettingsUiEvent.ScreenStarted)
+
+        assertEquals(false, viewModel.uiState.value.settings?.kioskMode)
+    }
+
+    @Test
+    fun `no silent refresh while a dialog is open`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(TabletSettingsUiEvent.ScreenStarted)
+        viewModel.onEvent(TabletSettingsUiEvent.OpenPinDialog)
+        repository.settingsResult = Result.success(TestFixtures.deviceSettings(voiceAssistantEnabled = false))
+
+        advanceRefresh()
+
+        assertEquals(true, viewModel.uiState.value.settings?.voiceAssistantEnabled)
+    }
+
+    @Test
+    fun `a refresh that answers 404 says the tablet is gone`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(TabletSettingsUiEvent.ScreenStarted)
+        repository.settingsResult = failure(DeviceSettingsError.NotFound)
+
+        advanceRefresh()
+
+        assertEquals(TabletSettingsLoad.NOT_FOUND, viewModel.uiState.value.load)
+    }
+
+    @Test
+    fun `a stopped screen does not refresh`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(TabletSettingsUiEvent.ScreenStarted)
+        viewModel.onEvent(TabletSettingsUiEvent.ScreenStopped)
+        repository.settingsResult = Result.success(TestFixtures.deviceSettings(voiceAssistantEnabled = false))
+
+        advanceRefresh()
+
+        assertEquals(true, viewModel.uiState.value.settings?.voiceAssistantEnabled)
+    }
+
+    @Test
+    fun `unlinking a tablet that is already gone leaves as already gone`() = screenTest {
+        repository.unlinkResult = failure(DeviceSettingsError.NotFound)
+        val viewModel = createViewModel()
+        viewModel.onEvent(TabletSettingsUiEvent.UnlinkRequested)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(TabletSettingsUiEvent.UnlinkConfirmed)
+            assertEquals(TabletSettingsUiEffect.Unlinked(DEVICE_ID, alreadyGone = true), awaitItem())
+        }
+    }
+
+    @Test
+    fun `unlinking without connection stays with the network message`() = screenTest {
+        repository.unlinkResult = failure(DeviceSettingsError.Network)
+        val viewModel = createViewModel()
+        viewModel.onEvent(TabletSettingsUiEvent.UnlinkRequested)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(TabletSettingsUiEvent.UnlinkConfirmed)
+            assertEquals(TabletSettingsUiEffect.ShowMessage(R.string.device_unlink_error_network), awaitItem())
+        }
+        assertFalse(viewModel.uiState.value.isUnlinking)
     }
 }

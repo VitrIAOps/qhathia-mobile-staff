@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.devicelinking.ui
 
+import kotlinx.coroutines.coroutineScope
+import java.time.Instant
 import com.qhathia.mobile.staff.feature.devicelinking.model.suggestTabletName
 import com.qhathia.mobile.staff.feature.devicelinking.model.normalizePairingCode
 import com.qhathia.mobile.staff.feature.devicelinking.model.PairingPhase
@@ -86,8 +88,11 @@ class DeviceLinkingViewModel @Inject constructor(
     /** Polls the pairing session while the dialog waits for the tablet. */
     private var pairWaitJob: Job? = null
 
-    /** The first start coincides with the initial load; later ones (back from Ajustes) reload. */
+    /** The first start coincides with the initial load; later ones (back from Ajustes) refresh. */
     private var hasStarted = false
+
+    /** When the device list was last read, so a start right after a load does not repeat it. */
+    private var lastDevicesLoadAt: Instant? = null
 
     init {
         onEvent(DeviceLinkingUiEvent.Load)
@@ -99,8 +104,13 @@ class DeviceLinkingViewModel @Inject constructor(
             DeviceLinkingUiEvent.Retry -> loadDevices()
             DeviceLinkingUiEvent.ScreenStarted -> {
                 isScreenStarted = true
-                if (hasStarted) loadDevices() else ensurePolling()
+                // Back from Ajustes or from the background: what is shown may be stale.
+                val lastLoad = lastDevicesLoadAt
+                if (hasStarted && (lastLoad == null || !lastLoad.plus(START_REFRESH_MIN_GAP).isAfter(clock.instant()))) {
+                    viewModelScope.launch { refreshSilently() }
+                }
                 hasStarted = true
+                ensurePolling()
             }
             DeviceLinkingUiEvent.ScreenStopped -> {
                 isScreenStarted = false
@@ -125,7 +135,8 @@ class DeviceLinkingViewModel @Inject constructor(
                         sendingCommands = state.sendingCommands.filterNot { it.deviceId == event.deviceId }.toSet(),
                     )
                 }
-                _uiEffect.tryEmit(DeviceLinkingUiEffect.ShowUnlinked)
+                _uiEffect.tryEmit(DeviceLinkingUiEffect.ShowUnlinked(event.alreadyGone))
+                viewModelScope.launch { refreshSilently() }
             }
             DeviceLinkingUiEvent.OpenPairDialog ->
                 _uiState.update {
@@ -160,6 +171,7 @@ class DeviceLinkingViewModel @Inject constructor(
             _uiState.update { it.copy(catalogCount = count.await().getOrNull() ?: it.catalogCount) }
             devicesResult
                 .onSuccess { devices ->
+                    lastDevicesLoadAt = clock.instant()
                     _uiState.update {
                         it.copy(
                             devices = devices.toImmutableList(),
@@ -214,26 +226,43 @@ class DeviceLinkingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * One refresh loop while the screen is visible. It ticks every [COMMAND_POLL_INTERVAL] and
+     * refreshes on every tick while something waits for a tablet, otherwise every other tick
+     * ([DEVICES_REFRESH_INTERVAL]). Deciding on each tick means a command sent mid-wait is followed
+     * at the faster pace at once. Stopped with the screen.
+     */
     private fun ensurePolling() {
-        if (!isScreenStarted || pollJob?.isActive == true || !_uiState.value.hasCommandsInFlight) return
+        if (!isScreenStarted || pollJob?.isActive == true) return
         pollJob = viewModelScope.launch {
-            while (isActive && _uiState.value.hasCommandsInFlight) {
+            var ticks = 0
+            while (isActive) {
                 delay(COMMAND_POLL_INTERVAL.toMillis())
-                val inFlightDevices = _uiState.value.commands
-                    .filterValues { byType -> byType.values.any { it.isInFlight } }
-                    .keys
-                val results = inFlightDevices.map { id -> async { id to getDeviceCommandsUseCase(id) } }.awaitAll()
-                val now = clock.instant()
-                _uiState.update { state ->
-                    val merged = state.commands.toMutableMap()
-                    results.forEach { (deviceId, result) ->
-                        result.onSuccess { commands ->
-                            merged[deviceId] = merged[deviceId].orEmpty() + commands.latestPerType(now)
-                        }
-                    }
-                    state.copy(commands = merged, now = now)
-                }
+                ticks++
+                if (_uiState.value.needsFastPolling || ticks % TICKS_PER_DEVICES_REFRESH == 0) refreshSilently()
             }
+        }
+    }
+
+    /**
+     * Re-reads the devices, then the commands of the tablets that need it, without a spinner; a
+     * failed read keeps what is shown. Each tablet's commands are replaced, never merged, so a
+     * command the server finished cannot linger as "Enviado".
+     */
+    private suspend fun refreshSilently() {
+        getDevicesUseCase().onSuccess { devices ->
+            lastDevicesLoadAt = clock.instant()
+            _uiState.update { it.copy(devices = devices.toImmutableList(), now = clock.instant()) }
+        }
+        val ids = _uiState.value.deviceIdsNeedingCommandPoll
+        val results = coroutineScope { ids.map { id -> async { id to getDeviceCommandsUseCase(id) } }.awaitAll() }
+        val now = clock.instant()
+        _uiState.update { state ->
+            val replaced = state.commands.toMutableMap()
+            results.forEach { (deviceId, result) ->
+                result.onSuccess { commands -> replaced[deviceId] = commands.latestPerType(now) }
+            }
+            state.copy(commands = replaced, now = now)
         }
     }
 
@@ -344,6 +373,15 @@ class DeviceLinkingViewModel @Inject constructor(
     companion object {
         val COMMAND_POLL_INTERVAL: Duration = Duration.ofSeconds(15)
 
+        /** The tablet beats every 60 s; reading at 30 s shows a beat at most ~30 s late. */
+        val DEVICES_REFRESH_INTERVAL: Duration = Duration.ofSeconds(30)
+
+        /** [DEVICES_REFRESH_INTERVAL] in loop ticks of [COMMAND_POLL_INTERVAL]. */
+        private val TICKS_PER_DEVICES_REFRESH = (DEVICES_REFRESH_INTERVAL.seconds / COMMAND_POLL_INTERVAL.seconds).toInt()
+
+        /** A start this soon after a load does not read again. */
+        val START_REFRESH_MIN_GAP: Duration = Duration.ofSeconds(5)
+
         /** How often the pairing session is read while waiting for the tablet. */
         val PAIR_STATUS_POLL: Duration = Duration.ofSeconds(2)
 
@@ -357,14 +395,17 @@ class DeviceLinkingViewModel @Inject constructor(
 }
 
 /**
- * The newest command of each type (the backend lists newest first). A finished command older than
- * [DeviceLinkingViewModel.FINISHED_COMMAND_TTL] is dropped; an in-flight one is always kept.
+ * The newest command of each type (the backend lists newest first). A finished command stays for
+ * [DeviceLinkingViewModel.FINISHED_COMMAND_TTL] counted from when it finished — an expired command
+ * finishes 10 min after it was requested, so counting from the request would hide it at once. An
+ * in-flight one is always kept.
  */
-private fun List<DeviceCommand>.latestPerType(now: java.time.Instant): Map<DeviceCommandType, DeviceCommand> =
+private fun List<DeviceCommand>.latestPerType(now: Instant): Map<DeviceCommandType, DeviceCommand> =
     sortedByDescending { it.requestedAt }
         .distinctBy { it.type }
         .filter { command ->
             command.isInFlight ||
-                command.requestedAt?.isAfter(now.minus(DeviceLinkingViewModel.FINISHED_COMMAND_TTL)) == true
+                (command.finishedAt ?: command.requestedAt)
+                    ?.isAfter(now.minus(DeviceLinkingViewModel.FINISHED_COMMAND_TTL)) == true
         }
         .associateBy { it.type }
