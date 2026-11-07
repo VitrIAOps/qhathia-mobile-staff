@@ -22,6 +22,9 @@ const val TABLET_SETTINGS_ROUTE = "device_settings/{$TABLET_SETTINGS_ARG_ID}"
 /** Back-stack key under which Ajustes de la tablet hands Dispositivos the id of an unlinked tablet. */
 const val TABLET_UNLINKED_RESULT_KEY = "tablet_unlinked_device_id"
 
+/** Back-stack key telling Dispositivos the tablet had already been unlinked elsewhere (404). */
+const val TABLET_UNLINKED_ALREADY_GONE_KEY = "tablet_unlinked_already_gone"
+
 /** Builds the concrete route for [deviceId]. Only the id travels — the screen loads the rest. */
 fun tabletSettingsRoute(deviceId: String): String = "device_settings/$deviceId"
 
@@ -29,12 +32,13 @@ fun tabletSettingsRoute(deviceId: String): String = "device_settings/$deviceId"
  * Registers Dispositivos and Ajustes de la tablet. Neither is a top-level destination, so the app
  * shell hides the bottom navigation bar while they are shown. [onBack] pops the current screen;
  * [onOpenTabletSettings] opens a tablet's settings from its card. [onTabletUnlinked] must store the
- * id under [TABLET_UNLINKED_RESULT_KEY] on the previous back-stack entry and pop.
+ * id under [TABLET_UNLINKED_RESULT_KEY] and the flag under [TABLET_UNLINKED_ALREADY_GONE_KEY] on the
+ * previous back-stack entry, and pop.
  */
 fun NavGraphBuilder.deviceLinkingGraph(
     onBack: () -> Unit,
     onOpenTabletSettings: (deviceId: String) -> Unit,
-    onTabletUnlinked: (deviceId: String) -> Unit,
+    onTabletUnlinked: (deviceId: String, alreadyGone: Boolean) -> Unit,
 ) {
     composable(route = DEVICE_LINKING_ROUTE) { entry ->
         val unlinkedDeviceId by entry.savedStateHandle
@@ -44,7 +48,11 @@ fun NavGraphBuilder.deviceLinkingGraph(
             onBack = onBack,
             onOpenTabletSettings = onOpenTabletSettings,
             unlinkedDeviceId = unlinkedDeviceId,
-            onUnlinkedConsumed = { entry.savedStateHandle[TABLET_UNLINKED_RESULT_KEY] = null },
+            unlinkedAlreadyGone = entry.savedStateHandle.get<Boolean>(TABLET_UNLINKED_ALREADY_GONE_KEY) == true,
+            onUnlinkedConsumed = {
+                entry.savedStateHandle[TABLET_UNLINKED_RESULT_KEY] = null
+                entry.savedStateHandle[TABLET_UNLINKED_ALREADY_GONE_KEY] = null
+            },
         )
     }
     composable(

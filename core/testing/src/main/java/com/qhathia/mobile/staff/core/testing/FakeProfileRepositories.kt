@@ -188,7 +188,11 @@ class FakeAppPreferencesRepository(
 
     override fun observeBiometricEnabled(): Flow<Boolean> = biometricState.asStateFlow()
 
+    /** Called on every [setBiometricEnabled], before it applies: lets a test check what else held then. */
+    var onSetBiometric: (suspend (Boolean) -> Unit)? = null
+
     override suspend fun setBiometricEnabled(enabled: Boolean) {
+        onSetBiometric?.invoke(enabled)
         biometricState.value = enabled
     }
 }

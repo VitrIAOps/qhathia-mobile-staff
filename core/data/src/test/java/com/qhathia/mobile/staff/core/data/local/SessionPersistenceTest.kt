@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.core.data.local
 
+import org.junit.jupiter.api.Assertions.assertNotNull
+import com.qhathia.mobile.staff.core.domain.model.LoginException
+import com.qhathia.mobile.staff.core.domain.model.LoginError
 import com.qhathia.mobile.staff.core.data.repository.SessionAuthTokenProvider
 import com.qhathia.mobile.staff.core.domain.model.AuthTokens
 import com.qhathia.mobile.staff.core.domain.repository.AuthRepository
@@ -51,6 +54,28 @@ class SessionPersistenceTest {
         val saved = sessions.observeSession().first()
         assertEquals("new-access", saved?.tokens?.accessToken)
         assertEquals("3f0c", saved?.sessionId)
+    }
+
+    @Test
+    fun `a refresh lost to the network keeps the session`() = runTest {
+        val sessions = FakeSessionRepository(TestFixtures.session())
+        val auth = mockk<AuthRepository>()
+        coEvery { auth.refresh(any()) } returns Result.failure(LoginException(LoginError.Network))
+
+        assertNull(SessionAuthTokenProvider(sessions, auth).refreshTokens())
+
+        assertNotNull(sessions.observeSession().first())
+    }
+
+    @Test
+    fun `a refresh the server rejects clears the session`() = runTest {
+        val sessions = FakeSessionRepository(TestFixtures.session())
+        val auth = mockk<AuthRepository>()
+        coEvery { auth.refresh(any()) } returns Result.failure(LoginException(LoginError.InvalidCredentials))
+
+        assertNull(SessionAuthTokenProvider(sessions, auth).refreshTokens())
+
+        assertNull(sessions.observeSession().first())
     }
 
     @Test

@@ -1,5 +1,12 @@
 package com.qhathia.mobile.staff.feature.devicelinking.settings
 
+import java.time.Duration
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Job
+import com.qhathia.mobile.staff.feature.devicelinking.model.MAX_TABLET_NAME_LENGTH
+import com.qhathia.mobile.staff.core.domain.usecase.RenameDeviceUseCase
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -39,6 +46,7 @@ class TabletSettingsViewModel @Inject constructor(
     private val getDevicesUseCase: GetDevicesUseCase,
     private val updateDeviceSettingsUseCase: UpdateDeviceSettingsUseCase,
     private val unlinkDeviceUseCase: UnlinkDeviceUseCase,
+    private val renameDeviceUseCase: RenameDeviceUseCase,
 ) : ViewModel() {
 
     private val deviceId: String = checkNotNull(savedStateHandle[TABLET_SETTINGS_ARG_ID]) {
@@ -61,6 +69,13 @@ class TabletSettingsViewModel @Inject constructor(
     fun onEvent(event: TabletSettingsUiEvent) {
         when (event) {
             TabletSettingsUiEvent.Retry -> load()
+            TabletSettingsUiEvent.ScreenStarted -> {
+                // The first start is the initial load; a later one (back from the background) re-reads.
+                if (hasStarted) viewModelScope.launch { refreshSilently() }
+                hasStarted = true
+                startRefreshing()
+            }
+            TabletSettingsUiEvent.ScreenStopped -> refreshJob?.cancel()
             is TabletSettingsUiEvent.SettingChanged -> change(event.change)
             TabletSettingsUiEvent.OpenPinDialog ->
                 _uiState.update { if (it.settings == null) it else it.copy(pinDialog = ExitPinDialogState()) }
@@ -80,6 +95,55 @@ class TabletSettingsViewModel @Inject constructor(
                 _uiState.update { if (it.isUnlinking) it else it.copy(isUnlinkConfirmVisible = true) }
             TabletSettingsUiEvent.UnlinkDismissed -> _uiState.update { it.copy(isUnlinkConfirmVisible = false) }
             TabletSettingsUiEvent.UnlinkConfirmed -> unlink()
+            TabletSettingsUiEvent.RenameClicked ->
+                _uiState.update { state ->
+                    val device = state.device ?: return@update state
+                    val current = device.name.orEmpty()
+                    state.copy(renameDialog = RenameDialogState(value = current, current = current))
+                }
+            is TabletSettingsUiEvent.RenameChanged ->
+                updateRename { it.copy(value = event.value.take(MAX_TABLET_NAME_LENGTH), errorRes = null) }
+            TabletSettingsUiEvent.RenameConfirmed -> rename()
+            TabletSettingsUiEvent.RenameDismissed ->
+                _uiState.update { if (it.renameDialog?.isSaving == true) it else it.copy(renameDialog = null) }
+        }
+    }
+
+    private var hasStarted = false
+    private var refreshJob: Job? = null
+
+    /** Re-reads every [REFRESH_INTERVAL] while the screen is visible, so changes made elsewhere show up. */
+    private fun startRefreshing() {
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
+            while (isActive) {
+                delay(REFRESH_INTERVAL.toMillis())
+                refreshSilently()
+            }
+        }
+    }
+
+    /**
+     * Re-reads the settings and the tablet without a spinner. Nothing is replaced while the owner is
+     * editing; a failed read keeps what is shown, and a 404 says the tablet is gone.
+     */
+    private suspend fun refreshSilently() {
+        if (!_uiState.value.canRefreshSilently) return
+        val (devices, settings) = coroutineScope {
+            val devicesRead = async { getDevicesUseCase() }
+            val settingsRead = getDeviceSettingsUseCase(deviceId)
+            devicesRead.await() to settingsRead
+        }
+        val device = devices.getOrNull()?.firstOrNull { it.id == deviceId }
+        _uiState.update { state ->
+            if (!state.canRefreshSilently) return@update state
+            settings.fold(
+                onSuccess = { state.copy(settings = it, device = device ?: state.device) },
+                onFailure = { error ->
+                    val notFound = (error as? DeviceSettingsException)?.error == DeviceSettingsError.NotFound
+                    if (notFound) state.copy(load = TabletSettingsLoad.NOT_FOUND) else state
+                },
+            )
         }
     }
 
@@ -173,11 +237,50 @@ class TabletSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             unlinkDeviceUseCase(deviceId)
                 .onSuccess { _uiEffect.emit(TabletSettingsUiEffect.Unlinked(deviceId)) }
-                .onFailure {
-                    _uiState.update { it.copy(isUnlinking = false) }
-                    _uiEffect.emit(TabletSettingsUiEffect.ShowMessage(R.string.device_unlink_error))
+                .onFailure { throwable ->
+                    when ((throwable as? DeviceSettingsException)?.error) {
+                        // Already unlinked elsewhere: the outcome the owner wanted, said as such.
+                        DeviceSettingsError.NotFound ->
+                            _uiEffect.emit(TabletSettingsUiEffect.Unlinked(deviceId, alreadyGone = true))
+                        DeviceSettingsError.Network -> {
+                            _uiState.update { it.copy(isUnlinking = false) }
+                            _uiEffect.emit(TabletSettingsUiEffect.ShowMessage(R.string.device_unlink_error_network))
+                        }
+                        else -> {
+                            _uiState.update { it.copy(isUnlinking = false) }
+                            _uiEffect.emit(TabletSettingsUiEffect.ShowMessage(R.string.device_unlink_error))
+                        }
+                    }
                 }
         }
+    }
+
+    /** Renames the tablet; a 404 means it left the store, which the whole screen then says. */
+    private fun rename() {
+        val dialog = _uiState.value.renameDialog ?: return
+        if (!dialog.canSave) return
+        updateRename { it.copy(isSaving = true, errorRes = null) }
+        viewModelScope.launch {
+            renameDeviceUseCase(deviceId, dialog.value)
+                .onSuccess { updated ->
+                    _uiState.update { it.copy(device = updated, renameDialog = null) }
+                    _uiEffect.emit(TabletSettingsUiEffect.ShowMessage(R.string.tablet_settings_renamed))
+                }
+                .onFailure { throwable ->
+                    when ((throwable as? DeviceSettingsException)?.error) {
+                        DeviceSettingsError.NotFound ->
+                            _uiState.update { it.copy(renameDialog = null, load = TabletSettingsLoad.NOT_FOUND) }
+                        DeviceSettingsError.InvalidInput ->
+                            updateRename { it.copy(isSaving = false, errorRes = R.string.tablet_settings_rename_invalid) }
+                        else ->
+                            updateRename { it.copy(isSaving = false, errorRes = R.string.tablet_settings_rename_network) }
+                    }
+                }
+        }
+    }
+
+    private fun updateRename(transform: (RenameDialogState) -> RenameDialogState) {
+        _uiState.update { state -> state.renameDialog?.let { state.copy(renameDialog = transform(it)) } ?: state }
     }
 
     private fun updateDialog(transform: (ExitPinDialogState) -> ExitPinDialogState) {
@@ -187,7 +290,10 @@ class TabletSettingsViewModel @Inject constructor(
     /** Keeps only digits, at most six — the longest PIN the backend accepts. */
     private fun String.asPinInput(): String = filter { it in '0'..'9' }.take(MAX_PIN_LENGTH)
 
-    private companion object {
-        const val MAX_PIN_LENGTH = 6
+    companion object {
+        private const val MAX_PIN_LENGTH = 6
+
+        /** Same pace as Dispositivos: a change made elsewhere shows within 30 s. */
+        val REFRESH_INTERVAL: Duration = Duration.ofSeconds(30)
     }
 }

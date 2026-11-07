@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.profile.personal
 
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -182,6 +183,7 @@ private fun PersonalDataBody(
                     helperText = stringResource(R.string.personal_phone_hint),
                     placeholder = stringResource(R.string.personal_phone_placeholder),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { if (uiState.canSave) onEvent(PersonalDataUiEvent.Save) }),
                     visualTransformation = PeruPhonePrefix,
                 )
             }
@@ -212,6 +214,7 @@ private fun LabelledField(
     helperText: String? = null,
     placeholder: String = label,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
@@ -225,6 +228,7 @@ private fun LabelledField(
             errorText = errorText,
             helperText = helperText,
             keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
             visualTransformation = visualTransformation,
         )
     }

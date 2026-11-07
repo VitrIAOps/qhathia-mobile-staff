@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.profile.security
 
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -103,6 +104,7 @@ fun ChangePasswordContent(
                         },
                         enabled = !uiState.isSubmitting,
                         imeAction = ImeAction.Done,
+                        onImeAction = { if (uiState.canSubmit) onEvent(ChangePasswordUiEvent.Submit) },
                     )
                 }
             }
@@ -132,6 +134,7 @@ private fun LabelledPasswordField(
     enabled: Boolean,
     helperText: String? = null,
     imeAction: ImeAction = ImeAction.Next,
+    onImeAction: (() -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
         Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
@@ -145,6 +148,8 @@ private fun LabelledPasswordField(
             errorText = errorText,
             helperText = helperText,
             keyboardOptions = KeyboardOptions(imeAction = imeAction),
+            keyboardActions = onImeAction?.let { action -> KeyboardActions(onDone = { action() }) }
+                ?: KeyboardActions.Default,
         )
     }
 }

@@ -27,9 +27,12 @@ import javax.inject.Inject
  * talks to the sensor itself — the screen runs the system prompt and reports the outcome.
  *
  * The password fallback signs out: the session is cleared, the app falls back to login, and the
- * fingerprint preference is left as it was so the merchant does not have to enable it again. When
- * the enrolled biometric is gone the preference is cleared, because a gate that can never open must
- * not greet the merchant on the next start either.
+ * fingerprint preference is left as it was so the merchant does not have to enable it again.
+ *
+ * When the enrolled biometric is gone the screen says so and waits for "Continuar". The preference
+ * is cleared only after that sign-out: clearing it first would lift the gate into the app before
+ * the notice is ever seen. Clearing it afterwards keeps a gate that can never open from greeting
+ * the merchant on the next sign-in.
  */
 @HiltViewModel
 class BiometricUnlockViewModel @Inject constructor(
@@ -66,10 +69,8 @@ class BiometricUnlockViewModel @Inject constructor(
                 _uiState.update { it.copy(lastError = null) }
             is BiometricUnlockUiEvent.AuthenticationFailed ->
                 _uiState.update { it.copy(lastError = event.message) }
-            BiometricUnlockUiEvent.BiometricGone -> {
+            BiometricUnlockUiEvent.BiometricGone ->
                 _uiState.update { it.copy(isBiometricGone = true, lastError = null) }
-                viewModelScope.launch { setBiometricEnabledUseCase(false) }
-            }
             BiometricUnlockUiEvent.UsePassword -> signOut()
         }
     }
@@ -77,6 +78,12 @@ class BiometricUnlockViewModel @Inject constructor(
     private fun signOut() {
         if (_uiState.value.isSigningOut) return
         _uiState.update { it.copy(isSigningOut = true) }
-        viewModelScope.launch { logoutUseCase() }
+        viewModelScope.launch {
+            val gone = _uiState.value.isBiometricGone
+            // Signing out first: once there is no session, clearing the preference cannot lift the
+            // gate into the app.
+            logoutUseCase()
+            if (gone) setBiometricEnabledUseCase(false)
+        }
     }
 }

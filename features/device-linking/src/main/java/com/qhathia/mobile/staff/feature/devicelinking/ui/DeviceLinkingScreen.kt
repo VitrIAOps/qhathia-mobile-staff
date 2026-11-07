@@ -31,6 +31,7 @@ fun DeviceLinkingScreen(
     onOpenTabletSettings: (String) -> Unit,
     modifier: Modifier = Modifier,
     unlinkedDeviceId: String? = null,
+    unlinkedAlreadyGone: Boolean = false,
     onUnlinkedConsumed: () -> Unit = {},
     viewModel: DeviceLinkingViewModel = hiltViewModel(),
 ) {
@@ -43,14 +44,29 @@ fun DeviceLinkingScreen(
             when (effect) {
                 is DeviceLinkingUiEffect.ShowCommandError ->
                     snackbarHostState.showSnackbar(resources.getString(R.string.device_command_error))
-                DeviceLinkingUiEffect.ShowUnlinked ->
-                    snackbarHostState.showSnackbar(resources.getString(R.string.device_unlinked))
+                is DeviceLinkingUiEffect.ShowUnlinked ->
+                    snackbarHostState.showSnackbar(
+                        resources.getString(
+                            if (effect.alreadyGone) R.string.tablet_settings_not_found else R.string.device_unlinked,
+                        ),
+                    )
+                is DeviceLinkingUiEffect.ShowPaired ->
+                    snackbarHostState.showSnackbar(
+                        resources.getString(
+                            R.string.device_pair_success,
+                            effect.name ?: resources.getString(R.string.device_unnamed),
+                        ),
+                    )
+                DeviceLinkingUiEffect.ShowPairRejected ->
+                    snackbarHostState.showSnackbar(resources.getString(R.string.device_pair_rejected))
+                DeviceLinkingUiEffect.ShowPairUndone ->
+                    snackbarHostState.showSnackbar(resources.getString(R.string.device_pair_undone))
             }
         }
     }
     LaunchedEffect(unlinkedDeviceId) {
         unlinkedDeviceId?.let {
-            viewModel.onEvent(DeviceLinkingUiEvent.DeviceUnlinked(it))
+            viewModel.onEvent(DeviceLinkingUiEvent.DeviceUnlinked(it, unlinkedAlreadyGone))
             onUnlinkedConsumed()
         }
     }

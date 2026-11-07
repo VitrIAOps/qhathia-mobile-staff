@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.testing
 
+import com.qhathia.mobile.staff.core.domain.model.PairedDevice
 import com.qhathia.mobile.staff.core.domain.model.AuthTokens
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
@@ -192,6 +193,12 @@ object TestFixtures {
         name: String = "Electrónica",
     ) = Category(id, name)
 
+    fun pairedDevice(
+        deviceId: String = "device-new",
+        sessionId: String = "session-1",
+        name: String? = "Tablet 2",
+    ) = PairedDevice(deviceId = deviceId, sessionId = sessionId, name = name)
+
     fun device(
         id: String = "device-1",
         serialNumber: String? = "SN-001",
@@ -227,7 +234,9 @@ object TestFixtures {
         requestedAt: Instant? = NOW,
         expiresAt: Instant? = requestedAt?.plus(Duration.ofMinutes(10)),
         resultDetail: String? = null,
-    ) = DeviceCommand(id, type, status, requestedAt, expiresAt, resultDetail)
+        deliveredAt: Instant? = null,
+        ackedAt: Instant? = null,
+    ) = DeviceCommand(id, type, status, requestedAt, expiresAt, resultDetail, deliveredAt, ackedAt)
 
     fun userProfile(
         id: String = "user-1",

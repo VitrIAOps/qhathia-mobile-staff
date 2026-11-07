@@ -183,4 +183,9 @@
     <!-- Configuración -->
     <string name="settings_title">Settings</string>
     <string name="settings_language">Language</string>
+    <string name="security_session_group">%1$s · %2$d sessions</string>
+    <string name="security_session_close_all">Close all</string>
+    <string name="security_revoke_group_title">Close %1$d sessions on %2$s?</string>
+    <string name="security_revoke_group_message">Every session on that device will be closed. This device stays signed in.</string>
+    <string name="security_biometric_disabled_gone">We turned off “Sign in with fingerprint” because this device no longer has fingerprints enrolled.</string>
 </resources>

@@ -94,6 +94,13 @@ fun LoginContent(
                 isError = uiState.passwordError != null,
                 errorText = uiState.passwordError?.let { stringResource(it) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                // Done signs in, as the button does; the view model ignores repeats while submitting.
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboard?.hide()
+                        onEvent(LoginUiEvent.Submit)
+                    },
+                ),
             )
 
             Spacer(modifier = Modifier.height(Dimens.SpaceXl))
