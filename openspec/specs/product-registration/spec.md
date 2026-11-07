@@ -95,7 +95,9 @@ The form SHALL provide a free-text tag field (per the Figma mockup) where the me
 
 ### Requirement: Image selection restricted to JPG and PNG
 
-The form SHALL let the merchant add one or more images either by capturing a new photo with the device camera or by choosing existing photos from the gallery, and SHALL accept only JPG and PNG images. At least one image is required.
+The form SHALL let the merchant add one or more images either by capturing a new photo with the device camera or by choosing existing photos from the gallery, and SHALL accept only JPG and PNG images. At least one image is required, and at most 10 (the backend's per-product limit). The photos section SHALL say "Máximo 10 fotos".
+
+When a pick would go over 10, only the photos that fit SHALL be added, and a message SHALL read "Solo se pueden agregar 10 fotos; algunas no se agregaron". With 10 photos the add control SHALL be disabled.
 
 #### Scenario: Choose the photo source
 
@@ -111,6 +113,11 @@ The form SHALL let the merchant add one or more images either by capturing a new
 
 - **WHEN** the merchant picks an image that is not JPG or PNG
 - **THEN** the image is rejected with a message and is not added to the form
+
+#### Scenario: Picking more than ten
+
+- **WHEN** the merchant picks 11 photos on an empty form
+- **THEN** 10 are added, "Solo se pueden agregar 10 fotos; algunas no se agregaron" is shown, and the add control is disabled
 
 ### Requirement: Image compression before upload
 
@@ -130,6 +137,8 @@ Each selected image SHALL be compressed on-device to at most 500 KB while preser
 
 On submit, the app SHALL register the product in a single atomic request to `POST /api/v1/products/with-images`, sending the product data (including `stock`, category, tags and price) as the `product` part and each compressed image as an `images` part, with the first image treated as primary. The app SHALL NOT create the product and attach media in separate calls, and SHALL NOT perform a client-side rollback, because the backend creates the product and its media atomically and rolls back entirely if any image upload fails.
 
+Each registration form SHALL have one idempotency key, a UUID created when the form opens and kept across process death. The key SHALL be sent as the `Idempotency-Key` header on every submit of that form, retries included. A `200` replay (`Idempotent-Replayed: true`, the product already created by an earlier attempt) SHALL be handled exactly like a `201`.
+
 #### Scenario: Successful registration
 
 - **WHEN** the merchant submits a valid form
@@ -140,14 +149,26 @@ On submit, the app SHALL register the product in a single atomic request to `POS
 - **WHEN** the backend fails to create the product or upload any image
 - **THEN** no partial product is created, the app reports the registration as failed, and no client-side rollback call is made
 
+#### Scenario: Retry after a lost answer
+
+- **WHEN** the first submit reached the backend but the answer was lost (no connection), and the merchant submits again
+- **THEN** the second request carries the same `Idempotency-Key`, the backend answers `200` with the same product, and only one product exists
+
 ### Requirement: Registration feedback and navigation
 
 While registration is in progress the screen SHALL show a circular loading indicator. On success the app SHALL navigate back to the inventory list and show a success snackbar using the design system's success (green) tones. Whenever the product was created — whether or not an applied discount could be created for it — the app SHALL hand the id of the newly registered product to the inventory list on the way back, so the inventory can locate it. On a generic failure the app SHALL keep the merchant on the registration screen and show an error snackbar describing the reason.
+
+While registration is in progress, system back, cancel, the header chevron and the header bell SHALL do nothing, and the loading scrim SHALL consume touches and be announced as "Guardando producto…". Leaving would cancel the request while the backend may still create the product.
 
 #### Scenario: Loader during registration
 
 - **WHEN** registration is in progress
 - **THEN** a circular loading indicator is shown and form inputs are disabled
+
+#### Scenario: Back while registering
+
+- **WHEN** the merchant presses system back or the header chevron right after tapping `Agregar`
+- **THEN** the screen stays, the loader keeps running, and the result is shown when the request ends
 
 #### Scenario: Success returns to inventory
 
@@ -329,6 +350,8 @@ The Product Registration form SHALL show a `Descuento` toggle directly below the
 
 After a discount is applied in the dialog, the dialog SHALL close and the form SHALL show, on one line below the toggle, the discount summary at the start and the resulting final price (the entered price with the discount applied, as `S/ {amount}`) at the end, spaced apart, with the toggle on. The final price SHALL follow changes to the price field. Tapping the summary line SHALL reopen the dialog prefilled with the applied discount so it can be changed before submitting. Turning the toggle off SHALL remove the discount and hide the summary. Applying, changing or removing a discount SHALL mark the form as having unsaved changes.
 
+Editing the price SHALL NOT change the applied discount. While the price is empty or not yet a valid amount, the toggle SHALL stay on but disabled, and the summary SHALL be shown without a final price. When a fixed-amount discount is greater than the price entered, the row SHALL show, below the summary and in the error color, `El descuento es mayor que el precio. Edítalo o quítalo.`
+
 #### Scenario: Percentage discount applied
 
 - **WHEN** the merchant applies a 20 % discount
@@ -359,19 +382,41 @@ After a discount is applied in the dialog, the dialog SHALL close and the form S
 - **WHEN** the merchant turns the toggle off
 - **THEN** the discount is removed and the summary is hidden
 
-#### Scenario: Price change invalidates the discount
+#### Scenario: Clearing the price keeps the discount
 
-- **WHEN** the merchant edits the price so that it is no longer valid, or so that an applied fixed amount is greater than the new price
-- **THEN** the discount is removed, the summary is hidden and the toggle returns to off
+- **WHEN** the price is 189.90 with a 35 % discount and the merchant clears it and types 200
+- **THEN** the toggle stays on, `Descuento de 35%` stays shown, and the final price becomes `S/ 130.00`
+
+#### Scenario: Typing a decimal price keeps the discount
+
+- **WHEN** the price goes from `150` through `150.` to `150.5` with a discount applied
+- **THEN** the discount stays applied at every step
+
+#### Scenario: Fixed amount greater than the price
+
+- **WHEN** a fixed discount of 900 is applied on a price of 1000 and the price is changed to 100
+- **THEN** the discount stays applied and the row shows `El descuento es mayor que el precio. Edítalo o quítalo.`
 
 ### Requirement: Discount creation on registration
 
 When the form is submitted with a discount applied, the app SHALL create the discount for the newly registered product immediately after the product registration succeeds, with the one-week duration. When no discount is applied, no discount request SHALL be issued.
 
+Before any request, when a fixed-amount discount is greater than the price entered, submitting SHALL remove the discount from the form, show `Quitamos el descuento porque es mayor que el nuevo precio. Revisa y vuelve a agregar.` and send nothing.
+
 #### Scenario: Registration with a discount
 
 - **WHEN** the merchant submits a valid form with a discount applied and the product registration succeeds
 - **THEN** the discount is created for the new product, and the app returns to the inventory list with the registration success message
+
+#### Scenario: Registration with a discount after correcting the price
+
+- **WHEN** the merchant applies a 35 % discount, clears the price, types 200 and submits
+- **THEN** the product is registered and the 35 % discount is created for it
+
+#### Scenario: Registration with a fixed amount over the price
+
+- **WHEN** the merchant submits with a fixed discount of 900 and a price of 100
+- **THEN** no request is issued, the discount is removed from the form and the message `Quitamos el descuento porque es mayor que el nuevo precio. Revisa y vuelve a agregar.` is shown
 
 #### Scenario: Registration without a discount
 
@@ -459,4 +504,20 @@ The bell in the Registro de producto header SHALL open the Solicitudes tab and S
 #### Scenario: Bell while saving
 - **WHEN** a save is in progress
 - **THEN** the bell is disabled
+
+### Requirement: Prefill the name from a missing-product suggestion
+
+The Registro form SHALL accept an optional product name when it is opened. When one is given, the `Nombre` field SHALL start with it. The prefilled name SHALL NOT count as an unsaved change: leaving without editing anything SHALL NOT ask to discard. Opened without a name, the form SHALL start empty as before.
+
+#### Scenario: Opened from Agregar
+- **WHEN** the form is opened with the name `Soldadora`
+- **THEN** `Nombre` reads `Soldadora` and back leaves without the discard dialog
+
+#### Scenario: Editing the prefilled form
+- **WHEN** the form was opened with `Soldadora` and the merchant types a price
+- **THEN** back asks to discard the changes
+
+#### Scenario: Opened from Inventario
+- **WHEN** the form is opened from the Inventario `+` button
+- **THEN** `Nombre` is empty
 
