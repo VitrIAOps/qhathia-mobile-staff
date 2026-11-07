@@ -107,7 +107,7 @@ class ProductDetailViewModelTest {
         assertFalse(state.isLoading)
         assertFalse(state.isError)
         assertEquals("Taladro", state.name)
-        assertEquals("189.9", state.price)
+        assertEquals("189.90", state.price)
         assertEquals("7", state.quantity)
         assertEquals("Percutor 650W", state.description)
         assertEquals("herramientas, bosch", state.tags)
@@ -132,6 +132,31 @@ class ProductDetailViewModelTest {
         productRepository.productDetailResult = Result.success(TestFixtures.productDetail(price = 189.0))
 
         assertEquals("189", createViewModel().uiState.value.price)
+    }
+
+    @Test
+    fun `a large price seeds a valid field and leaves the discount usable`() = runTest {
+        productRepository.productDetailResult = Result.success(TestFixtures.productDetail(price = 12345678.5))
+
+        val state = createViewModel().uiState.value
+
+        assertEquals("12345678.50", state.price)
+        assertNull(state.priceError)
+        assertTrue(state.isDiscountToggleEnabled)
+    }
+
+    @Test
+    fun `a price with cents seeds two decimals and keeps the server discounted price`() = runTest {
+        productRepository.productDetailResult =
+            Result.success(TestFixtures.productDetail(price = 189.9, discountedPrice = 151.92))
+        discountRepository.discounts += TestFixtures.productDiscount(
+            discount = Discount(DiscountType.PERCENTAGE, 20.0),
+        )
+
+        val state = createViewModel().uiState.value
+
+        assertEquals("189.90", state.price)
+        assertEquals(151.92, state.discountedPrice)
     }
 
     @Test

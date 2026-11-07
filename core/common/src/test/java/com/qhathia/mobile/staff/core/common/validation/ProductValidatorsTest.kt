@@ -39,4 +39,19 @@ class ProductValidatorsTest {
         assertFalse(isValidQuantity("-3"))
         assertTrue(isValidQuantity("0"))
     }
+
+    @Test
+    fun `a stored price is written as the merchant would type it`() {
+        assertEquals("149", formatPriceInput(149.0))
+        assertEquals("189.90", formatPriceInput(189.9))
+        assertEquals("12345678.50", formatPriceInput(12345678.5))
+        assertEquals("0.05", formatPriceInput(0.05))
+    }
+
+    @Test
+    fun `a written price is always accepted back`() {
+        listOf(149.0, 189.9, 12345678.5, 0.05, 99.99).forEach { price ->
+            assertEquals(price, parsePrice(formatPriceInput(price)))
+        }
+    }
 }

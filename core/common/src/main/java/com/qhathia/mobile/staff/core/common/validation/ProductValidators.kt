@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.core.common.validation
 
+import java.math.BigDecimal
+import java.math.RoundingMode
+
 /** The backend's per-product photo limit, shared by the registration and edit forms. */
 const val MAX_PRODUCT_PHOTOS = 10
 
@@ -26,6 +29,16 @@ fun parsePrice(value: String): Double? {
 }
 
 fun isValidPrice(value: String): Boolean = parsePrice(value) != null
+
+/**
+ * A stored price written as the merchant would type it, so [parsePrice] accepts it: "149" when
+ * whole, otherwise two decimals with a point ("189.90", "12345678.50"). Never `Double.toString()`,
+ * which turns 12345678.5 into "1.23456785E7".
+ */
+fun formatPriceInput(price: Double): String {
+    val amount = BigDecimal.valueOf(price).setScale(2, RoundingMode.HALF_UP)
+    return if (amount.stripTrailingZeros().scale() <= 0) amount.setScale(0).toPlainString() else amount.toPlainString()
+}
 
 /**
  * Parses a stock quantity. Valid when it is a non-negative integer; a negative quantity blocks

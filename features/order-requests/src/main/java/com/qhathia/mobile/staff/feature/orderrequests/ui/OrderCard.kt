@@ -31,6 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.Order
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
+import com.qhathia.mobile.staff.core.ui.format.toPenPrice
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.orderrequests.R
@@ -106,7 +107,7 @@ internal fun OrderCard(
                 Text(
                     text = stringResource(
                         R.string.order_card_total,
-                        stringResource(R.string.order_price, order.total),
+                        order.total.toPenPrice(),
                     ),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,

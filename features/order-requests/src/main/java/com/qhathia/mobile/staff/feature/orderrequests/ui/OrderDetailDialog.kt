@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
+import com.qhathia.mobile.staff.core.ui.format.toPenPrice
 import com.qhathia.mobile.staff.feature.orderrequests.model.SubmitError
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.foundation.background
@@ -189,7 +190,7 @@ private fun OrderDetailBody(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = stringResource(R.string.order_price, detail.order.total),
+                    text = detail.order.total.toPenPrice(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -321,7 +322,7 @@ private fun OrderItemRow(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd)) {
                     Text(
-                        text = stringResource(R.string.order_price, item.unitPrice),
+                        text = item.unitPrice.toPenPrice(),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant,
                     )
@@ -331,7 +332,7 @@ private fun OrderItemRow(
                         Text(
                             text = stringResource(
                                 R.string.order_item_list_price,
-                                stringResource(R.string.order_price, listPrice),
+                                listPrice.toPenPrice(),
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant,
@@ -346,7 +347,7 @@ private fun OrderItemRow(
                 }
             }
             Text(
-                text = stringResource(R.string.order_price, item.lineTotal),
+                text = item.lineTotal.toPenPrice(),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = colors.onSurface,

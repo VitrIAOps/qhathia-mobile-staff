@@ -49,10 +49,8 @@
     <string name="discount_amount_label">Discount amount</string>
     <string name="discount_amount_placeholder">S/ 0.00</string>
     <string name="discount_quick_option">%1$d%%</string>
-    <string name="discount_original_price_format">%1$.2f</string>
-    <string name="discount_price_format">S/ %1$.2f</string>
-    <string name="discount_original_price_cd">Original price: S/ %1$.2f</string>
-    <string name="discount_resulting_price_cd">Discounted price: S/ %1$.2f</string>
+    <string name="discount_original_price_cd">Original price: %1$s</string>
+    <string name="discount_resulting_price_cd">Discounted price: %1$s</string>
     <string name="discount_cancel">Cancel</string>
     <string name="discount_apply">Apply</string>
     <string name="discount_error_percentage">Enter a whole percentage between 1 and 100</string>
