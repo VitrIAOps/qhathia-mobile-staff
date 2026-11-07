@@ -123,33 +123,42 @@ class InventoryViewModel @Inject constructor(
                 }
             InventoryUiEvent.DeleteConfirmed -> deleteProduct()
             InventoryUiEvent.DeleteDismissed ->
-                _uiState.update { if (it.isDeleting) it else it.copy(deleteCandidate = null) }
+                _uiState.update { if (it.isDeleting) it else it.copy(deleteCandidate = null, pendingOrders = null) }
         }
     }
 
     /**
      * Deletes the product awaiting confirmation. The row is removed only once the server agrees —
      * a 404 counts, the product is already gone — and it is dropped locally instead of re-querying,
-     * since the answer already says what the list should look like. Any other failure keeps it.
+     * since the answer already says what the list should look like. A product in pending orders keeps
+     * the confirmation open with the server's explanation; confirming again forces the delete. Any
+     * other failure keeps it.
      */
     private fun deleteProduct() {
         val current = _uiState.value
         if (current.isDeleting) return
         val productId = current.deleteCandidate?.id ?: return
+        val force = current.pendingOrders != null
         viewModelScope.launch {
             _uiState.update { it.copy(isDeleting = true) }
-            val result = deleteProductUseCase(productId)
-            val alreadyGone =
-                (result.exceptionOrNull() as? UpdateProductException)?.error == UpdateProductError.NotFound
+            val result = deleteProductUseCase(productId, force)
+            val error = (result.exceptionOrNull() as? UpdateProductException)?.error
+            val alreadyGone = error == UpdateProductError.NotFound
+            if (error is UpdateProductError.HasPendingOrders && !force) {
+                _uiState.update { it.copy(isDeleting = false, pendingOrders = error) }
+                return@launch
+            }
             if (result.isSuccess || alreadyGone) {
-                _uiState.update { it.withoutProduct(productId).copy(isDeleting = false, deleteCandidate = null) }
+                _uiState.update {
+                    it.withoutProduct(productId).copy(isDeleting = false, deleteCandidate = null, pendingOrders = null)
+                }
                 _uiEffect.emit(
                     InventoryUiEffect.ShowMessage(
                         if (alreadyGone) R.string.inventory_product_already_deleted else R.string.inventory_product_deleted,
                     ),
                 )
             } else {
-                _uiState.update { it.copy(isDeleting = false, deleteCandidate = null) }
+                _uiState.update { it.copy(isDeleting = false, deleteCandidate = null, pendingOrders = null) }
                 _uiEffect.emit(InventoryUiEffect.ShowError(R.string.inventory_delete_error))
             }
         }

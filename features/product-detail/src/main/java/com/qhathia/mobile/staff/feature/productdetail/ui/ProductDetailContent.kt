@@ -1,5 +1,11 @@
 package com.qhathia.mobile.staff.feature.productdetail.ui
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import com.qhathia.mobile.staff.core.ui.R as CoreUiR
+import com.qhathia.mobile.staff.feature.productdetail.model.PartialSave
+import com.qhathia.mobile.staff.core.ui.component.QhathiaSavingOverlay
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -79,6 +85,7 @@ fun ProductDetailContent(
                 onBack = { onEvent(ProductDetailUiEvent.CancelRequested) },
                 onOpenOrderRequests = { onEvent(ProductDetailUiEvent.OrderRequestsRequested) },
                 bellEnabled = !uiState.isSaving && !uiState.isDeleting,
+                backEnabled = !uiState.isSaving && !uiState.isDeleting,
             )
 
             Surface(
@@ -107,21 +114,27 @@ fun ProductDetailContent(
                             }
                         }
                     }
+                    uiState.isDeleted -> CenteredSlot {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.detail_deleted_title),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            TextButton(onClick = { onEvent(ProductDetailUiEvent.CancelRequested) }) {
+                                Text(stringResource(R.string.detail_deleted_back))
+                            }
+                        }
+                    }
                     else -> EditForm(uiState = uiState, onEvent = onEvent)
                 }
             }
         }
 
-        if (uiState.isSaving) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
-            }
-        }
+        if (uiState.isSaving) QhathiaSavingOverlay()
 
         uiState.discountDraft?.let { draft ->
             DiscountDialog(
@@ -134,15 +147,31 @@ fun ProductDetailContent(
 
         if (uiState.showDeleteDialog) {
             QhathiaDeleteProductDialog(
-                productName = uiState.name,
+                productName = uiState.loadedName,
                 isDeleting = uiState.isDeleting,
                 onConfirm = { onEvent(ProductDetailUiEvent.DeleteConfirmed) },
                 onDismiss = { onEvent(ProductDetailUiEvent.DeleteDismissed) },
+                pendingOrdersDetail = uiState.pendingOrders?.let { warning ->
+                    warning.detail ?: stringResource(
+                        CoreUiR.string.delete_product_pending_orders_fallback,
+                        warning.orderCodes.joinToString { "#$it" },
+                    )
+                },
+                hasUnsavedChanges = uiState.isDirty,
+            )
+        }
+
+        if (uiState.conflict != null) {
+            ConflictDialog(
+                onReload = { onEvent(ProductDetailUiEvent.ConflictReload) },
+                onOverwrite = { onEvent(ProductDetailUiEvent.ConflictOverwrite) },
+                onDismiss = { onEvent(ProductDetailUiEvent.ConflictDismissed) },
             )
         }
 
         if (uiState.showDiscardDialog) {
             DiscardChangesDialog(
+                partialSave = uiState.partialSave,
                 onConfirm = { onEvent(ProductDetailUiEvent.ConfirmDiscard) },
                 onDismiss = { onEvent(ProductDetailUiEvent.DismissDiscard) },
             )
@@ -215,6 +244,7 @@ private fun EditForm(
             .padding(Dimens.SpaceLg),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpaceLg),
     ) {
+        uiState.partialSave?.let { PartialSaveBanner(it) }
         LabeledField(label = stringResource(R.string.detail_photos_label)) {
             ProductPhotosField(
                 photos = uiState.photos,
@@ -265,6 +295,7 @@ private fun EditForm(
                 summary = uiState.discount?.summaryText(),
                 finalPrice = uiState.discountedPrice,
                 onSummaryClick = { onEvent(ProductDetailUiEvent.DiscountSummaryClicked) },
+                warning = if (uiState.isDiscountOverPrice) stringResource(R.string.detail_discount_over_price) else null,
             )
             uiState.discountEndsAt?.let { endsAt -> DiscountCountdown(endsAt = endsAt) }
             if (uiState.isDiscountError) {
@@ -279,6 +310,7 @@ private fun EditForm(
             onValueChange = { onEvent(ProductDetailUiEvent.QuantityChanged(it)) },
             enabled = enabled,
             errorRes = uiState.quantityError,
+            isConsult = uiState.isConsult,
         )
         DetailTagsField(
             value = uiState.tags,
@@ -419,13 +451,19 @@ private fun FormActions(
 
 @Composable
 private fun DiscardChangesDialog(
+    partialSave: PartialSave?,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val message = when (partialSave) {
+        PartialSave.DISCOUNT -> R.string.detail_discard_message_partial_discount
+        PartialSave.PHOTOS -> R.string.detail_discard_message_partial_photos
+        null -> R.string.detail_discard_message
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.detail_discard_title)) },
-        text = { Text(stringResource(R.string.detail_discard_message)) },
+        text = { Text(stringResource(message)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(stringResource(R.string.detail_discard_confirm))
@@ -437,6 +475,61 @@ private fun DiscardChangesDialog(
             }
         },
     )
+}
+
+/**
+ * Shown when the save hit a newer version on the server. The three actions are stacked so they
+ * fit with large fonts: see the newer product, save anyway, or keep editing.
+ */
+@Composable
+private fun ConflictDialog(
+    onReload: () -> Unit,
+    onOverwrite: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.detail_conflict_title)) },
+        text = { Text(stringResource(R.string.detail_conflict_message)) },
+        confirmButton = {
+            Column(horizontalAlignment = Alignment.End) {
+                TextButton(onClick = onReload) {
+                    Text(stringResource(R.string.detail_conflict_reload))
+                }
+                TextButton(onClick = onOverwrite) {
+                    Text(stringResource(R.string.detail_conflict_overwrite))
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.detail_conflict_keep_editing))
+                }
+            }
+        },
+    )
+}
+
+/** Persistent notice that the product was saved but a later step was not; saving again retries it. */
+@Composable
+private fun PartialSaveBanner(partialSave: PartialSave) {
+    val text = stringResource(
+        when (partialSave) {
+            PartialSave.DISCOUNT -> R.string.detail_partial_save_discount
+            PartialSave.PHOTOS -> R.string.detail_partial_save_photos
+        },
+    )
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        shape = RoundedCornerShape(Dimens.SpaceSm),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(Dimens.SpaceMd),
+        )
+    }
 }
 
 // ---- Previews ----

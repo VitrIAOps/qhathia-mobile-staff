@@ -12,6 +12,20 @@ sealed interface UpdateProductError {
     /** The server rejected the request payload (HTTP 400/422). */
     data object InvalidInput : UpdateProductError
 
+    /**
+     * Someone else changed the product since it was loaded (HTTP 409 `PRODUCT_VERSION_CONFLICT`, or
+     * `CONCURRENT_MODIFICATION` when two writes collide). [currentVersion] is the server's version
+     * when the error carries it.
+     */
+    data class Conflict(val currentVersion: Long?) : UpdateProductError
+
+    /**
+     * The product is in pending orders, so deleting it needs `force` (HTTP 409
+     * `PRODUCT_IN_PENDING_ORDERS`). [detail] is the server's Spanish explanation, [orderCodes] the
+     * pending orders' codes.
+     */
+    data class HasPendingOrders(val detail: String?, val orderCodes: List<String>) : UpdateProductError
+
     /** No connectivity, timeout, or other transport failure. */
     data object Network : UpdateProductError
 

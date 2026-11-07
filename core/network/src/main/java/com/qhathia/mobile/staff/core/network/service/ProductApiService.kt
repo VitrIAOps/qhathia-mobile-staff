@@ -11,6 +11,7 @@ import com.qhathia.mobile.staff.core.network.dto.ProductDto
 import com.qhathia.mobile.staff.core.network.dto.ProductResponseDto
 import com.qhathia.mobile.staff.core.network.dto.RegenerateDescriptionRequestDto
 import com.qhathia.mobile.staff.core.network.dto.RegenerateDescriptionResponseDto
+import com.qhathia.mobile.staff.core.network.dto.UpdateProductRequestDto
 import com.qhathia.mobile.staff.core.network.toNetworkResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -18,6 +19,7 @@ import io.ktor.client.request.delete
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.put
@@ -53,12 +55,12 @@ class ProductApiService(
         }.toNetworkResult(json)
 
     /**
-     * Replaces the editable fields of a product. The endpoint is a full replace and takes the same
-     * body shape as the create request, so [product] must carry every field.
+     * Updates a product. The update is partial (Fase 40): what [product] leaves out is kept. Answers
+     * the updated product, with its new `version`.
      */
     suspend fun updateProduct(
         id: String,
-        product: CreateProductRequestDto,
+        product: UpdateProductRequestDto,
     ): NetworkResult<ProductDetailDto> =
         runCatching {
             client.put("api/v1/products/$id") {
@@ -70,10 +72,14 @@ class ProductApiService(
      * Creates a product and its images in a single atomic multipart request: a `product` JSON part
      * plus one `images` part per photo (the first is treated as primary by the backend). The backend
      * uploads the images to storage and creates product + media rows in one transaction.
+     *
+     * [idempotencyKey] (a UUID) travels as `Idempotency-Key`: a retry with the same key answers `200`
+     * with the product the first attempt created (`Idempotent-Replayed: true`) instead of a duplicate.
      */
     suspend fun createProductWithImages(
         product: CreateProductRequestDto,
         images: List<MultipartImage>,
+        idempotencyKey: String,
     ): NetworkResult<ProductResponseDto> =
         runCatching {
             val parts = formData {
@@ -94,6 +100,7 @@ class ProductApiService(
                 }
             }
             client.post("api/v1/products/with-images") {
+                header(IDEMPOTENCY_KEY_HEADER, idempotencyKey)
                 setBody(MultiPartFormDataContent(parts))
             }.body<ProductResponseDto>()
         }.toNetworkResult(json)
@@ -183,11 +190,14 @@ class ProductApiService(
 
     /**
      * Soft-deletes a product (204, no body): the backend marks it inactive, so it leaves the
-     * inventory and the kiosk catalog. There is no endpoint to bring it back.
+     * inventory and the kiosk catalog. There is no endpoint to bring it back. A product in pending
+     * orders answers `409 PRODUCT_IN_PENDING_ORDERS` unless [force] sends `?force=true`.
      */
-    suspend fun deleteProduct(id: String): NetworkResult<Unit> =
+    suspend fun deleteProduct(id: String, force: Boolean = false): NetworkResult<Unit> =
         runCatching {
-            client.delete("api/v1/products/$id")
+            client.delete("api/v1/products/$id") {
+                if (force) parameter("force", true)
+            }
             Unit
         }.toNetworkResult(json)
 
@@ -198,3 +208,6 @@ class ProductApiService(
             Unit
         }.toNetworkResult(json)
 }
+
+/** Header that makes `POST /products/with-images` safe to retry (Fase 40). */
+const val IDEMPOTENCY_KEY_HEADER = "Idempotency-Key"

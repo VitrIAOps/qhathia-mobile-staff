@@ -19,6 +19,10 @@ import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
  * the product and says plainly that there is no way back (the backend soft-deletes and cannot
  * reactivate). While the request is in flight both buttons are disabled and "Eliminar" shows
  * progress; callers ignore dismissals meanwhile.
+ *
+ * [hasUnsavedChanges] adds that the edits on the form will be lost too. [pendingOrdersDetail] is the
+ * server's explanation after a `409 PRODUCT_IN_PENDING_ORDERS`: it replaces the text, and confirming
+ * becomes "Eliminar igual", which the caller sends with `force`.
  */
 @Composable
 fun QhathiaDeleteProductDialog(
@@ -26,11 +30,21 @@ fun QhathiaDeleteProductDialog(
     isDeleting: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    pendingOrdersDetail: String? = null,
+    hasUnsavedChanges: Boolean = false,
 ) {
+    val message = when {
+        pendingOrdersDetail != null -> pendingOrdersDetail
+        hasUnsavedChanges -> stringResource(R.string.delete_product_message_unsaved, productName)
+        else -> stringResource(R.string.delete_product_message, productName)
+    }
+    val confirmLabel = stringResource(
+        if (pendingOrdersDetail != null) R.string.delete_product_confirm_force else R.string.delete_product_confirm,
+    )
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.delete_product_title)) },
-        text = { Text(stringResource(R.string.delete_product_message, productName)) },
+        text = { Text(message) },
         confirmButton = {
             TextButton(onClick = onConfirm, enabled = !isDeleting) {
                 if (isDeleting) {
@@ -41,7 +55,7 @@ fun QhathiaDeleteProductDialog(
                     )
                 } else {
                     Text(
-                        text = stringResource(R.string.delete_product_confirm),
+                        text = confirmLabel,
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -79,6 +93,34 @@ private fun QhathiaDeleteProductDialogDeletingPreview() {
             isDeleting = true,
             onConfirm = {},
             onDismiss = {},
+        )
+    }
+}
+
+@Preview(name = "Delete product — unsaved edits", showBackground = true)
+@Composable
+private fun QhathiaDeleteProductDialogUnsavedPreview() {
+    QhathiaTheme {
+        QhathiaDeleteProductDialog(
+            productName = "Taladro Percutor Bosch GSB 13 RE",
+            isDeleting = false,
+            onConfirm = {},
+            onDismiss = {},
+            hasUnsavedChanges = true,
+        )
+    }
+}
+
+@Preview(name = "Delete product — pending orders", showBackground = true)
+@Composable
+private fun QhathiaDeleteProductDialogPendingOrdersPreview() {
+    QhathiaTheme {
+        QhathiaDeleteProductDialog(
+            productName = "Taladro Percutor Bosch GSB 13 RE",
+            isDeleting = false,
+            onConfirm = {},
+            onDismiss = {},
+            pendingOrdersDetail = "Este producto está en 1 pedido pendiente (#400776). Confírmalo o recházalo antes, o elimínalo igual.",
         )
     }
 }

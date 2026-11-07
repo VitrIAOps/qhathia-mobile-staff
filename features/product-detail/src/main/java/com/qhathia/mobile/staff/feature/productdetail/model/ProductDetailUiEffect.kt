@@ -19,5 +19,6 @@ sealed interface ProductDetailUiEffect {
     /** Leave the form and switch to the Solicitudes tab (header bell). */
     data object NavigateToOrderRequests : ProductDetailUiEffect
 
-    data class ShowError(@param:StringRes val messageRes: Int) : ProductDetailUiEffect
+    /** [long] keeps the message up longer, for a partial save the merchant has to act on. */
+    data class ShowError(@param:StringRes val messageRes: Int, val long: Boolean = false) : ProductDetailUiEffect
 }

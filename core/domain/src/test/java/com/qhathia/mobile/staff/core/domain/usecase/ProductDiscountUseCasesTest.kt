@@ -65,7 +65,7 @@ class ProductDiscountUseCasesTest {
     }
 
     @Test
-    fun `saving deletes every existing discount before creating the new one`() = runTest {
+    fun `saving creates the new discount before deleting the existing ones`() = runTest {
         repository.discounts += TestFixtures.productDiscount(id = "old-1")
         repository.discounts += TestFixtures.productDiscount(id = "old-2", active = false)
         val discount = TestFixtures.discount(DiscountType.FIXED_AMOUNT, 15.0)
@@ -73,7 +73,7 @@ class ProductDiscountUseCasesTest {
         val saved = saveDiscount("product-1", discount).getOrThrow()
 
         assertEquals(
-            listOf("get:product-1", "delete:old-1", "delete:old-2", "create:product-1"),
+            listOf("get:product-1", "create:product-1", "delete:old-1", "delete:old-2"),
             repository.calls,
         )
         assertEquals(discount, saved.discount)
@@ -89,25 +89,35 @@ class ProductDiscountUseCasesTest {
     }
 
     @Test
-    fun `a failed delete stops the replace before creating`() = runTest {
+    fun `a failed delete after the create fails the save and keeps both discounts`() = runTest {
         repository.discounts += TestFixtures.productDiscount(id = "old")
         repository.deleteFailure = networkFailure
 
         val result = saveDiscount("product-1", TestFixtures.discount())
 
         assertTrue(result.isFailure)
-        assertEquals(listOf("get:product-1", "delete:old"), repository.calls)
+        assertEquals(listOf("get:product-1", "create:product-1", "delete:old"), repository.calls)
+        assertEquals(2, repository.discounts.size)
     }
 
     @Test
-    fun `a failed create after the delete leaves the product without a discount`() = runTest {
+    fun `a discount already gone on delete does not fail the save`() = runTest {
+        repository.discounts += TestFixtures.productDiscount(id = "old")
+        repository.deleteFailure = DiscountException(DiscountError.NotFound)
+
+        assertTrue(saveDiscount("product-1", TestFixtures.discount()).isSuccess)
+    }
+
+    @Test
+    fun `a failed create deletes nothing and keeps the old discount`() = runTest {
         repository.discounts += TestFixtures.productDiscount(id = "old")
         repository.createFailure = networkFailure
 
         val result = saveDiscount("product-1", TestFixtures.discount())
 
         assertEquals(networkFailure, result.exceptionOrNull())
-        assertTrue(repository.discounts.isEmpty())
+        assertEquals(listOf("get:product-1", "create:product-1"), repository.calls)
+        assertEquals(listOf("old"), repository.discounts.map { it.id })
     }
 
     @Test
@@ -135,5 +145,13 @@ class ProductDiscountUseCasesTest {
 
         assertEquals(networkFailure, removeDiscount("product-1").exceptionOrNull())
         assertEquals(1, repository.discounts.size)
+    }
+
+    @Test
+    fun `a discount already gone does not fail the removal`() = runTest {
+        repository.discounts += TestFixtures.productDiscount(id = "a")
+        repository.deleteFailure = DiscountException(DiscountError.NotFound)
+
+        assertTrue(removeDiscount("product-1").isSuccess)
     }
 }

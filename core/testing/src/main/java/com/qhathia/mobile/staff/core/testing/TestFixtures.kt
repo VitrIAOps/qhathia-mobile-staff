@@ -114,6 +114,8 @@ object TestFixtures {
         position: Int = 0,
         discountedPrice: Double? = null,
         discountEndsAt: Instant? = null,
+        version: Long? = 7,
+        active: Boolean = true,
     ) = ProductDetail(
         id = id,
         name = name,
@@ -128,6 +130,8 @@ object TestFixtures {
         position = position,
         discountedPrice = discountedPrice,
         discountEndsAt = discountEndsAt,
+        version = version,
+        active = active,
     )
 
     fun deviceSettings(
@@ -168,12 +172,11 @@ object TestFixtures {
     fun productUpdate(
         name: String = "Taladro Percutor Bosch GSB 13 RE",
         price: Double = 189.0,
-        stock: Int = 12,
-        description: String? = "Taladro percutor de 650W con maletín",
+        stock: Int? = 12,
+        description: String = "Taladro percutor de 650W con maletín",
         categoryId: String = "category-1",
         tags: List<String> = listOf("herramientas", "bosch"),
-        allowDiscountInquiry: Boolean = false,
-        position: Int = 0,
+        version: Long? = 7,
     ) = ProductUpdate(
         name = name,
         price = price,
@@ -181,8 +184,7 @@ object TestFixtures {
         description = description,
         categoryId = categoryId,
         tags = tags,
-        allowDiscountInquiry = allowDiscountInquiry,
-        position = position,
+        version = version,
     )
 
     fun category(
@@ -287,7 +289,8 @@ object TestFixtures {
         categoryId: String = "category-1",
         tags: List<String> = listOf("vintage"),
         images: List<SelectedImage> = listOf(selectedImage()),
-    ) = NewProduct(name, price, quantity, description, categoryId, tags, images)
+        idempotencyKey: String = "8a3f6f8e-1c2d-4e5f-9a0b-1c2d3e4f5a6b",
+    ) = NewProduct(name, price, quantity, description, categoryId, tags, images, idempotencyKey)
 
     fun salesBucket(
         label: String = "Sem 1",

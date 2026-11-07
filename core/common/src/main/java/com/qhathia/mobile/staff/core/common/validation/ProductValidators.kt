@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.core.common.validation
 
+/** The backend's per-product photo limit, shared by the registration and edit forms. */
+const val MAX_PRODUCT_PHOTOS = 10
+
 /** Maximum product name length accepted by the products API. */
 const val MAX_PRODUCT_NAME_LENGTH = 200
 
