@@ -150,6 +150,8 @@ fun MainShell(
     LaunchedEffect(pendingDestination) {
         if (pendingDestination != DESTINATION_ORDER_REQUESTS) return@LaunchedEffect
         switchTab(ORDER_REQUESTS_ROUTE)
+        // Solicitudes may already be open, so the switch alone would not show the new order.
+        viewModel.onOrdersDeepLink()
         onPendingDestinationConsumed()
     }
 

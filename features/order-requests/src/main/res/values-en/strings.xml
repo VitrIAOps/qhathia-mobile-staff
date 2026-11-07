@@ -80,4 +80,9 @@
     <string name="order_error_not_found">This request is no longer available</string>
     <string name="order_error_network">No connection. Try again</string>
     <string name="order_error_unknown">The action couldn\'t be completed</string>
+    <string name="order_item_list_price">was %1$s</string>
+    <string name="order_item_product_deleted">Product deleted from the inventory</string>
+    <string name="order_item_current_name">Now: %1$s</string>
+    <string name="order_error_not_sellable">Cannot confirm: “%1$s” is no longer for sale. Reject it to let the customer know.</string>
+    <string name="order_error_not_sellable_generic">Cannot confirm: a product of this order is no longer for sale. Reject it to let the customer know.</string>
 </resources>

@@ -67,6 +67,9 @@ class InventoryViewModel @Inject constructor(
     /** The products request in flight; a newer one replaces it so a stale response never lands. */
     private var productsJob: Job? = null
 
+    /** The first `ON_START` coincides with the initial load, so only later ones reload. */
+    private var hasStarted = false
+
     init {
         onEvent(InventoryUiEvent.Load)
     }
@@ -78,6 +81,18 @@ class InventoryViewModel @Inject constructor(
                 loadProducts()
             }
             InventoryUiEvent.Retry -> loadProducts()
+            // A product may have been created, edited, sold or deleted elsewhere meanwhile.
+            InventoryUiEvent.ScreenStarted -> {
+                if (hasStarted && !_uiState.value.isLoading) {
+                    loadCategories()
+                    fetchProducts(quiet = true)
+                }
+                hasStarted = true
+            }
+            InventoryUiEvent.PullToRefresh -> {
+                _uiState.update { it.copy(isRefreshing = true) }
+                fetchProducts(quiet = true, userInitiated = true)
+            }
             is InventoryUiEvent.SelectCategory -> {
                 _uiState.update { it.copy(selectedCategoryId = event.categoryId) }
                 loadProducts()
@@ -316,7 +331,7 @@ class InventoryViewModel @Inject constructor(
      * failure leaves them as they are — it only refreshes what is already shown. If it replaces a
      * regular load still in flight, it takes over that load's loading and error handling.
      */
-    private fun fetchProducts(quiet: Boolean) {
+    private fun fetchProducts(quiet: Boolean, userInitiated: Boolean = false) {
         val current = _uiState.value
         val visible = !quiet || current.isLoading
         productsJob?.cancel()
@@ -334,6 +349,7 @@ class InventoryViewModel @Inject constructor(
                             visibleProducts = products.applySearch(state.searchQuery),
                             isLoading = false,
                             isError = false,
+                            isRefreshing = false,
                         )
                     }
                     pendingRevealProductId?.let { productId ->
@@ -342,7 +358,12 @@ class InventoryViewModel @Inject constructor(
                     }
                 }
                 .onFailure {
-                    if (!visible) return@onFailure
+                    _uiState.update { it.copy(isRefreshing = false) }
+                    // A quiet reload fails silently; one the merchant asked for says so.
+                    if (!visible) {
+                        if (userInitiated) _uiEffect.emit(InventoryUiEffect.ShowError(R.string.inventory_error))
+                        return@onFailure
+                    }
                     pendingRevealProductId = null
                     _uiState.update { it.copy(isLoading = false, isError = true) }
                     _uiEffect.emit(InventoryUiEffect.ShowError(R.string.inventory_error))

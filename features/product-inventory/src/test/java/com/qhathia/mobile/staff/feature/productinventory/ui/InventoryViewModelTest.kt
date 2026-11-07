@@ -777,4 +777,76 @@ class InventoryViewModelTest {
         assertEquals(1, productRepository.deletedIds.size)
         assertEquals(2, viewModel.uiState.value.productCount)
     }
+
+    // ---- Reload on return, pull to refresh ----
+
+    @Test
+    fun `the first screen start is the initial load and later ones reload quietly`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        val afterInit = productRepository.callCount
+
+        viewModel.onEvent(InventoryUiEvent.ScreenStarted)
+        assertEquals(afterInit, productRepository.callCount)
+
+        viewModel.onEvent(InventoryUiEvent.ScreenStarted)
+        assertEquals(afterInit + 1, productRepository.callCount)
+        assertEquals(2, viewModel.uiState.value.productCount)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `a quiet reload on return that fails keeps the rows and says nothing`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.ScreenStarted)
+        productRepository.productsResult = Result.failure(java.io.IOException("offline"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ScreenStarted)
+            expectNoEvents()
+        }
+        assertEquals(2, viewModel.uiState.value.productCount)
+        assertFalse(viewModel.uiState.value.isError)
+    }
+
+    @Test
+    fun `pulling down reloads and clears the indicator`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        val afterInit = productRepository.callCount
+
+        viewModel.onEvent(InventoryUiEvent.PullToRefresh)
+
+        assertEquals(afterInit + 1, productRepository.callCount)
+        assertFalse(viewModel.uiState.value.isRefreshing)
+    }
+
+    @Test
+    fun `the indicator shows while the pull is in flight`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        productRepository.productsGate = kotlinx.coroutines.CompletableDeferred()
+
+        viewModel.onEvent(InventoryUiEvent.PullToRefresh)
+        assertTrue(viewModel.uiState.value.isRefreshing)
+        assertEquals(2, viewModel.uiState.value.productCount)
+
+        productRepository.productsGate?.complete(Unit)
+        assertFalse(viewModel.uiState.value.isRefreshing)
+    }
+
+    @Test
+    fun `a pull that fails keeps the rows and says so`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        productRepository.productsResult = Result.failure(java.io.IOException("offline"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.PullToRefresh)
+            assertEquals(InventoryUiEffect.ShowError(R.string.inventory_error), awaitItem())
+        }
+        assertEquals(2, viewModel.uiState.value.productCount)
+        assertFalse(viewModel.uiState.value.isRefreshing)
+    }
 }

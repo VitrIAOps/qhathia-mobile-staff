@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderError
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderException
 import com.qhathia.mobile.staff.core.domain.model.OrderPage
+import com.qhathia.mobile.staff.core.domain.model.OrderStatus
 import com.qhathia.mobile.staff.core.domain.model.RejectOrderError
 import com.qhathia.mobile.staff.core.domain.model.RejectOrderException
 import com.qhathia.mobile.staff.core.domain.usecase.ConfirmOrderUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrderDetailUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrdersUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.ObserveOrdersChangedUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObservePendingOrderCountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RejectOrderUseCase
 import com.qhathia.mobile.staff.feature.orderrequests.R
@@ -19,6 +21,7 @@ import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiEffec
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiEvent
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiState
 import com.qhathia.mobile.staff.feature.orderrequests.model.RejectionUiState
+import com.qhathia.mobile.staff.feature.orderrequests.model.SubmitError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -50,7 +53,13 @@ import javax.inject.Inject
  * or an explicit refresh is not.
  *
  * Every mutation outcome — success or documented conflict — ends in a reload, so the screen never
- * keeps showing an order the backend has already closed.
+ * keeps showing an order the backend has already closed. An order this screen saw leave PENDING is
+ * dropped at once and kept out of later stale pages, even if that reload fails.
+ *
+ * The list also re-queries by itself, quietly (no error snackbar), when orders changed elsewhere (a
+ * push, a notification tap; debounced so a burst is one query) and when the screen starts again.
+ *
+ * Errors of the dialog's own actions are shown inside the dialog ([OrderDetailUiState.submitError]).
  *
  * `Pendientes (N)` reads the app-wide pending count rather than counting for itself, so the label,
  * the Solicitudes tab badge and the Inicio bell are the same number by construction. The count is
@@ -65,6 +74,7 @@ class OrderRequestsViewModel @Inject constructor(
     private val confirmOrderUseCase: ConfirmOrderUseCase,
     private val rejectOrderUseCase: RejectOrderUseCase,
     observePendingOrderCountUseCase: ObservePendingOrderCountUseCase,
+    observeOrdersChangedUseCase: ObserveOrdersChangedUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderRequestsUiState())
@@ -88,11 +98,24 @@ class OrderRequestsViewModel @Inject constructor(
      */
     private var mutatingOrderId: String? = null
 
+    /** Orders this screen saw leave PENDING; a stale page must never offer actions on them again. */
+    private val settledOrderIds = mutableSetOf<String>()
+
+    /** Set by a quiet reload so its failure keeps the list without a snackbar. */
+    private var suppressNextLoadError = false
+
+    /** The first `ON_START` coincides with the initial load, so only later ones reload. */
+    private var hasStarted = false
+
     init {
         observePendingOrderCountUseCase()
             .onEach { count -> _uiState.update { it.copy(pendingCount = count) } }
             .launchIn(viewModelScope)
         observeLoads()
+        observeOrdersChangedUseCase()
+            .debounce(ORDERS_CHANGED_DEBOUNCE_MS)
+            .onEach { reload(quiet = true) }
+            .launchIn(viewModelScope)
     }
 
     fun onEvent(event: OrderRequestsUiEvent) {
@@ -101,6 +124,11 @@ class OrderRequestsViewModel @Inject constructor(
             OrderRequestsUiEvent.Retry,
             OrderRequestsUiEvent.Refresh,
             -> reload()
+
+            OrderRequestsUiEvent.ScreenStarted -> {
+                if (hasStarted) reload(quiet = true)
+                hasStarted = true
+            }
 
             is OrderRequestsUiEvent.SelectFilter -> {
                 _uiState.update { it.copy(selectedFilter = event.filter) }
@@ -187,26 +215,58 @@ class OrderRequestsViewModel @Inject constructor(
         )
 
     private fun applyOutcome(outcome: Result<OrderPage>) {
+        val page: OrderPage? = outcome.getOrNull()
+        if (page != null) {
+            // Forget settled ids the server no longer returns, so the set does not grow.
+            settledOrderIds.retainAll(page.orders.map { it.id }.toSet())
+        }
         _uiState.update { state ->
-            val page: OrderPage? = outcome.getOrNull()
             state.copy(
                 // A failed load keeps the previously loaded orders and timestamp on screen: stale
-                // data plus an error beats a blank list.
-                orders = page?.orders?.toImmutableList() ?: state.orders,
+                // data plus an error beats a blank list. A page read before a mutation landed may
+                // still list a settled order as pending; it stays out.
+                orders = page?.orders
+                    ?.filterNot { it.id in settledOrderIds && it.status == OrderStatus.PENDING }
+                    ?.toImmutableList()
+                    ?: state.orders,
                 lastUpdatedAt = if (page != null) Instant.now() else state.lastUpdatedAt,
                 isLoading = false,
                 isError = page == null,
             )
         }
-        if (outcome.isFailure) {
+        val quiet = suppressNextLoadError
+        suppressNextLoadError = false
+        if (outcome.isFailure && !quiet) {
             viewModelScope.launch {
                 _uiEffect.emit(OrderRequestsUiEffect.ShowError(R.string.order_error_load))
             }
         }
     }
 
-    private fun reload() {
+    /** Re-runs the list query; a [quiet] one that fails keeps the list without a snackbar. */
+    private fun reload(quiet: Boolean = false) {
+        suppressNextLoadError = quiet
         reloadTrigger.update { it + 1 }
+    }
+
+    /** Takes [orderId] off Pendientes now and keeps it off stale pages. */
+    private fun dropSettled(orderId: String) {
+        settledOrderIds += orderId
+        _uiState.update { state ->
+            if (state.selectedFilter != OrderRequestsFilter.PENDING) {
+                state
+            } else {
+                state.copy(orders = state.orders.filterNot { it.id == orderId }.toImmutableList())
+            }
+        }
+    }
+
+    /** Keeps the dialog open with [error] shown inside it. */
+    private fun showInDialog(error: SubmitError) {
+        mutatingOrderId = null
+        _uiState.update { state ->
+            state.copy(detail = state.detail?.copy(isSubmitting = false, submitError = error))
+        }
     }
 
     private fun loadDetail(orderId: String) {
@@ -240,21 +300,25 @@ class OrderRequestsViewModel @Inject constructor(
             confirmOrderUseCase(orderId)
                 .onSuccess {
                     finishMutation(closeDialog = true)
+                    dropSettled(orderId)
                     _uiEffect.emit(OrderRequestsUiEffect.ShowConfirmedSnackbar)
-                    reload()
+                    reload(quiet = true)
                 }
                 .onFailure { throwable ->
                     when (val error = (throwable as? ConfirmOrderException)?.error) {
                         // Retryable: the order is still pending, so the dialog stays open.
-                        ConfirmOrderError.Network, null -> {
-                            finishMutation(closeDialog = false)
-                            _uiEffect.emit(
-                                OrderRequestsUiEffect.ShowError(R.string.order_error_network),
-                            )
-                        }
+                        ConfirmOrderError.Network, null -> showInDialog(SubmitError(R.string.order_error_network))
+                        // Still pending, but a product cannot be sold: the next step is rejecting.
+                        is ConfirmOrderError.ProductNotSellable -> showInDialog(
+                            error.productName?.let { SubmitError(R.string.order_error_not_sellable, it) }
+                                ?: SubmitError(R.string.order_error_not_sellable_generic),
+                        )
                         // Settled elsewhere: close the dialog, explain, and re-query.
                         else -> {
                             finishMutation(closeDialog = true)
+                            if (error == ConfirmOrderError.AlreadyHandled || error == ConfirmOrderError.NotFound) {
+                                dropSettled(orderId)
+                            }
                             _uiEffect.emit(error.toEffect())
                             reload()
                         }
@@ -271,19 +335,18 @@ class OrderRequestsViewModel @Inject constructor(
             rejectOrderUseCase(orderId, reason)
                 .onSuccess {
                     finishMutation(closeDialog = true)
+                    dropSettled(orderId)
                     _uiEffect.emit(OrderRequestsUiEffect.ShowRejectedSnackbar)
-                    reload()
+                    reload(quiet = true)
                 }
                 .onFailure { throwable ->
                     when (val error = (throwable as? RejectOrderException)?.error) {
-                        RejectOrderError.Network, null -> {
-                            finishMutation(closeDialog = false)
-                            _uiEffect.emit(
-                                OrderRequestsUiEffect.ShowError(R.string.order_error_network),
-                            )
-                        }
+                        RejectOrderError.Network, null -> showInDialog(SubmitError(R.string.order_error_network))
                         else -> {
                             finishMutation(closeDialog = true)
+                            if (error == RejectOrderError.AlreadyHandled || error == RejectOrderError.NotFound) {
+                                dropSettled(orderId)
+                            }
                             _uiEffect.emit(error.toEffect())
                             reload()
                         }
@@ -298,7 +361,7 @@ class OrderRequestsViewModel @Inject constructor(
         mutatingOrderId = orderId
         _uiState.update { state ->
             val detail = state.detail ?: return@update state
-            state.copy(detail = detail.copy(isSubmitting = true))
+            state.copy(detail = detail.copy(isSubmitting = true, submitError = null))
         }
         return true
     }
@@ -323,6 +386,12 @@ class OrderRequestsViewModel @Inject constructor(
             }
         ConfirmOrderError.AlreadyHandled ->
             OrderRequestsUiEffect.ShowError(R.string.order_error_already_handled)
+        is ConfirmOrderError.ProductNotSellable ->
+            if (productName != null) {
+                OrderRequestsUiEffect.ShowError(R.string.order_error_not_sellable, productName)
+            } else {
+                OrderRequestsUiEffect.ShowError(R.string.order_error_not_sellable_generic)
+            }
         ConfirmOrderError.NotFound ->
             OrderRequestsUiEffect.ShowError(R.string.order_error_not_found)
         ConfirmOrderError.Network ->
@@ -346,6 +415,9 @@ class OrderRequestsViewModel @Inject constructor(
 
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 350L
+
+        /** Three orders in a row are three pushes; they become a single query. */
+        const val ORDERS_CHANGED_DEBOUNCE_MS = 300L
         const val FIRST_PAGE = 0
 
         /** Generous enough to cover a realistic day without pagination UI. */

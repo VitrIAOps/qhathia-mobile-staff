@@ -3,6 +3,7 @@ package com.qhathia.mobile.staff.navigation
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.usecase.ObservePendingOrderCountUseCase
 import com.qhathia.mobile.staff.core.domain.model.OrderPage
+import com.qhathia.mobile.staff.core.domain.usecase.NotifyOrdersChangedUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ReconcileOrderNotificationsUseCase
 import com.qhathia.mobile.staff.core.testing.FakeOrderNotificationTray
 import com.qhathia.mobile.staff.core.testing.FakeOrderRepository
@@ -34,6 +35,7 @@ class MainShellViewModelTest {
     private fun createViewModel() = MainShellViewModel(
         observePendingOrderCount = ObservePendingOrderCountUseCase(repository),
         reconcileOrderNotifications = ReconcileOrderNotificationsUseCase(repository, tray),
+        notifyOrdersChanged = NotifyOrdersChangedUseCase(repository),
     )
 
     @Test
@@ -87,5 +89,14 @@ class MainShellViewModelTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `a notification tap tells the order lists to re-query`() {
+        val viewModel = createViewModel()
+
+        viewModel.onOrdersDeepLink()
+
+        assertEquals(1, repository.notifyOrdersChangedCount)
     }
 }

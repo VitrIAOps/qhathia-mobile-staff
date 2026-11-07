@@ -1,5 +1,11 @@
 package com.qhathia.mobile.staff.feature.productinventory.ui
 
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -91,6 +97,11 @@ fun InventoryContent(
                     .padding(horizontal = Dimens.SpaceMd)
                     .padding(top = Dimens.SpaceMd, bottom = Dimens.SpaceSm),
             ) {
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = { onEvent(InventoryUiEvent.PullToRefresh) },
+                    modifier = Modifier.fillMaxSize(),
+                ) {
                 when {
                     uiState.isLoading && uiState.loadedProducts.isEmpty() ->
                         LoadingState()
@@ -109,6 +120,7 @@ fun InventoryContent(
                             hasDiscount = uiState::hasDiscount,
                             discountLookupProductId = uiState.discountLookupProductId,
                         )
+                }
                 }
             }
         }
@@ -221,7 +233,7 @@ private fun LoadingState(modifier: Modifier = Modifier) {
 
 @Composable
 private fun EmptyState(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    PullableCenter(modifier) {
         Text(
             text = stringResource(R.string.inventory_empty),
             style = MaterialTheme.typography.bodyLarge,
@@ -234,7 +246,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 
 @Composable
 private fun ErrorState(onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    PullableCenter(modifier) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
@@ -385,6 +397,24 @@ private fun InventoryContentLoadingPreview() {
         InventoryContent(
             uiState = InventoryUiState(isLoading = true),
             onEvent = {},
+        )
+    }
+}
+
+/**
+ * Centers [content] in the space it gets while staying scrollable, so pull-to-refresh also works on
+ * a state with nothing to scroll (empty list, error).
+ */
+@Composable
+private fun PullableCenter(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .fillMaxWidth()
+                .heightIn(min = maxHeight),
+            contentAlignment = Alignment.Center,
+            content = content,
         )
     }
 }

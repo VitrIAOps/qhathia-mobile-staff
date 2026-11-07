@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.orderrequests.model
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.qhathia.mobile.staff.core.domain.model.Order
 import com.qhathia.mobile.staff.core.domain.model.OrderDetail
@@ -49,6 +50,16 @@ data class OrderDetailUiState(
     val isError: Boolean = false,
     val isSubmitting: Boolean = false,
     val rejection: RejectionUiState? = null,
+    val submitError: SubmitError? = null,
+)
+
+/**
+ * Why the dialog's own action (confirm, reject) did not go through, shown inside the dialog: the
+ * screen's snackbar sits under the dialog's scrim. [arg] fills the message's placeholder, if any.
+ */
+data class SubmitError(
+    @param:StringRes val messageRes: Int,
+    val arg: String? = null,
 )
 
 /**

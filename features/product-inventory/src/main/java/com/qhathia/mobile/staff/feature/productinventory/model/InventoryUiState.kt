@@ -37,6 +37,8 @@ data class InventoryUiState(
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val isError: Boolean = false,
+    /** A pull-to-refresh is in flight; the rows stay on screen meanwhile. */
+    val isRefreshing: Boolean = false,
     val knownDiscounts: ImmutableMap<String, Discount?> = persistentMapOf(),
     val discountLookupProductId: String? = null,
     val discountProductId: String? = null,
