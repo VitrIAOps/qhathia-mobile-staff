@@ -41,7 +41,7 @@
     <string name="device_command_ready">Done</string>
     <string name="device_command_failed">Failed</string>
     <string name="device_command_failed_detail">Failed: %1$s</string>
-    <string name="device_command_expired">Couldn\'t be delivered</string>
+    <string name="device_command_expired">Could not be delivered: the tablet did not connect within 10 min. Check it is on and online.</string>
     <string name="device_command_error">Couldn\'t send the command. Try again.</string>
 
     <!-- Unlink -->
@@ -130,4 +130,10 @@
     <string name="tablet_settings_rename_invalid">Enter a name of 1 to 40 characters</string>
     <string name="tablet_settings_rename_network">No connection. Try again.</string>
     <string name="tablet_settings_renamed">Name updated</string>
+    <string name="device_command_restarting">Restarting… waiting for the tablet to report again</string>
+    <string name="device_command_restart_not_back">The tablet did not report again after the restart. Check it.</string>
+    <string name="device_network_ethernet">Cable</string>
+    <string name="device_network_offline">No connection</string>
+    <string name="device_network_other">Other network</string>
+    <string name="device_unlink_error_network">No connection. Try again.</string>
 </resources>

@@ -84,4 +84,20 @@ class DeviceMappersTest {
 
         assertEquals("3f0c", session.sessionId)
     }
+
+    @Test
+    fun `command maps deliveredAt and ackedAt, and drops unparseable ones`() {
+        val command = DeviceCommandDto(
+            id = "c1",
+            command = "RESTART_APP",
+            status = "ACKED",
+            deliveredAt = "2026-09-13T09:42:10Z",
+            ackedAt = "2026-09-13T09:42:30Z",
+        ).toDomain()!!
+        val broken = DeviceCommandDto(id = "c2", command = "RESTART_APP", status = "ACKED", ackedAt = "ayer").toDomain()!!
+
+        assertEquals(Instant.parse("2026-09-13T09:42:10Z"), command.deliveredAt)
+        assertEquals(Instant.parse("2026-09-13T09:42:30Z"), command.ackedAt)
+        assertNull(broken.ackedAt)
+    }
 }

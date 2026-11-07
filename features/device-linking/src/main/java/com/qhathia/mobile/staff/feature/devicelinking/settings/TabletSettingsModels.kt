@@ -35,6 +35,15 @@ data class TabletSettingsUiState(
     /** Kiosk mode with no PIN: anyone at the stand can leave it, which the kiosk row warns about. */
     val isKioskWithoutPin: Boolean
         get() = settings?.let { it.kioskMode && !it.exitPinSet } == true
+
+    /** Nothing is being edited, so a silent refresh may replace what is shown. */
+    val canRefreshSilently: Boolean
+        get() = load == TabletSettingsLoad.LOADED &&
+            saving.isEmpty() &&
+            pinDialog == null &&
+            renameDialog == null &&
+            !isUnlinkConfirmVisible &&
+            !isUnlinking
 }
 
 /**
@@ -73,6 +82,10 @@ data class RenameDialogState(
 sealed interface TabletSettingsUiEvent {
     data object Retry : TabletSettingsUiEvent
 
+    /** The screen became visible / stopped being visible; the silent refresh follows it. */
+    data object ScreenStarted : TabletSettingsUiEvent
+    data object ScreenStopped : TabletSettingsUiEvent
+
     /** A switch or the brightness changed; saved straight away. */
     data class SettingChanged(val change: DeviceSettingsChange) : TabletSettingsUiEvent
 
@@ -99,8 +112,11 @@ sealed interface TabletSettingsUiEvent {
 sealed interface TabletSettingsUiEffect {
     data class ShowMessage(@param:StringRes val messageRes: Int) : TabletSettingsUiEffect
 
-    /** The tablet left the store; the screen closes and Dispositivos drops its card. */
-    data class Unlinked(val deviceId: String) : TabletSettingsUiEffect
+    /**
+     * The tablet left the store; the screen closes and Dispositivos drops its card. [alreadyGone]
+     * means it had been unlinked elsewhere (the unlink answered 404).
+     */
+    data class Unlinked(val deviceId: String, val alreadyGone: Boolean = false) : TabletSettingsUiEffect
 }
 
 /** Which control a change belongs to; PIN changes go through the dialog instead. */

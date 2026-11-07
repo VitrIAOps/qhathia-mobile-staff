@@ -192,6 +192,9 @@ fun QhathiaComingSoonTag(modifier: Modifier = Modifier) {
         text = stringResource(R.string.coming_soon),
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+        // A pill must never break into "Próximament / e".
+        maxLines = 1,
+        softWrap = false,
         modifier = modifier
             .background(QhathiaColors.segmentTrack, RoundedCornerShape(Dimens.PillRadius))
             .padding(horizontal = Dimens.SpaceSm, vertical = 2.dp),
