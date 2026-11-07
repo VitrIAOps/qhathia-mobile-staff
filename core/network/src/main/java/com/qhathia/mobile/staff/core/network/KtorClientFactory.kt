@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.network
 
+import android.util.Log
 import kotlin.coroutines.cancellation.CancellationException
 import io.ktor.http.HttpStatusCode
 import io.ktor.client.statement.bodyAsText
@@ -36,6 +37,9 @@ object KtorClientFactory {
     private const val CONNECT_TIMEOUT_MS = 15_000L
     private const val SOCKET_TIMEOUT_MS = 30_000L
 
+    /** Logcat tag of the debug HTTP log: `adb logcat -s KtorClient`. */
+    private const val LOG_TAG = "KtorClient"
+
     /**
      * @param tokenProvider when non-null, installs the bearer [Auth] plugin (token load + refresh).
      *   Pass null for the public client used by login/refresh, avoiding any refresh recursion.
@@ -65,9 +69,11 @@ object KtorClientFactory {
         }
         if (config.enableLogging) {
             install(Logging) {
+                // Bodies stay, so the backend's answers can be read; their secrets (passwords,
+                // tokens, the exit PIN, phone and email) do not. Debug builds only.
                 logger = object : Logger {
                     override fun log(message: String) {
-                        println("[KtorClient] $message")
+                        Log.d(LOG_TAG, redactSecrets(message))
                     }
                 }
                 level = LogLevel.BODY
