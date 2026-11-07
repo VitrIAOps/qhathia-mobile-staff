@@ -17,7 +17,8 @@ enum class SettingKey { IDLE_SHOWCASE, VOICE_ASSISTANT, BRIGHTNESS, KIOSK_MODE, 
  * flight is already applied — and [saving] the controls waiting for the server. [device] feeds the
  * Información group and is null when the device list could not be read. [pinDialog] is non-null
  * while the exit-PIN dialog is open. [isUnlinkConfirmVisible] is the "¿Desvincular?" dialog and
- * [isUnlinking] the unlink request in flight.
+ * [isUnlinking] the unlink request in flight. [renameDialog] is non-null while "Nombre" is being
+ * edited.
  */
 data class TabletSettingsUiState(
     val load: TabletSettingsLoad = TabletSettingsLoad.LOADING,
@@ -27,6 +28,7 @@ data class TabletSettingsUiState(
     val pinDialog: ExitPinDialogState? = null,
     val isUnlinkConfirmVisible: Boolean = false,
     val isUnlinking: Boolean = false,
+    val renameDialog: RenameDialogState? = null,
 ) {
     fun isSaving(key: SettingKey): Boolean = key in saving
 
@@ -54,6 +56,20 @@ data class ExitPinDialogState(
         get() = !isSaving && isValidExitPin(pin) && pin == confirmation
 }
 
+/**
+ * The rename dialog: [value] is what is typed, [current] the name it started from. Saving needs a
+ * non-blank name that differs from the current one.
+ */
+data class RenameDialogState(
+    val value: String,
+    val current: String,
+    val isSaving: Boolean = false,
+    @param:StringRes val errorRes: Int? = null,
+) {
+    val canSave: Boolean
+        get() = !isSaving && value.isNotBlank() && value.trim() != current.trim()
+}
+
 sealed interface TabletSettingsUiEvent {
     data object Retry : TabletSettingsUiEvent
 
@@ -72,6 +88,12 @@ sealed interface TabletSettingsUiEvent {
     data object UnlinkRequested : TabletSettingsUiEvent
     data object UnlinkDismissed : TabletSettingsUiEvent
     data object UnlinkConfirmed : TabletSettingsUiEvent
+
+    /** "Nombre" in Información; opens the rename dialog. */
+    data object RenameClicked : TabletSettingsUiEvent
+    data class RenameChanged(val value: String) : TabletSettingsUiEvent
+    data object RenameConfirmed : TabletSettingsUiEvent
+    data object RenameDismissed : TabletSettingsUiEvent
 }
 
 sealed interface TabletSettingsUiEffect {

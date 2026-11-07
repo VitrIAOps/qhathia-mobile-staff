@@ -1,5 +1,11 @@
 package com.qhathia.mobile.staff.core.data.repository
 
+import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertNull
+import com.qhathia.mobile.staff.core.network.dto.RenameDeviceRequestDto
+import com.qhathia.mobile.staff.core.network.dto.PairingSessionStatusDto
+import com.qhathia.mobile.staff.core.network.dto.ProblemDto
+import com.qhathia.mobile.staff.core.domain.model.PairedDevice
 import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsChange
 import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsError
 import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsException
@@ -93,43 +99,97 @@ class DeviceRepositoryImplTest {
     }
 
     @Test
-    fun `given success when pairDevice then approves the trimmed code with android metadata`() =
+    fun `given success when pairDevice then approves the uppercased code with the name and no app version`() =
         runTest {
             val bodySlot = slot<PairDeviceRequestDto>()
-            coEvery { api.pairDevice(capture(bodySlot)) } returns
-                NetworkResult.Success(PairDeviceResponseDto(status = "APPROVED"))
+            coEvery { api.pairDevice(capture(bodySlot)) } returns NetworkResult.Success(
+                PairDeviceResponseDto(sessionId = "s1", status = "APPROVED", deviceId = "d9", deviceName = "Mostrador"),
+            )
 
-            val result = repository.pairDevice("  AB3CD  ")
+            val result = repository.pairDevice("  ab3cd  ", " Mostrador ")
 
-            assertTrue(result.isSuccess)
+            assertEquals(PairedDevice(deviceId = "d9", sessionId = "s1", name = "Mostrador"), result.getOrThrow())
             assertEquals("AB3CD", bodySlot.captured.pairingToken)
             assertEquals("APPROVE", bodySlot.captured.decision)
+            assertEquals("Mostrador", bodySlot.captured.deviceName)
             assertEquals("ANDROID", bodySlot.captured.platform)
+            assertNull(bodySlot.captured.appVersion)
         }
+
+    @Test
+    fun `a blank name is not sent`() = runTest {
+        val bodySlot = slot<PairDeviceRequestDto>()
+        coEvery { api.pairDevice(capture(bodySlot)) } returns
+            NetworkResult.Success(PairDeviceResponseDto(sessionId = "s1", deviceId = "d9"))
+
+        repository.pairDevice("AB3CD", "   ")
+
+        assertNull(bodySlot.captured.deviceName)
+    }
+
+    @Test
+    fun `an approval without device or session fails with Unknown`() = runTest {
+        coEvery { api.pairDevice(any()) } returns NetworkResult.Success(PairDeviceResponseDto(status = "APPROVED"))
+
+        val error = (repository.pairDevice("AB3CD", null).exceptionOrNull() as PairDeviceException).error
+
+        assertInstanceOf(PairDeviceError.Unknown::class.java, error)
+    }
 
     @Test
     fun `given http 400 when pairDevice then fails with InvalidCode`() = runTest {
         coEvery { api.pairDevice(any()) } returns NetworkResult.HttpError(400, "bad")
 
-        val error = (repository.pairDevice("X").exceptionOrNull() as PairDeviceException).error
+        val error = (repository.pairDevice("X", null).exceptionOrNull() as PairDeviceException).error
 
         assertEquals(PairDeviceError.InvalidCode, error)
     }
 
     @Test
-    fun `given http 409 when pairDevice then fails with CatalogNotReady`() = runTest {
-        coEvery { api.pairDevice(any()) } returns NetworkResult.HttpError(409, "threshold")
+    fun `each pairing errorCode maps to its own error`() = runTest {
+        val cases = mapOf(
+            "INVALID_PAIRING_TOKEN" to PairDeviceError.InvalidCode,
+            "PAIRING_TOKEN_EXPIRED" to PairDeviceError.ExpiredCode,
+            "PAIRING_TOKEN_ALREADY_USED" to PairDeviceError.AlreadyUsedCode,
+            "PAIRING_TOKEN_CANCELLED" to PairDeviceError.CancelledCode,
+        )
+        cases.forEach { (errorCode, expected) ->
+            coEvery { api.pairDevice(any()) } returns
+                NetworkResult.HttpError(400, "Bad Request", ProblemDto(errorCode = errorCode))
 
-        val error = (repository.pairDevice("X").exceptionOrNull() as PairDeviceException).error
+            val error = (repository.pairDevice("AB3CD", null).exceptionOrNull() as PairDeviceException).error
 
-        assertEquals(PairDeviceError.CatalogNotReady, error)
+            assertEquals(expected, error, errorCode)
+        }
+    }
+
+    @Test
+    fun `503 means the catalog could not be checked`() = runTest {
+        coEvery { api.pairDevice(any()) } returns NetworkResult.HttpError(503, "Unavailable")
+
+        val error = (repository.pairDevice("AB3CD", null).exceptionOrNull() as PairDeviceException).error
+
+        assertEquals(PairDeviceError.CatalogCheckUnavailable, error)
+    }
+
+    @Test
+    fun `given http 409 when pairDevice then fails with CatalogNotReady carrying the detail`() = runTest {
+        coEvery { api.pairDevice(any()) } returns NetworkResult.HttpError(
+            409,
+            "Conflict",
+            ProblemDto(errorCode = "CATALOG_THRESHOLD_NOT_MET", detail = "Necesitas al menos 5 productos"),
+        )
+
+        val error = (repository.pairDevice("X", null).exceptionOrNull() as PairDeviceException).error
+
+        assertEquals(PairDeviceError.CatalogNotReady("Necesitas al menos 5 productos"), error)
     }
 
     @Test
     fun `given network error when pairDevice then fails with Network`() = runTest {
         coEvery { api.pairDevice(any()) } returns NetworkResult.NetworkError(IOException("offline"))
 
-        val error = (repository.pairDevice("X").exceptionOrNull() as PairDeviceException).error
+        val error = (repository.pairDevice("X", null).exceptionOrNull() as PairDeviceException).error
 
         assertEquals(PairDeviceError.Network, error)
     }
@@ -153,7 +213,14 @@ class DeviceRepositoryImplTest {
         assertTrue(repository.unlinkDevice("d1").isFailure)
     }
 
-    // ---- Settings ----
+    @Test
+    fun `unlinking a device that is gone fails with NotFound`() = runTest {
+        coEvery { api.unlinkDevice("d1") } returns NetworkResult.HttpError(404, "Not Found")
+
+        val error = (repository.unlinkDevice("d1").exceptionOrNull() as DeviceSettingsException).error
+
+        assertEquals(DeviceSettingsError.NotFound, error)
+    }
 
     @Test
     fun `updateSettings sends the single-field body and maps the answer`() = runTest {
@@ -185,6 +252,45 @@ class DeviceRepositoryImplTest {
         assertEquals(
             DeviceSettingsError.Network,
             (repository.getSettings("d1").exceptionOrNull() as DeviceSettingsException).error,
+        )
+    }
+
+    @Test
+    fun `rejectPairing sends the code with REJECT and nothing else`() = runTest {
+        val bodySlot = slot<PairDeviceRequestDto>()
+        coEvery { api.pairDevice(capture(bodySlot)) } returns
+            NetworkResult.Success(PairDeviceResponseDto(sessionId = "s1", status = "REJECTED"))
+
+        assertTrue(repository.rejectPairing("ab3cd").isSuccess)
+        assertEquals("AB3CD", bodySlot.captured.pairingToken)
+        assertEquals("REJECT", bodySlot.captured.decision)
+        assertNull(bodySlot.captured.deviceName)
+    }
+
+    @Test
+    fun `getPairingStatus maps tokenExchanged`() = runTest {
+        coEvery { api.getPairingStatus("s1") } returns
+            NetworkResult.Success(PairingSessionStatusDto(status = "APPROVED", tokenExchanged = true))
+
+        assertTrue(repository.getPairingStatus("s1").getOrThrow().tokenExchanged)
+    }
+
+    @Test
+    fun `renameDevice returns the renamed device and maps 404 and 422`() = runTest {
+        coEvery { api.renameDevice("d1", RenameDeviceRequestDto("Caja 2")) } returns
+            NetworkResult.Success(deviceDto().copy(name = "Caja 2"))
+        assertEquals("Caja 2", repository.renameDevice("d1", "Caja 2").getOrThrow().name)
+
+        coEvery { api.renameDevice(any(), any()) } returns NetworkResult.HttpError(404, "Not Found")
+        assertEquals(
+            DeviceSettingsError.NotFound,
+            (repository.renameDevice("d1", "x").exceptionOrNull() as DeviceSettingsException).error,
+        )
+
+        coEvery { api.renameDevice(any(), any()) } returns NetworkResult.HttpError(422, "Unprocessable")
+        assertEquals(
+            DeviceSettingsError.InvalidInput,
+            (repository.renameDevice("d1", "x").exceptionOrNull() as DeviceSettingsException).error,
         )
     }
 }

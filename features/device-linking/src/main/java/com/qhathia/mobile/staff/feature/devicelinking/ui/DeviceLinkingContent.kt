@@ -66,12 +66,20 @@ fun DeviceLinkingContent(
 
     if (uiState.isPairDialogVisible) {
         PairDeviceDialog(
+            phase = uiState.pairingPhase,
             code = uiState.pairCode,
+            name = uiState.pairName,
             canSubmit = uiState.canSubmitPair,
             isPairing = uiState.isPairing,
+            isRejecting = uiState.isRejecting,
+            isUndoing = uiState.isUndoing,
             errorText = uiState.pairErrorRes?.let { stringResource(it) },
             onCodeChange = { onEvent(DeviceLinkingUiEvent.PairCodeChanged(it)) },
+            onNameChange = { onEvent(DeviceLinkingUiEvent.PairNameChanged(it)) },
             onSubmit = { onEvent(DeviceLinkingUiEvent.SubmitPair) },
+            onReject = { onEvent(DeviceLinkingUiEvent.RejectPair) },
+            onUndo = { onEvent(DeviceLinkingUiEvent.UndoPair) },
+            onKeepWaiting = { onEvent(DeviceLinkingUiEvent.KeepWaiting) },
             onDismiss = { onEvent(DeviceLinkingUiEvent.DismissPairDialog) },
         )
     }

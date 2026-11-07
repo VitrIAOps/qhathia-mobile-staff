@@ -1,5 +1,13 @@
 package com.qhathia.mobile.staff.feature.devicelinking.ui
 
+import org.junit.jupiter.api.Assertions.assertInstanceOf
+import com.qhathia.mobile.staff.feature.devicelinking.model.PairingPhase
+import com.qhathia.mobile.staff.core.domain.usecase.UnlinkDeviceUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.RejectPairingUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.GetPairingStatusUseCase
+import com.qhathia.mobile.staff.core.domain.model.PairingSessionStatus
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsException
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsError
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandType
@@ -45,6 +53,9 @@ class DeviceLinkingViewModelTest {
     private fun createViewModel() = DeviceLinkingViewModel(
         getDevicesUseCase = GetDevicesUseCase(repository),
         pairDeviceUseCase = PairDeviceUseCase(repository),
+        rejectPairingUseCase = RejectPairingUseCase(repository),
+        getPairingStatusUseCase = GetPairingStatusUseCase(repository),
+        unlinkDeviceUseCase = UnlinkDeviceUseCase(repository),
         getCatalogCountUseCase = GetCatalogCountUseCase(repository),
         sendDeviceCommandUseCase = SendDeviceCommandUseCase(repository),
         getDeviceCommandsUseCase = GetDeviceCommandsUseCase(repository),
@@ -246,19 +257,27 @@ class DeviceLinkingViewModelTest {
     }
 
     @Test
-    fun `successful pairing closes dialog and reloads devices`() = runTest {
+    fun `a pairing the tablet exchanges closes the dialog, says so and reads the list twice`() = runTest {
+        repository.pairingStatusResult = Result.success(PairingSessionStatus("APPROVED", tokenExchanged = true))
+        repository.pairResult = Result.success(TestFixtures.pairedDevice(name = "Mostrador"))
         val viewModel = createViewModel()
         val loadsAfterInit = repository.getDevicesCallCount
         viewModel.onEvent(DeviceLinkingUiEvent.OpenPairDialog)
         viewModel.onEvent(DeviceLinkingUiEvent.PairCodeChanged("AB3CD"))
 
-        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+        viewModel.uiEffect.test {
+            viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+            assertEquals(DeviceLinkingUiEffect.ShowPaired("Mostrador"), awaitItem())
+        }
 
         val state = viewModel.uiState.value
         assertFalse(state.isPairDialogVisible)
         assertFalse(state.isPairing)
         assertEquals("AB3CD", repository.lastPairedCode)
         assertEquals(loadsAfterInit + 1, repository.getDevicesCallCount)
+
+        advanceBy(DeviceLinkingViewModel.FIRST_HEARTBEAT_GRACE)
+        assertEquals(loadsAfterInit + 2, repository.getDevicesCallCount)
     }
 
     @Test
@@ -277,8 +296,8 @@ class DeviceLinkingViewModelTest {
     }
 
     @Test
-    fun `generic failure maps to generic error message`() = runTest {
-        repository.pairResult = Result.failure(PairDeviceException(PairDeviceError.Network))
+    fun `an unknown failure maps to the generic error message`() = runTest {
+        repository.pairResult = Result.failure(PairDeviceException(PairDeviceError.Unknown("boom")))
         val viewModel = createViewModel()
         viewModel.onEvent(DeviceLinkingUiEvent.OpenPairDialog)
         viewModel.onEvent(DeviceLinkingUiEvent.PairCodeChanged("AB3CD"))
@@ -300,5 +319,203 @@ class DeviceLinkingViewModelTest {
         assertFalse(state.isPairDialogVisible)
         assertEquals("", state.pairCode)
         assertNull(state.pairErrorRes)
+    }
+
+    // ---- Code rules, name, waiting for the tablet, undo, reject ----
+
+    private fun advanceBy(duration: Duration) {
+        mainDispatcher.dispatcher.scheduler.advanceTimeBy(duration.toMillis())
+        mainDispatcher.dispatcher.scheduler.runCurrent()
+    }
+
+    /** Opens the dialog and types a full code. */
+    private fun DeviceLinkingViewModel.readyToPair(code: String = "AB3CD") {
+        onEvent(DeviceLinkingUiEvent.OpenPairDialog)
+        onEvent(DeviceLinkingUiEvent.PairCodeChanged(code))
+    }
+
+    @Test
+    fun `the code is uppercased and ambiguous characters are dropped`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(DeviceLinkingUiEvent.OpenPairDialog)
+
+        viewModel.onEvent(DeviceLinkingUiEvent.PairCodeChanged("rwn0za"))
+        assertEquals("RWNZA", viewModel.uiState.value.pairCode)
+
+        viewModel.onEvent(DeviceLinkingUiEvent.PairCodeChanged("o0i1l"))
+        assertEquals("", viewModel.uiState.value.pairCode)
+
+        viewModel.onEvent(DeviceLinkingUiEvent.PairCodeChanged("AB3CD99"))
+        assertEquals("AB3CD", viewModel.uiState.value.pairCode)
+    }
+
+    @Test
+    fun `four characters cannot be approved or rejected`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.readyToPair("AB3C")
+
+        assertFalse(viewModel.uiState.value.canSubmitPair)
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+        viewModel.onEvent(DeviceLinkingUiEvent.RejectPair)
+
+        assertEquals(0, repository.pairCallCount)
+        assertTrue(repository.rejectedCodes.isEmpty())
+    }
+
+    @Test
+    fun `the dialog suggests the first free tablet name and sends the typed one`() = runTest {
+        repository.devicesResult = Result.success(
+            listOf(TestFixtures.device(id = "d1", name = "Tablet 1"), TestFixtures.device(id = "d3", name = "Tablet 3")),
+        )
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        assertEquals("Tablet 2", viewModel.uiState.value.pairName)
+
+        viewModel.onEvent(DeviceLinkingUiEvent.PairNameChanged("Mostrador"))
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+
+        assertEquals("Mostrador", repository.lastPairName)
+    }
+
+    @Test
+    fun `a blank name is sent as none`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        viewModel.onEvent(DeviceLinkingUiEvent.PairNameChanged("   "))
+
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+
+        assertNull(repository.lastPairName)
+    }
+
+    @Test
+    fun `after approving the dialog waits and cannot be dismissed`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+        assertInstanceOf(PairingPhase.WaitingForTablet::class.java, viewModel.uiState.value.pairingPhase)
+
+        viewModel.onEvent(DeviceLinkingUiEvent.DismissPairDialog)
+        assertTrue(viewModel.uiState.value.isPairDialogVisible)
+    }
+
+    @Test
+    fun `a tablet that never exchanges the code is reported after the wait`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+
+        advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL.multipliedBy(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS.toLong()))
+
+        assertInstanceOf(PairingPhase.TabletDidNotRespond::class.java, viewModel.uiState.value.pairingPhase)
+        assertEquals(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS, repository.statusCallCount)
+        assertTrue(viewModel.uiState.value.isPairDialogVisible)
+    }
+
+    @Test
+    fun `keeping on waiting polls again and closes when the tablet answers`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+        advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL.multipliedBy(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS.toLong()))
+        repository.pairingStatusResult = Result.success(PairingSessionStatus("APPROVED", tokenExchanged = true))
+
+        viewModel.onEvent(DeviceLinkingUiEvent.KeepWaiting)
+
+        assertFalse(viewModel.uiState.value.isPairDialogVisible)
+    }
+
+    @Test
+    fun `undoing unlinks the approved device and closes`() = runTest {
+        repository.pairResult = Result.success(TestFixtures.pairedDevice(deviceId = "device-new"))
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+        advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL.multipliedBy(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS.toLong()))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(DeviceLinkingUiEvent.UndoPair)
+            assertEquals(DeviceLinkingUiEffect.ShowPairUndone, awaitItem())
+        }
+        assertEquals(listOf("device-new"), repository.unlinkedDevices)
+        assertFalse(viewModel.uiState.value.isPairDialogVisible)
+    }
+
+    @Test
+    fun `undoing a device that is already gone counts as undone`() = runTest {
+        repository.unlinkResult = Result.failure(DeviceSettingsException(DeviceSettingsError.NotFound))
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+        advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL.multipliedBy(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS.toLong()))
+
+        viewModel.onEvent(DeviceLinkingUiEvent.UndoPair)
+
+        assertFalse(viewModel.uiState.value.isPairDialogVisible)
+    }
+
+    @Test
+    fun `undo without connection keeps the dialog with the error`() = runTest {
+        repository.unlinkResult = Result.failure(DeviceSettingsException(DeviceSettingsError.Network))
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+        advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL.multipliedBy(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS.toLong()))
+
+        viewModel.onEvent(DeviceLinkingUiEvent.UndoPair)
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isPairDialogVisible)
+        assertFalse(state.isUndoing)
+        assertEquals(R.string.device_pair_error_network, state.pairErrorRes)
+    }
+
+    @Test
+    fun `rejecting sends the code and closes`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.readyToPair("CXZC7")
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(DeviceLinkingUiEvent.RejectPair)
+            assertEquals(DeviceLinkingUiEffect.ShowPairRejected, awaitItem())
+        }
+        assertEquals(listOf("CXZC7"), repository.rejectedCodes)
+        assertFalse(viewModel.uiState.value.isPairDialogVisible)
+    }
+
+    @Test
+    fun `each pairing error has its own message`() = runTest {
+        val cases = mapOf(
+            PairDeviceError.ExpiredCode to R.string.device_pair_error_expired,
+            PairDeviceError.AlreadyUsedCode to R.string.device_pair_error_used,
+            PairDeviceError.CancelledCode to R.string.device_pair_error_cancelled,
+            PairDeviceError.CatalogNotReady(null) to R.string.device_pair_error_catalog,
+            PairDeviceError.CatalogCheckUnavailable to R.string.device_pair_error_catalog_unavailable,
+            PairDeviceError.Network to R.string.device_pair_error_network,
+        )
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        cases.forEach { (error, expected) ->
+            repository.pairResult = Result.failure(PairDeviceException(error))
+
+            viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+
+            assertEquals(expected, viewModel.uiState.value.pairErrorRes, error.toString())
+            assertTrue(viewModel.uiState.value.isPairDialogVisible)
+        }
+    }
+
+    @Test
+    fun `coming back to the screen reads the list again`() = runTest {
+        val viewModel = createViewModel()
+        val loadsAfterInit = repository.getDevicesCallCount
+
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+        assertEquals(loadsAfterInit, repository.getDevicesCallCount)
+
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStopped)
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+        assertEquals(loadsAfterInit + 1, repository.getDevicesCallCount)
     }
 }

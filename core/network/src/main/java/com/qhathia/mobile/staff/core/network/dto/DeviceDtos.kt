@@ -29,16 +29,36 @@ data class DeviceDto(
 
 /**
  * Body of `POST /api/v1/devices/pair`. The merchant enters the [pairingToken] shown on the tablet
- * and approves it; the remaining fields are device metadata required by the contract.
+ * and approves (`APPROVE`) or rejects (`REJECT`) it. The metadata is optional and a null field is
+ * not sent (the shared Json does not encode defaults): without [deviceName] the backend names the
+ * tablet "Tablet N", and [appVersion] arrives with the tablet's first heartbeat.
  */
 @Serializable
 data class PairDeviceRequestDto(
     val pairingToken: String,
     val decision: String,
-    val deviceName: String,
-    val platform: String,
-    val appVersion: String,
+    val deviceName: String? = null,
+    val platform: String? = null,
+    val appVersion: String? = null,
 )
+
+/**
+ * Response of `GET /api/v1/devices/pairing-session/{sessionId}/status` (public, read-only). After
+ * approving, [tokenExchanged] turns true once the tablet exchanged the code for its token.
+ */
+@Serializable
+data class PairingSessionStatusDto(
+    val sessionId: String? = null,
+    val status: String? = null,
+    val expiresAt: String? = null,
+    val tokenExchanged: Boolean = false,
+    val tokenExchangedAt: String? = null,
+    val deviceId: String? = null,
+)
+
+/** Body of `PATCH /api/v1/devices/{deviceId}`. */
+@Serializable
+data class RenameDeviceRequestDto(val name: String)
 
 /**
  * Response of `POST /api/v1/devices/pair`. Only the outcome is consumed by the client; extra fields

@@ -155,10 +155,21 @@ private fun DeviceIdentity(device: Device, connected: Boolean, onOpenSettings: (
                 val statusColor = if (connected) QhathiaColors.success else MaterialTheme.colorScheme.onSurfaceVariant
                 Box(modifier = Modifier.size(8.dp).background(statusColor, CircleShape))
                 Spacer(Modifier.width(Dimens.SpaceXs))
+                // A tablet that never reported is not "inactive": it has not connected yet.
+                val status = stringResource(
+                    when {
+                        device.lastPingAt == null -> R.string.device_never_reported
+                        connected -> R.string.device_connected
+                        else -> R.string.device_disconnected
+                    },
+                )
                 Text(
-                    text = stringResource(if (connected) R.string.device_connected else R.string.device_disconnected),
+                    // The model tells two tablets with similar names apart.
+                    text = device.model?.let { stringResource(R.string.device_status_with_model, status, it) } ?: status,
                     style = MaterialTheme.typography.bodySmall,
                     color = statusColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
