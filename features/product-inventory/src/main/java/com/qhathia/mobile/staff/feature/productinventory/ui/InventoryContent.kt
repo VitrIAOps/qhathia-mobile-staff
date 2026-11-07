@@ -206,7 +206,13 @@ private fun ProductListCard(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = listState,
-            contentPadding = PaddingValues(Dimens.SpaceMd),
+            // The extra bottom lets the last row's ⋮ scroll above the floating "add" button.
+            contentPadding = PaddingValues(
+                start = Dimens.SpaceMd,
+                top = Dimens.SpaceMd,
+                end = Dimens.SpaceMd,
+                bottom = Dimens.SpaceMd + FabClearance,
+            ),
         ) {
             items(products, key = { product -> product.id }) { product ->
                 ProductRow(
@@ -418,3 +424,6 @@ private fun PullableCenter(modifier: Modifier = Modifier, content: @Composable B
         )
     }
 }
+
+/** The floating button's 40 dp plus its 18 dp margin and some air: what the list must leave free. */
+private val FabClearance = 68.dp

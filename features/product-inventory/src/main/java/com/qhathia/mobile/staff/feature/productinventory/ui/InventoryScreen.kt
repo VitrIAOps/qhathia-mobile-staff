@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.feature.productinventory.ui
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
 import androidx.annotation.StringRes
@@ -59,6 +62,17 @@ fun InventoryScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
+
+    // A new category or availability is a new list: show it from the top. Saved, so coming back to
+    // the tab (same filters) keeps the position.
+    val filtersKey = "${uiState.selectedCategoryId}|${uiState.selectedAvailability?.name}"
+    var listedFilters by rememberSaveable { mutableStateOf(filtersKey) }
+    LaunchedEffect(filtersKey) {
+        if (filtersKey != listedFilters) {
+            listedFilters = filtersKey
+            listState.scrollToItem(0)
+        }
+    }
     val resources = LocalResources.current
 
     // The tab's state is restored on return, so the list would otherwise stay as it was left.

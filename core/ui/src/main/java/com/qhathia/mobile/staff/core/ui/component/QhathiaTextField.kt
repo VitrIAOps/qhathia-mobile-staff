@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.core.ui.component
 
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.qhathia.mobile.staff.core.ui.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardActions
@@ -50,6 +52,8 @@ private const val PlaceholderAlpha = 0.5f
  * When [isPassword] is true the value is masked and a visibility toggle is shown.
  *
  * @param errorText shown (in the error color) when [isError]; otherwise [helperText] is shown.
+ * @param label the field's name for screen readers ("Precio") when the screen draws it apart from
+ *   the field, so the edit box is announced by name and not only by its placeholder or value.
  * @param keyboardActions what the keyboard's action key does (e.g. submit on Done).
  */
 @Composable
@@ -70,6 +74,7 @@ fun QhathiaTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    label: String? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
@@ -119,7 +124,9 @@ fun QhathiaTextField(
                 } else {
                     visualTransformation
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier),
                 decorationBox = { innerTextField ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (leadingIcon != null) {

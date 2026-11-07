@@ -143,4 +143,16 @@
     <string name="discard_changes_message">Si sales ahora, se borrarán todos los cambios no guardados.</string>
     <string name="discard_changes_confirm">Descartar</string>
     <string name="discard_changes_dismiss">Seguir editando</string>
+
+    <!-- Period pills at large font sizes (font scale 1.5 or more). -->
+    <string name="sales_period_monthly_short">Mes</string>
+    <string name="sales_period_weekly_short">Sem.</string>
+    <string name="sales_period_daily_short">Día</string>
+    <string name="sales_period_hourly_short">Hora</string>
+
+    <!-- Screen readers: the discount switch state, and the photo strip. -->
+    <string name="discount_toggle_on">Activado</string>
+    <string name="discount_toggle_off">Desactivado</string>
+    <string name="photo_position_cd">Foto %1$d de %2$d</string>
+    <string name="photo_main_suffix_cd">, principal</string>
 </resources>
