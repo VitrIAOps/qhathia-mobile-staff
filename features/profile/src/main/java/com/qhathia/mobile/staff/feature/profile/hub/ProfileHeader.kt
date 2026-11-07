@@ -78,7 +78,7 @@ internal fun ProfileHeader(
         IdentityCard(
             uiState = uiState,
             onEdit = { onEvent(ProfileHubUiEvent.Open(ProfileDestination.PERSONAL_DATA)) },
-            onRetry = { onEvent(ProfileHubUiEvent.Refresh) },
+            onRetry = { onEvent(ProfileHubUiEvent.Retry) },
         )
     }
 }

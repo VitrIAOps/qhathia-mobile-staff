@@ -141,7 +141,8 @@ fun QhathiaNavigationRow(
 
 /**
  * A row holding a switch. The whole row is one `Switch`-role node, so tapping anywhere toggles it
- * and a screen reader reads title, subtitle and state together.
+ * and a screen reader reads title, subtitle and state together. With [comingSoon] there is no
+ * switch: the row is inert, tagged "Próximamente", and announced as such.
  */
 @Composable
 fun QhathiaSwitchRow(
@@ -151,24 +152,36 @@ fun QhathiaSwitchRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     enabled: Boolean = true,
+    comingSoon: Boolean = false,
     showDivider: Boolean = true,
 ) {
     val interactive = enabled && onCheckedChange != null
+    val comingSoonLabel = stringResource(R.string.coming_soon_cd, title)
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = RowMinHeight)
-                .toggleable(
-                    value = checked,
-                    enabled = interactive,
-                    role = Role.Switch,
-                    onValueChange = { onCheckedChange?.invoke(it) },
+                .then(
+                    if (comingSoon) {
+                        Modifier.clearAndSetSemantics {
+                            contentDescription = comingSoonLabel
+                            disabled()
+                        }
+                    } else {
+                        Modifier.toggleable(
+                            value = checked,
+                            enabled = interactive,
+                            role = Role.Switch,
+                            onValueChange = { onCheckedChange?.invoke(it) },
+                        )
+                    },
                 )
                 .padding(vertical = Dimens.SpaceSm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RowTexts(title = title, subtitle = subtitle, comingSoon = false, modifier = Modifier.weight(1f))
+            RowTexts(title = title, subtitle = subtitle, comingSoon = comingSoon, modifier = Modifier.weight(1f))
+            if (comingSoon) return@Row
             Spacer(Modifier.width(Dimens.SpaceSm))
             Switch(
                 checked = checked,
@@ -274,10 +287,11 @@ private fun QhathiaSettingsRowsPreview() {
                 QhathiaSwitchRow(title = "Nuevo pedido", checked = true, onCheckedChange = {})
                 QhathiaSwitchRow(
                     title = "Pedido por expirar",
-                    subtitle = "Aviso cuando queden 2 min",
+                    subtitle = "Aviso 10 minutos antes de que venza",
                     checked = false,
                     onCheckedChange = {},
                 )
+                QhathiaSwitchRow(title = "Batería baja", checked = true, onCheckedChange = {}, comingSoon = true)
                 QhathiaNavigationRow(
                     title = "Primeros pasos con tu tablet vitrina",
                     onClick = {},

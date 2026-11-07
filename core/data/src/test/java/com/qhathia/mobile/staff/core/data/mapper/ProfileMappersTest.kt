@@ -106,6 +106,44 @@ class ProfileMappersTest {
     }
 
     @Test
+    fun `supported toggles and the warning minutes come from the backend`() {
+        val prefs = NotificationPreferencesDto(
+            supported = mapOf(
+                "newOrder" to true,
+                "orderExpiring" to true,
+                "lowBattery" to true,
+                "weeklyReport" to false,
+            ),
+            orderExpiringWarningMinutes = 15,
+        ).toDomain()
+
+        assertEquals(
+            setOf(NotificationPreference.NEW_ORDER, NotificationPreference.ORDER_EXPIRING, NotificationPreference.LOW_BATTERY),
+            prefs.supported,
+        )
+        assertEquals(15, prefs.orderExpiringWarningMinutes)
+    }
+
+    @Test
+    fun `without a supported map only new order and order expiring are supported`() {
+        val prefs = NotificationPreferencesDto().toDomain()
+
+        assertEquals(setOf(NotificationPreference.NEW_ORDER, NotificationPreference.ORDER_EXPIRING), prefs.supported)
+        assertEquals(10, prefs.orderExpiringWarningMinutes)
+    }
+
+    @Test
+    fun `the supported count ignores toggles the backend does not send`() {
+        val prefs = NotificationPreferencesDto(
+            newOrder = false,
+            supported = mapOf("newOrder" to true, "orderExpiring" to true),
+        ).toDomain()
+
+        assertEquals(1, prefs.supportedActiveCount)
+        assertEquals(2, prefs.supportedCount)
+    }
+
+    @Test
     fun `each toggle names its contract field`() {
         assertEquals(
             listOf(

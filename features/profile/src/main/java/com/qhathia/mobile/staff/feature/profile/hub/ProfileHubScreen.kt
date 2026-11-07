@@ -10,8 +10,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
- * Stateful Mi perfil entry point: binds [ProfileHubViewModel], refreshes on every resume so values
- * changed in a sub-screen show on return, and raises navigation to the graph.
+ * Stateful Mi perfil entry point: binds [ProfileHubViewModel], reports every resume (the ViewModel
+ * decides whether it reloads), and raises navigation to the graph.
  */
 @Composable
 fun ProfileHubScreen(
@@ -30,7 +30,7 @@ fun ProfileHubScreen(
         }
     }
     LifecycleResumeEffect(Unit) {
-        viewModel.onEvent(ProfileHubUiEvent.Refresh)
+        viewModel.onEvent(ProfileHubUiEvent.Resumed)
         onPauseOrDispose { }
     }
 

@@ -73,4 +73,10 @@ data class NotificationPreferencesDto(
     val sellingSuggestions: Boolean = true,
     val activeCount: Int = 0,
     val totalCount: Int = 7,
+    /** Fase 42: which toggles the backend actually sends, by field name. */
+    val supported: Map<String, Boolean> = emptyMap(),
+    val supportedCount: Int? = null,
+    val supportedActiveCount: Int? = null,
+    /** How long before an order expires the `ORDER_EXPIRING` push is sent. */
+    val orderExpiringWarningMinutes: Int = 10,
 )
