@@ -61,6 +61,10 @@ fun NotificationPreferencesDto.toDomain(): NotificationPreferences = Notificatio
     ),
     activeCount = activeCount,
     totalCount = totalCount,
+    supported = NotificationPreference.entries
+        .filterTo(mutableSetOf()) { supported[it.fieldName] == true }
+        .ifEmpty { NotificationPreferences.DEFAULT_SUPPORTED },
+    orderExpiringWarningMinutes = orderExpiringWarningMinutes,
 )
 
 /** The JSON field of `/notifications/preferences` that stores this toggle. */

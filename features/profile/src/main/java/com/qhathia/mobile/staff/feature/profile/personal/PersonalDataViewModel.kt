@@ -28,7 +28,8 @@ import javax.inject.Inject
  * Datos personales. [profile] holds the last saved values; [fullName] and [phone] are what the
  * merchant is typing. Field errors are derived from the text, and shown only once a field differs
  * from its saved value, so a legacy value that breaks today's rules does not open the screen in red.
- * [bannerErrorRes] carries save failures that belong to no field.
+ * [bannerErrorRes] carries save failures that belong to no field. [isDiscardDialogVisible] is the
+ * "¿Descartar cambios?" asked when leaving with unsaved changes.
  */
 data class PersonalDataUiState(
     val profile: LoadState<UserProfile> = LoadState.Loading,
@@ -36,6 +37,7 @@ data class PersonalDataUiState(
     val phone: String = "",
     val isSaving: Boolean = false,
     @param:StringRes val bannerErrorRes: Int? = null,
+    val isDiscardDialogVisible: Boolean = false,
 ) {
     private val saved: UserProfile? get() = profile.valueOrNull
 
@@ -55,13 +57,17 @@ data class PersonalDataUiState(
 
     @get:StringRes
     val phoneErrorRes: Int?
-        get() = if (phoneChanged && !PersonalDataValidation.isValidPhone(phone, saved?.phone)) {
+        get() = if (phoneChanged && !PersonalDataValidation.isValidPhone(phone)) {
             R.string.personal_error_phone
         } else {
             null
         }
 
     val isDirty: Boolean get() = nameChanged || phoneChanged
+
+    /** A saved phone was emptied: saving removes it, and the field says so. */
+    val isRemovingPhone: Boolean
+        get() = phone.isEmpty() && !saved?.phone.isNullOrEmpty()
 
     val canSave: Boolean
         get() = isDirty && nameErrorRes == null && phoneErrorRes == null && !isSaving
@@ -72,10 +78,16 @@ sealed interface PersonalDataUiEvent {
     data class PhoneChanged(val value: String) : PersonalDataUiEvent
     data object Save : PersonalDataUiEvent
     data object Retry : PersonalDataUiEvent
+
+    /** System back or the top bar's back. */
+    data object BackRequested : PersonalDataUiEvent
+    data object DiscardConfirmed : PersonalDataUiEvent
+    data object DiscardDismissed : PersonalDataUiEvent
 }
 
 sealed interface PersonalDataUiEffect {
     data object Saved : PersonalDataUiEffect
+    data object NavigateBack : PersonalDataUiEffect
 }
 
 /**
@@ -111,6 +123,22 @@ class PersonalDataViewModel @Inject constructor(
             }
             PersonalDataUiEvent.Save -> save()
             PersonalDataUiEvent.Retry -> load()
+            PersonalDataUiEvent.BackRequested -> onBackRequested()
+            PersonalDataUiEvent.DiscardConfirmed -> {
+                _uiState.update { it.copy(isDiscardDialogVisible = false) }
+                _uiEffect.tryEmit(PersonalDataUiEffect.NavigateBack)
+            }
+            PersonalDataUiEvent.DiscardDismissed -> _uiState.update { it.copy(isDiscardDialogVisible = false) }
+        }
+    }
+
+    /** Leaving mid-save would drop its result, so back waits; unsaved changes ask first. */
+    private fun onBackRequested() {
+        val state = _uiState.value
+        when {
+            state.isSaving -> Unit
+            state.isDirty -> _uiState.update { it.copy(isDiscardDialogVisible = true) }
+            else -> _uiEffect.tryEmit(PersonalDataUiEffect.NavigateBack)
         }
     }
 

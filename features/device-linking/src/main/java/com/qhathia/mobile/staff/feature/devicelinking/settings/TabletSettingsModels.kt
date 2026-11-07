@@ -17,7 +17,8 @@ enum class SettingKey { IDLE_SHOWCASE, VOICE_ASSISTANT, BRIGHTNESS, KIOSK_MODE, 
  * flight is already applied — and [saving] the controls waiting for the server. [device] feeds the
  * Información group and is null when the device list could not be read. [pinDialog] is non-null
  * while the exit-PIN dialog is open. [isUnlinkConfirmVisible] is the "¿Desvincular?" dialog and
- * [isUnlinking] the unlink request in flight.
+ * [isUnlinking] the unlink request in flight. [renameDialog] is non-null while "Nombre" is being
+ * edited.
  */
 data class TabletSettingsUiState(
     val load: TabletSettingsLoad = TabletSettingsLoad.LOADING,
@@ -27,12 +28,22 @@ data class TabletSettingsUiState(
     val pinDialog: ExitPinDialogState? = null,
     val isUnlinkConfirmVisible: Boolean = false,
     val isUnlinking: Boolean = false,
+    val renameDialog: RenameDialogState? = null,
 ) {
     fun isSaving(key: SettingKey): Boolean = key in saving
 
     /** Kiosk mode with no PIN: anyone at the stand can leave it, which the kiosk row warns about. */
     val isKioskWithoutPin: Boolean
         get() = settings?.let { it.kioskMode && !it.exitPinSet } == true
+
+    /** Nothing is being edited, so a silent refresh may replace what is shown. */
+    val canRefreshSilently: Boolean
+        get() = load == TabletSettingsLoad.LOADED &&
+            saving.isEmpty() &&
+            pinDialog == null &&
+            renameDialog == null &&
+            !isUnlinkConfirmVisible &&
+            !isUnlinking
 }
 
 /**
@@ -54,8 +65,26 @@ data class ExitPinDialogState(
         get() = !isSaving && isValidExitPin(pin) && pin == confirmation
 }
 
+/**
+ * The rename dialog: [value] is what is typed, [current] the name it started from. Saving needs a
+ * non-blank name that differs from the current one.
+ */
+data class RenameDialogState(
+    val value: String,
+    val current: String,
+    val isSaving: Boolean = false,
+    @param:StringRes val errorRes: Int? = null,
+) {
+    val canSave: Boolean
+        get() = !isSaving && value.isNotBlank() && value.trim() != current.trim()
+}
+
 sealed interface TabletSettingsUiEvent {
     data object Retry : TabletSettingsUiEvent
+
+    /** The screen became visible / stopped being visible; the silent refresh follows it. */
+    data object ScreenStarted : TabletSettingsUiEvent
+    data object ScreenStopped : TabletSettingsUiEvent
 
     /** A switch or the brightness changed; saved straight away. */
     data class SettingChanged(val change: DeviceSettingsChange) : TabletSettingsUiEvent
@@ -72,13 +101,22 @@ sealed interface TabletSettingsUiEvent {
     data object UnlinkRequested : TabletSettingsUiEvent
     data object UnlinkDismissed : TabletSettingsUiEvent
     data object UnlinkConfirmed : TabletSettingsUiEvent
+
+    /** "Nombre" in Información; opens the rename dialog. */
+    data object RenameClicked : TabletSettingsUiEvent
+    data class RenameChanged(val value: String) : TabletSettingsUiEvent
+    data object RenameConfirmed : TabletSettingsUiEvent
+    data object RenameDismissed : TabletSettingsUiEvent
 }
 
 sealed interface TabletSettingsUiEffect {
     data class ShowMessage(@param:StringRes val messageRes: Int) : TabletSettingsUiEffect
 
-    /** The tablet left the store; the screen closes and Dispositivos drops its card. */
-    data class Unlinked(val deviceId: String) : TabletSettingsUiEffect
+    /**
+     * The tablet left the store; the screen closes and Dispositivos drops its card. [alreadyGone]
+     * means it had been unlinked elsewhere (the unlink answered 404).
+     */
+    data class Unlinked(val deviceId: String, val alreadyGone: Boolean = false) : TabletSettingsUiEffect
 }
 
 /** Which control a change belongs to; PIN changes go through the dialog instead. */

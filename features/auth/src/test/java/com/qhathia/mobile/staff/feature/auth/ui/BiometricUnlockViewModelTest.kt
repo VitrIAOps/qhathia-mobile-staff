@@ -80,15 +80,27 @@ class BiometricUnlockViewModelTest {
     }
 
     @Test
-    fun `a removed enrollment clears the preference and continuing goes to login`() = runTest {
+    fun `a removed enrollment keeps the preference until continuing`() = runTest {
         val viewModel = createViewModel()
 
         viewModel.onEvent(BiometricUnlockUiEvent.BiometricGone)
 
         assertTrue(viewModel.uiState.value.isBiometricGone)
-        assertFalse(prefs.biometricEnabled)
+        // Clearing it now would lift the gate before the notice is seen.
+        assertTrue(prefs.biometricEnabled)
+    }
+
+    @Test
+    fun `continuing after a removed enrollment signs out, then clears the preference`() = runTest {
+        var signedOutWhenCleared: Boolean? = null
+        prefs.onSetBiometric = { signedOutWhenCleared = sessions.observeSession().first() == null }
+        val viewModel = createViewModel()
+        viewModel.onEvent(BiometricUnlockUiEvent.BiometricGone)
 
         viewModel.onEvent(BiometricUnlockUiEvent.UsePassword)
+
         assertNull(sessions.observeSession().first())
+        assertFalse(prefs.biometricEnabled)
+        assertEquals(true, signedOutWhenCleared)
     }
 }

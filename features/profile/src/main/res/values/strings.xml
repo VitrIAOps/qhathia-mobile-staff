@@ -38,14 +38,14 @@
     <string name="menu_settings_subtitle">Idioma de la app</string>
     <string name="menu_devices_title">Dispositivos</string>
     <plurals name="menu_devices_linked">
-        <item quantity="one">%d vinculado</item>
-        <item quantity="other">%d vinculados</item>
+        <item quantity="one">%d vinculada</item>
+        <item quantity="other">%d vinculadas</item>
     </plurals>
     <plurals name="menu_devices_connected">
-        <item quantity="one">%d activo</item>
-        <item quantity="other">%d activos</item>
+        <item quantity="one">%d activa</item>
+        <item quantity="other">%d activas</item>
     </plurals>
-    <!-- "5 vinculados (1 activo)": %1$s linked, %2$s connected. -->
+    <!-- "5 vinculadas (1 activa)": "tablet" is feminine. %1$s linked, %2$s connected. -->
     <string name="menu_devices_summary">%1$s (%2$s)</string>
     <string name="menu_devices_fallback">Tus tablets vitrina</string>
     <string name="menu_help_title">Ayuda</string>
@@ -91,7 +91,8 @@
     <string name="personal_save">Guardar cambios</string>
     <string name="personal_saved">Datos actualizados</string>
     <string name="personal_email_note">Es tu usuario para ingresar, por eso no se puede cambiar</string>
-    <string name="personal_phone_hint">Celular de 9 dígitos</string>
+    <string name="personal_phone_hint">Celular de 9 dígitos (opcional)</string>
+    <string name="personal_phone_will_remove">Se quitará tu celular al guardar</string>
     <string name="personal_phone_placeholder" translatable="false">999 888 777</string>
     <string name="personal_error_name">Escribe entre 2 y 150 caracteres</string>
     <string name="personal_error_phone">Ingresa un celular de 9 dígitos que empiece con 9</string>
@@ -127,7 +128,11 @@
     <string name="notifications_group_business">Tu negocio</string>
     <string name="notifications_new_order">Nuevo pedido</string>
     <string name="notifications_order_expiring">Pedido por expirar</string>
-    <string name="notifications_order_expiring_subtitle">Aviso cuando queden 2 min</string>
+    <!-- %1$d: orderExpiringWarningMinutes from the backend. -->
+    <plurals name="notifications_order_expiring_subtitle">
+        <item quantity="one">Aviso %1$d minuto antes de que venza</item>
+        <item quantity="other">Aviso %1$d minutos antes de que venza</item>
+    </plurals>
     <string name="notifications_tablet_disconnected">Tablet desconectada</string>
     <string name="notifications_out_of_stock">Producto agotado en vitrina</string>
     <string name="notifications_low_battery">Batería baja</string>
@@ -189,4 +194,9 @@
     <string name="settings_language">Idioma</string>
     <string name="settings_language_spanish" translatable="false">Español</string>
     <string name="settings_language_english" translatable="false">English</string>
+    <string name="security_session_group">%1$s · %2$d sesiones</string>
+    <string name="security_session_close_all">Cerrar todas</string>
+    <string name="security_revoke_group_title">¿Cerrar %1$d sesiones de %2$s?</string>
+    <string name="security_revoke_group_message">Se cerrarán todas las sesiones de ese equipo. Este equipo seguirá conectado.</string>
+    <string name="security_biometric_disabled_gone">Desactivamos «Ingresar con huella» porque este equipo ya no tiene huellas registradas.</string>
 </resources>

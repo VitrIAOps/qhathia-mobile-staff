@@ -89,7 +89,8 @@
     <string name="personal_save">Save changes</string>
     <string name="personal_saved">Details updated</string>
     <string name="personal_email_note">It is your login, so it cannot be changed</string>
-    <string name="personal_phone_hint">9-digit mobile number</string>
+    <string name="personal_phone_hint">9-digit mobile number (optional)</string>
+    <string name="personal_phone_will_remove">Your mobile number will be removed when you save</string>
     <string name="personal_error_name">Use between 2 and 150 characters</string>
     <string name="personal_error_phone">Enter a 9-digit mobile number starting with 9</string>
     <string name="personal_error_save_validation">Check your name and phone and try again</string>
@@ -124,7 +125,11 @@
     <string name="notifications_group_business">Your business</string>
     <string name="notifications_new_order">New order</string>
     <string name="notifications_order_expiring">Order about to expire</string>
-    <string name="notifications_order_expiring_subtitle">Alert when 2 min are left</string>
+    <!-- %1$d: orderExpiringWarningMinutes from the backend. -->
+    <plurals name="notifications_order_expiring_subtitle">
+        <item quantity="one">Alert %1$d minute before it expires</item>
+        <item quantity="other">Alert %1$d minutes before it expires</item>
+    </plurals>
     <string name="notifications_tablet_disconnected">Tablet disconnected</string>
     <string name="notifications_out_of_stock">Product out of stock in the showcase</string>
     <string name="notifications_low_battery">Low battery</string>
@@ -183,4 +188,9 @@
     <!-- Configuración -->
     <string name="settings_title">Settings</string>
     <string name="settings_language">Language</string>
+    <string name="security_session_group">%1$s · %2$d sessions</string>
+    <string name="security_session_close_all">Close all</string>
+    <string name="security_revoke_group_title">Close %1$d sessions on %2$s?</string>
+    <string name="security_revoke_group_message">Every session on that device will be closed. This device stays signed in.</string>
+    <string name="security_biometric_disabled_gone">We turned off “Sign in with fingerprint” because this device no longer has fingerprints enrolled.</string>
 </resources>

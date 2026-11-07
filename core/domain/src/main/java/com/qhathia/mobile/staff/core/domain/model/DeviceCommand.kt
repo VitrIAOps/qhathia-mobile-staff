@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.domain.model
 
+import java.time.Duration
 import java.time.Instant
 
 /**
@@ -16,10 +17,36 @@ data class DeviceCommand(
     val requestedAt: Instant?,
     val expiresAt: Instant?,
     val resultDetail: String?,
+    val deliveredAt: Instant? = null,
+    val ackedAt: Instant? = null,
 ) {
     /** True while the tablet has not confirmed the outcome yet. */
     val isInFlight: Boolean
         get() = status == DeviceCommandStatus.PENDING || status == DeviceCommandStatus.DELIVERED
+
+    /**
+     * When the command reached its final state: the tablet's ack for [DeviceCommandStatus.ACKED] and
+     * [DeviceCommandStatus.FAILED], the deadline for [DeviceCommandStatus.EXPIRED]; null otherwise.
+     */
+    val finishedAt: Instant?
+        get() = when (status) {
+            DeviceCommandStatus.ACKED, DeviceCommandStatus.FAILED -> ackedAt
+            DeviceCommandStatus.EXPIRED -> expiresAt
+            else -> null
+        }
+
+    /**
+     * Still reported in flight well past its deadline: the server has expired it, or is about to.
+     * The margin absorbs the server's own expiry latency.
+     */
+    fun isOverdue(now: Instant): Boolean {
+        val deadline = expiresAt ?: return false
+        return isInFlight && now.isAfter(deadline.plus(OVERDUE_MARGIN))
+    }
+
+    companion object {
+        val OVERDUE_MARGIN: Duration = Duration.ofSeconds(30)
+    }
 }
 
 enum class DeviceCommandType {

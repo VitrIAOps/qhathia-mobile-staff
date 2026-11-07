@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.core.network.service
 
+import io.ktor.client.request.patch
+import com.qhathia.mobile.staff.core.network.dto.RenameDeviceRequestDto
+import com.qhathia.mobile.staff.core.network.dto.PairingSessionStatusDto
 import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.dto.DeviceCommandDto
 import com.qhathia.mobile.staff.core.network.dto.DeviceDto
@@ -40,6 +43,18 @@ class DeviceApiService(
     suspend fun unlinkDevice(deviceId: String): NetworkResult<DeviceDto> =
         runCatching {
             client.post("api/v1/devices/$deviceId/unlink").body<DeviceDto>()
+        }.toNetworkResult(json)
+
+    /** Whether the tablet exchanged the code of an approved pairing session (public, read-only). */
+    suspend fun getPairingStatus(sessionId: String): NetworkResult<PairingSessionStatusDto> =
+        runCatching {
+            client.get("api/v1/devices/pairing-session/$sessionId/status").body<PairingSessionStatusDto>()
+        }.toNetworkResult(json)
+
+    /** Renames the tablet (OWNER/ADMIN); answers the device. */
+    suspend fun renameDevice(deviceId: String, body: RenameDeviceRequestDto): NetworkResult<DeviceDto> =
+        runCatching {
+            client.patch("api/v1/devices/$deviceId") { setBody(body) }.body<DeviceDto>()
         }.toNetworkResult(json)
 
     /** Queues a command (`202`). Idempotent while one of the same type is still in flight. */

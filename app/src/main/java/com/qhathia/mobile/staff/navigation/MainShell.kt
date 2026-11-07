@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.navigation
 
+import com.qhathia.mobile.staff.feature.devicelinking.navigation.TABLET_UNLINKED_ALREADY_GONE_KEY
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -276,9 +277,13 @@ fun MainShell(
                 // Shared by both screens of the graph; each pop still needs one of them on top.
                 onBack = { navController.popIfOn(DEVICE_LINKING_ROUTE, TABLET_SETTINGS_ROUTE) },
                 onOpenTabletSettings = { id -> navController.navigateOnce(tabletSettingsRoute(id)) },
-                onTabletUnlinked = { id ->
+                onTabletUnlinked = { id, alreadyGone ->
                     navController.popIfOn(TABLET_SETTINGS_ROUTE) {
-                        navController.previousBackStackEntry?.savedStateHandle?.set(TABLET_UNLINKED_RESULT_KEY, id)
+                        navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                            // The flag first: Dispositivos reacts to the id, and must already see it.
+                            handle[TABLET_UNLINKED_ALREADY_GONE_KEY] = alreadyGone
+                            handle[TABLET_UNLINKED_RESULT_KEY] = id
+                        }
                     }
                 },
             )

@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.devicelinking.settings
 
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -22,7 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun TabletSettingsScreen(
     onBack: () -> Unit,
-    onUnlinked: (deviceId: String) -> Unit,
+    onUnlinked: (deviceId: String, alreadyGone: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TabletSettingsViewModel = hiltViewModel(),
 ) {
@@ -35,9 +36,13 @@ fun TabletSettingsScreen(
             when (effect) {
                 is TabletSettingsUiEffect.ShowMessage ->
                     snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
-                is TabletSettingsUiEffect.Unlinked -> onUnlinked(effect.deviceId)
+                is TabletSettingsUiEffect.Unlinked -> onUnlinked(effect.deviceId, effect.alreadyGone)
             }
         }
+    }
+    LifecycleStartEffect(Unit) {
+        viewModel.onEvent(TabletSettingsUiEvent.ScreenStarted)
+        onStopOrDispose { viewModel.onEvent(TabletSettingsUiEvent.ScreenStopped) }
     }
 
     Box(modifier = modifier.fillMaxSize()) {

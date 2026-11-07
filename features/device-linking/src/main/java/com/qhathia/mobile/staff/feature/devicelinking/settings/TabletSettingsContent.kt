@@ -96,6 +96,8 @@ internal fun TabletSettingsContent(
         )
     }
 
+    uiState.renameDialog?.let { dialog -> RenameTabletDialog(state = dialog, onEvent = onEvent) }
+
     if (uiState.isUnlinkConfirmVisible) {
         val name = uiState.device?.name ?: stringResource(R.string.device_unnamed)
         AlertDialog(
@@ -196,7 +198,9 @@ private fun SettingsList(
             )
         }
 
-        uiState.device?.let { device -> InformationSection(device) }
+        uiState.device?.let { device ->
+            InformationSection(device = device, onRename = { onEvent(TabletSettingsUiEvent.RenameClicked) })
+        }
 
         Text(
             text = stringResource(R.string.tablet_settings_footnote),
@@ -223,7 +227,7 @@ private fun SettingsList(
 }
 
 @Composable
-private fun InformationSection(device: Device) {
+private fun InformationSection(device: Device, onRename: () -> Unit) {
     val missing = stringResource(R.string.device_missing)
     val rows = listOf(
         R.string.tablet_settings_info_name to (device.name ?: missing),
@@ -237,7 +241,8 @@ private fun InformationSection(device: Device) {
         rows.forEachIndexed { index, (labelRes, value) ->
             QhathiaNavigationRow(
                 title = stringResource(labelRes),
-                onClick = null,
+                // Only the name can be changed from here.
+                onClick = if (labelRes == R.string.tablet_settings_info_name) onRename else null,
                 showDivider = index < rows.lastIndex,
                 trailing = {
                     Text(

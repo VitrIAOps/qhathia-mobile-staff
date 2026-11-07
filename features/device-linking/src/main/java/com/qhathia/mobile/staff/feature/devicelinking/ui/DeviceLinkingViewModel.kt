@@ -1,5 +1,17 @@
 package com.qhathia.mobile.staff.feature.devicelinking.ui
 
+import kotlinx.coroutines.coroutineScope
+import java.time.Instant
+import com.qhathia.mobile.staff.feature.devicelinking.model.suggestTabletName
+import com.qhathia.mobile.staff.feature.devicelinking.model.normalizePairingCode
+import com.qhathia.mobile.staff.feature.devicelinking.model.PairingPhase
+import com.qhathia.mobile.staff.feature.devicelinking.model.MAX_TABLET_NAME_LENGTH
+import com.qhathia.mobile.staff.core.domain.usecase.UnlinkDeviceUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.RejectPairingUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.GetPairingStatusUseCase
+import com.qhathia.mobile.staff.core.domain.model.PairedDevice
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsException
+import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsError
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommand
@@ -52,6 +64,9 @@ import javax.inject.Inject
 class DeviceLinkingViewModel @Inject constructor(
     private val getDevicesUseCase: GetDevicesUseCase,
     private val pairDeviceUseCase: PairDeviceUseCase,
+    private val rejectPairingUseCase: RejectPairingUseCase,
+    private val getPairingStatusUseCase: GetPairingStatusUseCase,
+    private val unlinkDeviceUseCase: UnlinkDeviceUseCase,
     private val getCatalogCountUseCase: GetCatalogCountUseCase,
     private val sendDeviceCommandUseCase: SendDeviceCommandUseCase,
     private val getDeviceCommandsUseCase: GetDeviceCommandsUseCase,
@@ -70,6 +85,15 @@ class DeviceLinkingViewModel @Inject constructor(
     private var isScreenStarted = false
     private var pollJob: Job? = null
 
+    /** Polls the pairing session while the dialog waits for the tablet. */
+    private var pairWaitJob: Job? = null
+
+    /** The first start coincides with the initial load; later ones (back from Ajustes) refresh. */
+    private var hasStarted = false
+
+    /** When the device list was last read, so a start right after a load does not repeat it. */
+    private var lastDevicesLoadAt: Instant? = null
+
     init {
         onEvent(DeviceLinkingUiEvent.Load)
     }
@@ -80,6 +104,12 @@ class DeviceLinkingViewModel @Inject constructor(
             DeviceLinkingUiEvent.Retry -> loadDevices()
             DeviceLinkingUiEvent.ScreenStarted -> {
                 isScreenStarted = true
+                // Back from Ajustes or from the background: what is shown may be stale.
+                val lastLoad = lastDevicesLoadAt
+                if (hasStarted && (lastLoad == null || !lastLoad.plus(START_REFRESH_MIN_GAP).isAfter(clock.instant()))) {
+                    viewModelScope.launch { refreshSilently() }
+                }
+                hasStarted = true
                 ensurePolling()
             }
             DeviceLinkingUiEvent.ScreenStopped -> {
@@ -105,24 +135,31 @@ class DeviceLinkingViewModel @Inject constructor(
                         sendingCommands = state.sendingCommands.filterNot { it.deviceId == event.deviceId }.toSet(),
                     )
                 }
-                _uiEffect.tryEmit(DeviceLinkingUiEffect.ShowUnlinked)
+                _uiEffect.tryEmit(DeviceLinkingUiEffect.ShowUnlinked(event.alreadyGone))
+                viewModelScope.launch { refreshSilently() }
             }
             DeviceLinkingUiEvent.OpenPairDialog ->
                 _uiState.update {
-                    it.copy(isPairDialogVisible = true, pairCode = "", pairErrorRes = null)
-                }
-            DeviceLinkingUiEvent.DismissPairDialog ->
-                _uiState.update {
                     it.copy(
-                        isPairDialogVisible = false,
-                        isPairing = false,
+                        isPairDialogVisible = true,
                         pairCode = "",
+                        pairName = suggestTabletName(it.devices),
                         pairErrorRes = null,
+                        pairingPhase = PairingPhase.EnteringCode,
                     )
                 }
+            // Once approved, the dialog only leaves through the tablet's answer, undo or a wait.
+            DeviceLinkingUiEvent.DismissPairDialog ->
+                if (_uiState.value.pairingPhase == PairingPhase.EnteringCode) closePairDialog()
             is DeviceLinkingUiEvent.PairCodeChanged ->
-                _uiState.update { it.copy(pairCode = event.code, pairErrorRes = null) }
+                _uiState.update { it.copy(pairCode = normalizePairingCode(event.code), pairErrorRes = null) }
+            is DeviceLinkingUiEvent.PairNameChanged ->
+                _uiState.update { it.copy(pairName = event.name.take(MAX_TABLET_NAME_LENGTH)) }
             DeviceLinkingUiEvent.SubmitPair -> submitPair()
+            DeviceLinkingUiEvent.RejectPair -> rejectPair()
+            DeviceLinkingUiEvent.KeepWaiting ->
+                (_uiState.value.pairingPhase as? PairingPhase.TabletDidNotRespond)?.let { waitForTablet(it.paired) }
+            DeviceLinkingUiEvent.UndoPair -> undoPair()
         }
     }
 
@@ -134,6 +171,7 @@ class DeviceLinkingViewModel @Inject constructor(
             _uiState.update { it.copy(catalogCount = count.await().getOrNull() ?: it.catalogCount) }
             devicesResult
                 .onSuccess { devices ->
+                    lastDevicesLoadAt = clock.instant()
                     _uiState.update {
                         it.copy(
                             devices = devices.toImmutableList(),
@@ -188,70 +226,186 @@ class DeviceLinkingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * One refresh loop while the screen is visible. It ticks every [COMMAND_POLL_INTERVAL] and
+     * refreshes on every tick while something waits for a tablet, otherwise every other tick
+     * ([DEVICES_REFRESH_INTERVAL]). Deciding on each tick means a command sent mid-wait is followed
+     * at the faster pace at once. Stopped with the screen.
+     */
     private fun ensurePolling() {
-        if (!isScreenStarted || pollJob?.isActive == true || !_uiState.value.hasCommandsInFlight) return
+        if (!isScreenStarted || pollJob?.isActive == true) return
         pollJob = viewModelScope.launch {
-            while (isActive && _uiState.value.hasCommandsInFlight) {
+            var ticks = 0
+            while (isActive) {
                 delay(COMMAND_POLL_INTERVAL.toMillis())
-                val inFlightDevices = _uiState.value.commands
-                    .filterValues { byType -> byType.values.any { it.isInFlight } }
-                    .keys
-                val results = inFlightDevices.map { id -> async { id to getDeviceCommandsUseCase(id) } }.awaitAll()
-                val now = clock.instant()
-                _uiState.update { state ->
-                    val merged = state.commands.toMutableMap()
-                    results.forEach { (deviceId, result) ->
-                        result.onSuccess { commands ->
-                            merged[deviceId] = merged[deviceId].orEmpty() + commands.latestPerType(now)
-                        }
-                    }
-                    state.copy(commands = merged, now = now)
-                }
+                ticks++
+                if (_uiState.value.needsFastPolling || ticks % TICKS_PER_DEVICES_REFRESH == 0) refreshSilently()
             }
         }
     }
 
+    /**
+     * Re-reads the devices, then the commands of the tablets that need it, without a spinner; a
+     * failed read keeps what is shown. Each tablet's commands are replaced, never merged, so a
+     * command the server finished cannot linger as "Enviado".
+     */
+    private suspend fun refreshSilently() {
+        getDevicesUseCase().onSuccess { devices ->
+            lastDevicesLoadAt = clock.instant()
+            _uiState.update { it.copy(devices = devices.toImmutableList(), now = clock.instant()) }
+        }
+        val ids = _uiState.value.deviceIdsNeedingCommandPoll
+        val results = coroutineScope { ids.map { id -> async { id to getDeviceCommandsUseCase(id) } }.awaitAll() }
+        val now = clock.instant()
+        _uiState.update { state ->
+            val replaced = state.commands.toMutableMap()
+            results.forEach { (deviceId, result) ->
+                result.onSuccess { commands -> replaced[deviceId] = commands.latestPerType(now) }
+            }
+            state.copy(commands = replaced, now = now)
+        }
+    }
+
     private fun submitPair() {
-        val code = _uiState.value.pairCode
-        if (code.isBlank()) return
+        val state = _uiState.value
+        if (!state.canSubmitPair) return
         viewModelScope.launch {
             _uiState.update { it.copy(isPairing = true, pairErrorRes = null) }
-            pairDeviceUseCase(code)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(isPairDialogVisible = false, isPairing = false, pairCode = "")
-                    }
+            pairDeviceUseCase(state.pairCode, state.pairName.trim().ifBlank { null })
+                .onSuccess { paired -> waitForTablet(paired) }
+                .onFailure { throwable ->
+                    _uiState.update { it.copy(isPairing = false, pairErrorRes = throwable.toPairErrorRes()) }
+                }
+        }
+    }
+
+    /**
+     * The approval only means "approved": the tablet still has to exchange the code. Polls the
+     * session until it does — then the pairing is done — or until the wait runs out.
+     */
+    private fun waitForTablet(paired: PairedDevice) {
+        pairWaitJob?.cancel()
+        _uiState.update {
+            it.copy(isPairing = false, pairErrorRes = null, pairingPhase = PairingPhase.WaitingForTablet(paired))
+        }
+        pairWaitJob = viewModelScope.launch {
+            repeat(PAIR_STATUS_MAX_POLLS) {
+                if (getPairingStatusUseCase(paired.sessionId).getOrNull()?.tokenExchanged == true) {
+                    // This very job runs the follow-up reads, so it must not cancel itself.
+                    closePairDialog(cancelWait = false)
+                    _uiEffect.tryEmit(DeviceLinkingUiEffect.ShowPaired(paired.name))
                     loadDevices()
+                    // The tablet's first heartbeat goes out with the exchange; read again so the
+                    // new card already shows it.
+                    delay(FIRST_HEARTBEAT_GRACE.toMillis())
+                    loadDevices()
+                    return@launch
+                }
+                delay(PAIR_STATUS_POLL.toMillis())
+            }
+            _uiState.update { it.copy(pairingPhase = PairingPhase.TabletDidNotRespond(paired)) }
+        }
+    }
+
+    /** Unlinks the device an unanswered approval created; one already gone counts as undone. */
+    private fun undoPair() {
+        val state = _uiState.value
+        val paired = (state.pairingPhase as? PairingPhase.TabletDidNotRespond)?.paired ?: return
+        if (state.isUndoing) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUndoing = true, pairErrorRes = null) }
+            val result = unlinkDeviceUseCase(paired.deviceId)
+            val gone = (result.exceptionOrNull() as? DeviceSettingsException)?.error == DeviceSettingsError.NotFound
+            if (result.isSuccess || gone) {
+                closePairDialog()
+                _uiEffect.tryEmit(DeviceLinkingUiEffect.ShowPairUndone)
+                loadDevices()
+            } else {
+                _uiState.update { it.copy(isUndoing = false, pairErrorRes = R.string.device_pair_error_network) }
+            }
+        }
+    }
+
+    private fun rejectPair() {
+        val state = _uiState.value
+        if (!state.canSubmitPair) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRejecting = true, pairErrorRes = null) }
+            rejectPairingUseCase(state.pairCode)
+                .onSuccess {
+                    closePairDialog()
+                    _uiEffect.tryEmit(DeviceLinkingUiEffect.ShowPairRejected)
                 }
                 .onFailure { throwable ->
-                    _uiState.update {
-                        it.copy(isPairing = false, pairErrorRes = throwable.toPairErrorRes())
-                    }
+                    _uiState.update { it.copy(isRejecting = false, pairErrorRes = throwable.toPairErrorRes()) }
                 }
+        }
+    }
+
+    private fun closePairDialog(cancelWait: Boolean = true) {
+        if (cancelWait) pairWaitJob?.cancel()
+        _uiState.update {
+            it.copy(
+                isPairDialogVisible = false,
+                isPairing = false,
+                isRejecting = false,
+                isUndoing = false,
+                pairCode = "",
+                pairName = "",
+                pairErrorRes = null,
+                pairingPhase = PairingPhase.EnteringCode,
+            )
         }
     }
 
     private fun Throwable.toPairErrorRes(): Int =
         when ((this as? PairDeviceException)?.error) {
             PairDeviceError.InvalidCode -> R.string.device_pair_error_invalid_code
-            else -> R.string.device_pair_error_generic
+            PairDeviceError.ExpiredCode -> R.string.device_pair_error_expired
+            PairDeviceError.AlreadyUsedCode -> R.string.device_pair_error_used
+            PairDeviceError.CancelledCode -> R.string.device_pair_error_cancelled
+            is PairDeviceError.CatalogNotReady -> R.string.device_pair_error_catalog
+            PairDeviceError.CatalogCheckUnavailable -> R.string.device_pair_error_catalog_unavailable
+            PairDeviceError.Network -> R.string.device_pair_error_network
+            is PairDeviceError.Unknown, null -> R.string.device_pair_error_generic
         }
 
     companion object {
         val COMMAND_POLL_INTERVAL: Duration = Duration.ofSeconds(15)
+
+        /** The tablet beats every 60 s; reading at 30 s shows a beat at most ~30 s late. */
+        val DEVICES_REFRESH_INTERVAL: Duration = Duration.ofSeconds(30)
+
+        /** [DEVICES_REFRESH_INTERVAL] in loop ticks of [COMMAND_POLL_INTERVAL]. */
+        private val TICKS_PER_DEVICES_REFRESH = (DEVICES_REFRESH_INTERVAL.seconds / COMMAND_POLL_INTERVAL.seconds).toInt()
+
+        /** A start this soon after a load does not read again. */
+        val START_REFRESH_MIN_GAP: Duration = Duration.ofSeconds(5)
+
+        /** How often the pairing session is read while waiting for the tablet. */
+        val PAIR_STATUS_POLL: Duration = Duration.ofSeconds(2)
+
+        /** 15 reads 2 s apart: the 30 s the backend suggests waiting for the exchange. */
+        const val PAIR_STATUS_MAX_POLLS = 15
+
+        /** The tablet's first heartbeat goes out with the exchange; it is read again after this. */
+        val FIRST_HEARTBEAT_GRACE: Duration = Duration.ofSeconds(3)
         val FINISHED_COMMAND_TTL: Duration = Duration.ofMinutes(10)
     }
 }
 
 /**
- * The newest command of each type (the backend lists newest first). A finished command older than
- * [DeviceLinkingViewModel.FINISHED_COMMAND_TTL] is dropped; an in-flight one is always kept.
+ * The newest command of each type (the backend lists newest first). A finished command stays for
+ * [DeviceLinkingViewModel.FINISHED_COMMAND_TTL] counted from when it finished — an expired command
+ * finishes 10 min after it was requested, so counting from the request would hide it at once. An
+ * in-flight one is always kept.
  */
-private fun List<DeviceCommand>.latestPerType(now: java.time.Instant): Map<DeviceCommandType, DeviceCommand> =
+private fun List<DeviceCommand>.latestPerType(now: Instant): Map<DeviceCommandType, DeviceCommand> =
     sortedByDescending { it.requestedAt }
         .distinctBy { it.type }
         .filter { command ->
             command.isInFlight ||
-                command.requestedAt?.isAfter(now.minus(DeviceLinkingViewModel.FINISHED_COMMAND_TTL)) == true
+                (command.finishedAt ?: command.requestedAt)
+                    ?.isAfter(now.minus(DeviceLinkingViewModel.FINISHED_COMMAND_TTL)) == true
         }
         .associateBy { it.type }

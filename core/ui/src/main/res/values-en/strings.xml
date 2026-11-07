@@ -110,4 +110,12 @@
     <string name="delete_product_confirm_force">Delete anyway</string>
     <string name="delete_product_pending_orders_fallback">This product is in pending orders (%1$s). Confirm or reject them first, or delete it anyway.</string>
     <string name="saving_product_cd">Saving product…</string>
+    <string name="password_show_cd">Show password</string>
+    <string name="password_hide_cd">Hide password</string>
+
+    <!-- Leaving a form with unsaved changes -->
+    <string name="discard_changes_title">Discard changes?</string>
+    <string name="discard_changes_message">If you leave now, all unsaved changes will be lost.</string>
+    <string name="discard_changes_confirm">Discard</string>
+    <string name="discard_changes_dismiss">Keep editing</string>
 </resources>

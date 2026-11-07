@@ -7,6 +7,7 @@ import com.qhathia.mobile.staff.core.domain.usecase.ChangePasswordUseCase
 import com.qhathia.mobile.staff.core.testing.FakeAccountSecurityRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
 import com.qhathia.mobile.staff.feature.profile.R
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -104,5 +105,72 @@ class ChangePasswordViewModelTest {
         viewModel.onEvent(ChangePasswordUiEvent.CurrentPasswordChanged("Vieja1234"))
 
         assertNull(viewModel.uiState.value.currentPasswordErrorRes)
+    }
+
+    @Test
+    fun `back with empty fields leaves at once`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ChangePasswordUiEvent.BackRequested)
+            assertEquals(ChangePasswordUiEffect.NavigateBack, awaitItem())
+        }
+        assertFalse(viewModel.uiState.value.isDiscardDialogVisible)
+    }
+
+    @Test
+    fun `back with a typed field asks before leaving`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ChangePasswordUiEvent.ConfirmationChanged("x"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ChangePasswordUiEvent.BackRequested)
+            assertTrue(viewModel.uiState.value.isDiscardDialogVisible)
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `keep editing keeps the typed values`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fill(current = "Vieja123", new = "Nueva1234")
+        viewModel.onEvent(ChangePasswordUiEvent.BackRequested)
+
+        viewModel.onEvent(ChangePasswordUiEvent.DiscardDismissed)
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isDiscardDialogVisible)
+        assertEquals("Vieja123", state.currentPassword)
+        assertEquals("Nueva1234", state.newPassword)
+        assertEquals("Nueva1234", state.confirmation)
+    }
+
+    @Test
+    fun `discard leaves without sending anything`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fill(current = "Vieja123", new = "Nueva1234")
+        viewModel.onEvent(ChangePasswordUiEvent.BackRequested)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ChangePasswordUiEvent.DiscardConfirmed)
+            assertEquals(ChangePasswordUiEffect.NavigateBack, awaitItem())
+        }
+        assertTrue(security.passwordChanges.isEmpty())
+    }
+
+    @Test
+    fun `back while submitting does nothing`() = runTest {
+        security.changePasswordGate = CompletableDeferred()
+        val viewModel = createViewModel()
+        viewModel.fill(current = "Vieja123", new = "Nueva1234")
+        viewModel.onEvent(ChangePasswordUiEvent.Submit)
+        assertTrue(viewModel.uiState.value.isSubmitting)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ChangePasswordUiEvent.BackRequested)
+            expectNoEvents()
+        }
+        assertFalse(viewModel.uiState.value.isDiscardDialogVisible)
+        security.changePasswordGate?.complete(Unit)
     }
 }

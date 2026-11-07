@@ -110,14 +110,39 @@ private fun SessionsBody(uiState: SecurityUiState, onEvent: (SecurityUiEvent) ->
             message = stringResource(R.string.security_sessions_error),
             onRetry = { onEvent(SecurityUiEvent.RetrySessions) },
         )
-        is LoadState.Loaded -> sessions.value.forEachIndexed { index, session ->
-            SessionRow(
-                session = session,
-                now = uiState.now,
-                isRevoking = session.sessionId in uiState.revokingIds,
-                onClose = { onEvent(SecurityUiEvent.RevokeRequested(session)) },
-                showDivider = index < sessions.value.lastIndex,
-            )
+        is LoadState.Loaded -> {
+            val current = uiState.currentSession
+            val groups = uiState.otherGroups
+            current?.let { session ->
+                SessionRow(
+                    session = session,
+                    now = uiState.now,
+                    isRevoking = false,
+                    onClose = {},
+                    showDivider = groups.isNotEmpty(),
+                )
+            }
+            groups.forEachIndexed { index, group ->
+                val showDivider = index < groups.lastIndex
+                val single = group.sessions.singleOrNull()
+                if (single != null) {
+                    SessionRow(
+                        session = single,
+                        now = uiState.now,
+                        isRevoking = single.sessionId in uiState.revokingIds,
+                        onClose = { onEvent(SecurityUiEvent.RevokeRequested(single)) },
+                        showDivider = showDivider,
+                    )
+                } else {
+                    SessionGroupRow(
+                        group = group,
+                        now = uiState.now,
+                        isRevoking = group.sessions.any { it.sessionId in uiState.revokingIds },
+                        onCloseAll = { onEvent(SecurityUiEvent.RevokeGroupRequested(group)) },
+                        showDivider = showDivider,
+                    )
+                }
+            }
         }
     }
 }
@@ -158,8 +183,52 @@ private fun SessionRow(
     )
 }
 
+/** One device with several sessions: "qa-sim-tablet · 19 sesiones", its last use and "Cerrar todas". */
+@Composable
+private fun SessionGroupRow(
+    group: SessionGroup,
+    now: Instant,
+    isRevoking: Boolean,
+    onCloseAll: () -> Unit,
+    showDivider: Boolean,
+) {
+    val label = group.label.ifBlank { stringResource(R.string.security_session_unknown_device) }
+    QhathiaNavigationRow(
+        title = stringResource(R.string.security_session_group, label, group.sessions.size),
+        subtitle = group.lastUsedAt?.let {
+            stringResource(R.string.security_session_last_used, relativeTimeBetween(it, now).label())
+        },
+        icon = Icons.Outlined.Devices,
+        onClick = null,
+        showDivider = showDivider,
+        trailing = {
+            if (isRevoking) {
+                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+            } else {
+                TextButton(onClick = onCloseAll) {
+                    Text(
+                        text = stringResource(R.string.security_session_close_all),
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        },
+    )
+}
+
 @Composable
 private fun SecurityDialogs(uiState: SecurityUiState, onEvent: (SecurityUiEvent) -> Unit) {
+    uiState.pendingRevokeGroup?.let { group ->
+        val label = group.label.ifBlank { stringResource(R.string.security_session_unknown_device) }
+        ConfirmDialog(
+            title = stringResource(R.string.security_revoke_group_title, group.sessions.size, label),
+            message = stringResource(R.string.security_revoke_group_message),
+            confirm = stringResource(R.string.security_revoke_confirm),
+            onConfirm = { onEvent(SecurityUiEvent.RevokeGroupConfirmed) },
+            onDismiss = { onEvent(SecurityUiEvent.RevokeGroupDismissed) },
+        )
+    }
     uiState.pendingRevoke?.let { session ->
         val label = session.deviceLabel.ifBlank { stringResource(R.string.security_session_unknown_device) }
         ConfirmDialog(

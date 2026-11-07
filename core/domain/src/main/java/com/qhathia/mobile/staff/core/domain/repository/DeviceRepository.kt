@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.core.domain.repository
 
+import com.qhathia.mobile.staff.core.domain.model.PairingSessionStatus
+import com.qhathia.mobile.staff.core.domain.model.PairedDevice
 import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommand
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandType
@@ -16,13 +18,26 @@ interface DeviceRepository {
     suspend fun getDevices(): Result<List<Device>>
 
     /**
-     * Pairs (approves) a device by its pairing [code]. The device metadata (name, platform, app
-     * version) is supplied by the data layer. Failures carry a `PairDeviceException`.
+     * Approves the pairing [code], naming the tablet [name] (the backend names it when null). The
+     * tablet is not linked until it exchanges the code; follow it with [getPairingStatus]. Failures
+     * carry a `PairDeviceException`.
      */
-    suspend fun pairDevice(code: String): Result<Unit>
+    suspend fun pairDevice(code: String, name: String?): Result<PairedDevice>
 
-    /** Detaches [deviceId] from the store; it no longer appears in [getDevices]. */
+    /** Rejects the pairing [code]; the tablet shows that the store declined. Failures carry a `PairDeviceException`. */
+    suspend fun rejectPairing(code: String): Result<Unit>
+
+    /** Whether the tablet exchanged the code of the approved session [sessionId]. */
+    suspend fun getPairingStatus(sessionId: String): Result<PairingSessionStatus>
+
+    /**
+     * Detaches [deviceId] from the store; it no longer appears in [getDevices]. A device that is
+     * already gone fails with `DeviceSettingsException(NotFound)`.
+     */
     suspend fun unlinkDevice(deviceId: String): Result<Unit>
+
+    /** Renames [deviceId]. Failures carry a `DeviceSettingsException` (`NotFound`, `InvalidInput`). */
+    suspend fun renameDevice(deviceId: String, name: String): Result<Device>
 
     /** How many active products the store's catalog exposes. */
     suspend fun getCatalogCount(): Result<Int>

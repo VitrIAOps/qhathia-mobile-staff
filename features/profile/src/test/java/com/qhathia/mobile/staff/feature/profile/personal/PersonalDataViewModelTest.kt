@@ -10,6 +10,7 @@ import com.qhathia.mobile.staff.core.testing.FakeUserProfileRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.profile.R
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -113,13 +114,86 @@ class PersonalDataViewModelTest {
     }
 
     @Test
-    fun `an existing phone cannot be cleared`() = runTest {
+    fun `clearing a stored phone enables save and sends an empty string`() = runTest {
         val viewModel = createViewModel()
 
         viewModel.onEvent(PersonalDataUiEvent.PhoneChanged(""))
 
-        assertEquals(R.string.personal_error_phone, viewModel.uiState.value.phoneErrorRes)
-        assertFalse(viewModel.uiState.value.canSave)
+        val state = viewModel.uiState.value
+        assertNull(state.phoneErrorRes)
+        assertTrue(state.isRemovingPhone)
+        assertTrue(state.canSave)
+        viewModel.onEvent(PersonalDataUiEvent.Save)
+        assertEquals(FakeUserProfileRepository.Update(fullName = null, phone = ""), profiles.updates.single())
+        // The backend answers phone = null: the field stays empty and nothing is left to save.
+        assertEquals("", viewModel.uiState.value.phone)
+        assertFalse(viewModel.uiState.value.isRemovingPhone)
+        assertFalse(viewModel.uiState.value.isDirty)
+    }
+
+    @Test
+    fun `back with unsaved changes asks before leaving`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(PersonalDataUiEvent.PhoneChanged("987654321"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(PersonalDataUiEvent.BackRequested)
+            assertTrue(viewModel.uiState.value.isDiscardDialogVisible)
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `keep editing closes the dialog and keeps the typed values`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(PersonalDataUiEvent.PhoneChanged("987654321"))
+        viewModel.onEvent(PersonalDataUiEvent.BackRequested)
+
+        viewModel.onEvent(PersonalDataUiEvent.DiscardDismissed)
+
+        assertFalse(viewModel.uiState.value.isDiscardDialogVisible)
+        assertEquals("987654321", viewModel.uiState.value.phone)
+    }
+
+    @Test
+    fun `discard leaves`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(PersonalDataUiEvent.PhoneChanged("987654321"))
+        viewModel.onEvent(PersonalDataUiEvent.BackRequested)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(PersonalDataUiEvent.DiscardConfirmed)
+            assertEquals(PersonalDataUiEffect.NavigateBack, awaitItem())
+        }
+        assertFalse(viewModel.uiState.value.isDiscardDialogVisible)
+        assertTrue(profiles.updates.isEmpty())
+    }
+
+    @Test
+    fun `back with no changes leaves at once`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(PersonalDataUiEvent.BackRequested)
+            assertEquals(PersonalDataUiEffect.NavigateBack, awaitItem())
+        }
+        assertFalse(viewModel.uiState.value.isDiscardDialogVisible)
+    }
+
+    @Test
+    fun `back while saving does nothing`() = runTest {
+        profiles.updateGate = CompletableDeferred()
+        val viewModel = createViewModel()
+        viewModel.onEvent(PersonalDataUiEvent.PhoneChanged("987654321"))
+        viewModel.onEvent(PersonalDataUiEvent.Save)
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(PersonalDataUiEvent.BackRequested)
+            expectNoEvents()
+        }
+        assertFalse(viewModel.uiState.value.isDiscardDialogVisible)
+        profiles.updateGate?.complete(Unit)
     }
 
     @Test

@@ -13,11 +13,10 @@ internal object PersonalDataValidation {
     fun isValidName(name: String): Boolean = name.trim().length in NAME_LENGTH
 
     /**
-     * A 9-digit Peruvian mobile starting with 9. Empty is valid only when the profile had no phone:
-     * the update is partial, so an existing phone cannot be removed.
+     * Empty, or a 9-digit Peruvian mobile starting with 9. Empty is always valid: with no phone saved
+     * it means "still none", and with one saved it removes it (`"phone": ""` clears it, §36).
      */
-    fun isValidPhone(phone: String, storedPhone: String?): Boolean =
-        if (phone.isEmpty()) storedPhone == null else PERUVIAN_MOBILE.matches(phone)
+    fun isValidPhone(phone: String): Boolean = phone.isEmpty() || PERUVIAN_MOBILE.matches(phone)
 
     /** What the phone field keeps from typed or pasted text: digits only, at most nine. */
     fun sanitizePhone(input: String): String = input.filter(Char::isDigit).take(PHONE_DIGITS)

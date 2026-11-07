@@ -20,6 +20,7 @@ enum class BiometricHint { NONE_ENROLLED, NOT_AVAILABLE }
  *
  * @property passwordUpdatedAt `Loaded(null)` means the password was never changed.
  * @property pendingRevoke the session awaiting confirmation to close.
+ * @property pendingRevokeGroup the device whose sessions await confirmation to close together.
  * @property revokingIds sessions whose close request is in flight.
  */
 data class SecurityUiState(
@@ -28,6 +29,7 @@ data class SecurityUiState(
     val biometricEnabled: Boolean = false,
     val biometricHint: BiometricHint? = null,
     val pendingRevoke: ActiveSession? = null,
+    val pendingRevokeGroup: SessionGroup? = null,
     val isRevokeOthersConfirmVisible: Boolean = false,
     val revokingIds: Set<String> = emptySet(),
     val isRevokingOthers: Boolean = false,
@@ -36,6 +38,27 @@ data class SecurityUiState(
     /** "Cerrar sesión en otros equipos" only makes sense when another session is listed. */
     val canRevokeOthers: Boolean
         get() = sessions.valueOrNull?.any { !it.isCurrent } == true
+
+    /** This phone's session, shown first. */
+    val currentSession: ActiveSession?
+        get() = sessions.valueOrNull?.firstOrNull { it.isCurrent }
+
+    /**
+     * Every other session, one group per device name, the most recently used first: a tablet that
+     * opened 19 sessions reads as one device, not 19 rows.
+     */
+    val otherGroups: List<SessionGroup>
+        get() = sessions.valueOrNull.orEmpty()
+            .filterNot { it.isCurrent }
+            .groupBy { it.deviceLabel.trim() }
+            .map { (label, list) -> SessionGroup(label, list) }
+            .sortedByDescending { it.lastUsedAt }
+}
+
+/** The sessions of one device name. [label] is blank when the backend did not name the device. */
+data class SessionGroup(val label: String, val sessions: List<ActiveSession>) {
+    val lastUsedAt: Instant?
+        get() = sessions.mapNotNull { it.lastUsedAt }.maxOrNull()
 }
 
 sealed interface SecurityUiEvent {
@@ -56,6 +79,11 @@ sealed interface SecurityUiEvent {
     data class RevokeRequested(val session: ActiveSession) : SecurityUiEvent
     data object RevokeDismissed : SecurityUiEvent
     data object RevokeConfirmed : SecurityUiEvent
+    /** "Cerrar todas" on a device with several sessions. */
+    data class RevokeGroupRequested(val group: SessionGroup) : SecurityUiEvent
+    data object RevokeGroupDismissed : SecurityUiEvent
+    data object RevokeGroupConfirmed : SecurityUiEvent
+
     data object RevokeOthersRequested : SecurityUiEvent
     data object RevokeOthersDismissed : SecurityUiEvent
     data object RevokeOthersConfirmed : SecurityUiEvent

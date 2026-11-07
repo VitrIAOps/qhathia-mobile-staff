@@ -87,6 +87,9 @@ class SecurityViewModel @Inject constructor(
             }
             SecurityUiEvent.RevokeDismissed -> _uiState.update { it.copy(pendingRevoke = null) }
             SecurityUiEvent.RevokeConfirmed -> revokePending()
+            is SecurityUiEvent.RevokeGroupRequested -> _uiState.update { it.copy(pendingRevokeGroup = event.group) }
+            SecurityUiEvent.RevokeGroupDismissed -> _uiState.update { it.copy(pendingRevokeGroup = null) }
+            SecurityUiEvent.RevokeGroupConfirmed -> revokeGroup()
             SecurityUiEvent.RevokeOthersRequested -> _uiState.update { it.copy(isRevokeOthersConfirmVisible = true) }
             SecurityUiEvent.RevokeOthersDismissed -> _uiState.update { it.copy(isRevokeOthersConfirmVisible = false) }
             SecurityUiEvent.RevokeOthersConfirmed -> revokeOthers()
@@ -97,6 +100,8 @@ class SecurityViewModel @Inject constructor(
         _uiState.update { it.copy(now = clock.instant()) }
         if (_uiState.value.biometricEnabled && biometric != DeviceBiometricStatus.AVAILABLE) {
             viewModelScope.launch { setBiometricEnabledUseCase(false) }
+            // Turning it off is right, but not silently: say why the switch moved.
+            _uiEffect.tryEmit(SecurityUiEffect.ShowMessage(R.string.security_biometric_disabled_gone))
         }
     }
 
@@ -157,6 +162,20 @@ class SecurityViewModel @Inject constructor(
                     _uiState.update { it.copy(revokingIds = it.revokingIds - session.sessionId) }
                     _uiEffect.tryEmit(SecurityUiEffect.ShowMessage(R.string.security_revoke_error))
                 }
+        }
+    }
+
+    /** Closes every session of one device, one after the other, then reads the list again. */
+    private fun revokeGroup() {
+        val group = _uiState.value.pendingRevokeGroup ?: return
+        val ids = group.sessions.map { it.sessionId }
+        _uiState.update { it.copy(pendingRevokeGroup = null, revokingIds = it.revokingIds + ids) }
+        viewModelScope.launch {
+            var failed = false
+            ids.forEach { id -> if (revokeSessionUseCase(id).isFailure) failed = true }
+            _uiState.update { it.copy(revokingIds = it.revokingIds - ids.toSet()) }
+            loadSessions()
+            if (failed) _uiEffect.tryEmit(SecurityUiEffect.ShowMessage(R.string.security_revoke_error))
         }
     }
 
