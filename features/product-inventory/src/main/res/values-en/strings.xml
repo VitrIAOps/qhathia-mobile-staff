@@ -28,7 +28,8 @@
     <string name="inventory_price_discounted_cd">Original price %1$s, discounted price %2$s</string>
 
     <string name="inventory_register_cd">Register product</string>
-    <string name="inventory_product_image_cd">Product image</string>
+    <string name="inventory_product_photo_cd">Photo of %1$s</string>
+    <string name="inventory_product_no_photo_cd">No photo</string>
     <string name="inventory_open_detail_cd">View details</string>
 
     <string name="inventory_empty">No products to show</string>

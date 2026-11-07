@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -136,13 +137,17 @@ fun RowScope.QhathiaBottomBarItem(
                 )
             }
         }
+        val style = MaterialTheme.typography.bodyMedium
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
+            style = style,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             letterSpacing = if (selected) 0.1.sp else 0.sp,
             color = tint,
             maxLines = 1,
+            softWrap = false,
+            // At large font scales "Inventario" and "Solicitudes" shrink instead of running together.
+            autoSize = TextAutoSize.StepBased(minFontSize = MinLabelSize, maxFontSize = style.fontSize),
         )
     }
 }
@@ -167,3 +172,6 @@ private fun QhathiaBottomBarPreview() {
         }
     }
 }
+
+/** The smallest a single-line label shrinks to before it would be cut. */
+private val MinLabelSize = 10.sp

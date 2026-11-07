@@ -86,6 +86,7 @@ internal fun DetailNameField(
 ) {
     LabeledField(label = stringResource(R.string.detail_name_label), modifier = modifier) {
         QhathiaTextField(
+            label = stringResource(R.string.detail_name_label),
             value = value,
             onValueChange = onValueChange,
             placeholder = stringResource(R.string.detail_name_placeholder),
@@ -119,6 +120,7 @@ internal fun DetailDescriptionField(
             )
         }
         QhathiaTextField(
+            label = stringResource(R.string.detail_description_label),
             value = value,
             onValueChange = onValueChange,
             placeholder = stringResource(R.string.detail_description_placeholder),
@@ -182,6 +184,7 @@ internal fun DetailPriceField(
 ) {
     LabeledField(label = stringResource(R.string.detail_price_label), modifier = modifier) {
         QhathiaTextField(
+            label = stringResource(R.string.detail_price_label),
             value = value,
             onValueChange = onValueChange,
             placeholder = stringResource(R.string.detail_price_placeholder),
@@ -205,6 +208,7 @@ internal fun DetailQuantityField(
 ) {
     LabeledField(label = stringResource(R.string.detail_quantity_label), modifier = modifier) {
         QhathiaTextField(
+            label = stringResource(R.string.detail_quantity_label),
             value = value,
             onValueChange = onValueChange,
             placeholder = stringResource(
@@ -228,6 +232,7 @@ internal fun DetailTagsField(
 ) {
     LabeledField(label = stringResource(R.string.detail_tags_label), modifier = modifier) {
         QhathiaTextField(
+            label = stringResource(R.string.detail_tags_label),
             value = value,
             onValueChange = onValueChange,
             placeholder = stringResource(R.string.detail_tags_placeholder),
