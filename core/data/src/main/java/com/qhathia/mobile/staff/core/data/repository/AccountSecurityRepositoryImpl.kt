@@ -52,7 +52,7 @@ class AccountSecurityRepositoryImpl @Inject constructor(
         return when (val result = apiService.changePassword(request)) {
             is NetworkResult.Success -> Result.success(Unit)
             is NetworkResult.HttpError ->
-                Result.failure(ChangePasswordException(result.code.toChangePasswordError()))
+                Result.failure(ChangePasswordException(result.toChangePasswordError()))
             is NetworkResult.NetworkError ->
                 Result.failure(ChangePasswordException(ChangePasswordError.Network))
         }
@@ -61,14 +61,19 @@ class AccountSecurityRepositoryImpl @Inject constructor(
     private suspend fun currentRefreshToken(): String? =
         sessionRepository.observeSession().first()?.tokens?.refreshToken
 
-    private fun Int.toChangePasswordError(): ChangePasswordError = when (this) {
-        401 -> ChangePasswordError.WrongCurrent
-        400 -> ChangePasswordError.SameAsCurrent
-        422 -> ChangePasswordError.Validation
-        else -> ChangePasswordError.Unknown("HTTP $this")
+    /**
+     * By the ProblemDetail `errorCode` first: only `CURRENT_PASSWORD_INCORRECT` means a wrong
+     * password. Any other 401 is about the session, which the client's auth plugin already handled.
+     */
+    private fun NetworkResult.HttpError.toChangePasswordError(): ChangePasswordError = when {
+        code == 401 && problem?.errorCode == ERROR_CURRENT_PASSWORD_INCORRECT -> ChangePasswordError.WrongCurrent
+        code == 400 -> ChangePasswordError.SameAsCurrent
+        code == 422 -> ChangePasswordError.Validation
+        else -> ChangePasswordError.Unknown("HTTP $code")
     }
 
     private companion object {
         const val HTTP_NOT_FOUND = 404
+        const val ERROR_CURRENT_PASSWORD_INCORRECT = "CURRENT_PASSWORD_INCORRECT"
     }
 }
