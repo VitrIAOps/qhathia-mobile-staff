@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.qhathia.mobile.staff.core.ui.R
+import com.qhathia.mobile.staff.core.ui.format.toPenPrice
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import kotlinx.collections.immutable.ImmutableList
@@ -85,17 +86,17 @@ fun QhathiaDiscountDialog(
 
                 Spacer(Modifier.height(Dimens.SpaceLg))
 
-                val originalPriceCd = stringResource(R.string.discount_original_price_cd, originalPrice)
+                val originalPriceCd = stringResource(R.string.discount_original_price_cd, originalPrice.toPenPrice())
                 Text(
-                    text = stringResource(R.string.discount_original_price_format, originalPrice),
+                    text = originalPrice.toPenPrice(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textDecoration = TextDecoration.LineThrough,
                     modifier = Modifier.semantics { contentDescription = originalPriceCd },
                 )
-                val resultingPriceCd = stringResource(R.string.discount_resulting_price_cd, resultingPrice)
+                val resultingPriceCd = stringResource(R.string.discount_resulting_price_cd, resultingPrice.toPenPrice())
                 Text(
-                    text = stringResource(R.string.discount_price_format, resultingPrice),
+                    text = resultingPrice.toPenPrice(),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,

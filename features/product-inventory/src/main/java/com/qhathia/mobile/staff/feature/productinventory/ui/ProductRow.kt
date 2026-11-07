@@ -50,6 +50,7 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.ui.format.toPenPrice
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.feature.productinventory.R
@@ -266,28 +267,28 @@ private fun ProductRowActions(
 private fun ProductPrice(price: Double, discountedPrice: Double?, modifier: Modifier = Modifier) {
     if (discountedPrice == null) {
         Text(
-            text = stringResource(R.string.inventory_price_format, price),
+            text = price.toPenPrice(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = modifier,
         )
         return
     }
-    val description = stringResource(R.string.inventory_price_discounted_cd, price, discountedPrice)
+    val description = stringResource(R.string.inventory_price_discounted_cd, price.toPenPrice(), discountedPrice.toPenPrice())
     FlowRow(
         modifier = modifier.clearAndSetSemantics { contentDescription = description },
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
         itemVerticalAlignment = Alignment.Bottom,
     ) {
         Text(
-            text = stringResource(R.string.inventory_price_format, price),
+            text = price.toPenPrice(),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Light,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textDecoration = TextDecoration.LineThrough,
         )
         Text(
-            text = stringResource(R.string.inventory_price_format, discountedPrice),
+            text = discountedPrice.toPenPrice(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )

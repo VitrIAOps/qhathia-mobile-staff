@@ -26,8 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.Subscription
-import com.qhathia.mobile.staff.core.ui.component.sales.toSolesLabel
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaPlanProgressBar
+import com.qhathia.mobile.staff.core.ui.format.toPenPrice
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -100,7 +100,7 @@ private fun TitleRow() {
 @Composable
 private fun SubscriptionDetails(subscription: Subscription, now: Instant) {
     val locale = currentLocale()
-    BodyText(stringResource(R.string.subscription_price_monthly, subscription.priceMonthlyPen.toSolesLabel()))
+    BodyText(stringResource(R.string.subscription_price_monthly, subscription.priceMonthlyPen.toPenPrice()))
     subscription.endsAt?.let { endsAt ->
         Text(
             text = stringResource(R.string.subscription_renews_on, endsAt.longDateLabel(locale)),

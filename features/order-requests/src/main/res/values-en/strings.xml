@@ -15,7 +15,6 @@
     <!-- Card -->
     <string name="order_card_code">Code: %1$s</string>
     <string name="order_card_total">Total: %1$s</string>
-    <string name="order_price">S/ %1$.2f</string>
     <string name="order_action_reject">Reject</string>
     <string name="order_action_detail">View details</string>
 

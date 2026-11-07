@@ -3,6 +3,7 @@ package com.qhathia.mobile.staff.feature.productdetail.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.qhathia.mobile.staff.core.common.validation.formatPriceInput
 import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.parsePrice
 import com.qhathia.mobile.staff.core.common.validation.parseQuantity
@@ -256,9 +257,9 @@ class ProductDetailViewModel @Inject constructor(
      */
     private fun ProductDetailUiState.seededFrom(product: ProductDetail) = copy(
         name = product.name,
-        price = formatPrice(product.price),
+        price = formatPriceInput(product.price),
         serverPricing = ServerPricing(
-            priceText = formatPrice(product.price),
+            priceText = formatPriceInput(product.price),
             discountedPrice = product.discountedPrice,
             discountEndsAt = product.discountEndsAt,
         ),
@@ -636,7 +637,3 @@ class ProductDetailViewModel @Inject constructor(
         is UpdateProductError.Unknown, null -> R.string.detail_error_unknown
     }
 }
-
-/** Renders the price without a trailing `.0` for whole amounts, matching how the merchant types it. */
-private fun formatPrice(price: Double): String =
-    if (price % 1.0 == 0.0) price.toLong().toString() else price.toString()

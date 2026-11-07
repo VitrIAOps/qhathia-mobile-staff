@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.ui.R
+import com.qhathia.mobile.staff.core.ui.format.toPenPrice
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -118,10 +119,10 @@ fun QhathiaDiscountToggleRow(
                     modifier = Modifier.weight(1f),
                 )
                 if (finalPrice != null) {
-                    val finalPriceCd = stringResource(R.string.discount_resulting_price_cd, finalPrice)
+                    val finalPriceCd = stringResource(R.string.discount_resulting_price_cd, finalPrice.toPenPrice())
                     Spacer(Modifier.width(Dimens.SpaceSm))
                     Text(
-                        text = stringResource(R.string.discount_price_format, finalPrice),
+                        text = finalPrice.toPenPrice(),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
