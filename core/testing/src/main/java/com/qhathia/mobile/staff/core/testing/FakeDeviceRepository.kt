@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.testing
 
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
 import com.qhathia.mobile.staff.core.domain.model.PairingSessionStatus
 import com.qhathia.mobile.staff.core.domain.model.PairedDevice
 import com.qhathia.mobile.staff.core.domain.model.Device
@@ -34,7 +35,10 @@ class FakeDeviceRepository : DeviceRepository {
 
     /** Every code sent to [rejectPairing], in order. */
     val rejectedCodes: MutableList<String> = mutableListOf()
-    var catalogCountResult: Result<Int> = Result.success(12)
+    var catalogCountResult: Result<CatalogCount> = Result.success(CatalogCount(active = 12, visible = 12))
+
+    var catalogCountCallCount: Int = 0
+        private set
     var unlinkResult: Result<Unit> = Result.success(Unit)
 
     /** Every device id sent to [unlinkDevice], in order. */
@@ -107,7 +111,10 @@ class FakeDeviceRepository : DeviceRepository {
         return unlinkResult
     }
 
-    override suspend fun getCatalogCount(): Result<Int> = catalogCountResult
+    override suspend fun getCatalogCount(): Result<CatalogCount> {
+        catalogCountCallCount++
+        return catalogCountResult
+    }
 
     override suspend fun sendCommand(
         deviceId: String,

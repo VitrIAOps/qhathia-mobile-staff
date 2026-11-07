@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.devicelinking.ui
 
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
+import com.qhathia.mobile.staff.core.ui.component.time.rememberShortTimeFormatter
 import java.util.Locale
 import com.qhathia.mobile.staff.feature.devicelinking.model.RestartPhase
 import androidx.compose.ui.platform.LocalDensity
@@ -75,7 +77,7 @@ import java.time.Instant
 @Composable
 internal fun DeviceCard(
     device: Device,
-    catalogCount: Int?,
+    catalogCount: CatalogCount?,
     now: Instant,
     refreshCommand: DeviceCommand?,
     restartCommand: DeviceCommand?,
@@ -197,11 +199,12 @@ private fun DeviceIdentity(device: Device, connected: Boolean, onOpenSettings: (
 }
 
 /**
- * Product count and "Actualizado hace X". [updatedAt] is the most recent of the tablet's catalog
- * sync and its last report, so the line shows the last time the tablet was in touch.
+ * The products the tablet shows, how many it hides (out of stock, low on stock, "a consultar"), and
+ * "Actualizado hace X". [updatedAt] is the most recent of the tablet's catalog sync and its last
+ * report, so the line shows the last time the tablet was in touch.
  */
 @Composable
-private fun CatalogBox(catalogCount: Int?, updatedAt: Instant?, now: Instant) {
+private fun CatalogBox(catalogCount: CatalogCount?, updatedAt: Instant?, now: Instant) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -215,12 +218,20 @@ private fun CatalogBox(catalogCount: Int?, updatedAt: Instant?, now: Instant) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = catalogCount?.let { pluralStringResource(R.plurals.device_catalog_products, it, it) }
+            text = catalogCount?.shown?.let { pluralStringResource(R.plurals.device_catalog_products, it, it) }
                 ?: stringResource(R.string.device_missing),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
+        val hidden = catalogCount?.hidden ?: 0
+        if (hidden > 0) {
+            Text(
+                text = pluralStringResource(R.plurals.device_catalog_hidden, hidden, hidden),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (updatedAt != null) {
             Text(
                 text = stringResource(R.string.device_catalog_updated, relativeTimeBetween(updatedAt, now).label()),
@@ -390,7 +401,7 @@ private fun DeviceCommand.statusLabel(now: Instant): String? = when {
 @Composable
 private fun DeviceCommand.statusLabel(): String? = when (status) {
     DeviceCommandStatus.PENDING, DeviceCommandStatus.DELIVERED -> expiresAt
-        ?.let { stringResource(R.string.device_command_sent_retry_at, it.toShortLocalTime()) }
+        ?.let { stringResource(R.string.device_command_sent_retry_at, rememberShortTimeFormatter().format(it)) }
         ?: stringResource(R.string.device_command_sent)
     DeviceCommandStatus.ACKED -> stringResource(R.string.device_command_ready)
     DeviceCommandStatus.FAILED -> resultDetail
@@ -433,7 +444,7 @@ private fun DeviceCardPreview() {
     QhathiaTheme {
         DeviceCard(
             device = DeviceLinkingPreviewData.connected,
-            catalogCount = 12,
+            catalogCount = CatalogCount(active = 12, visible = 10),
             now = DeviceLinkingPreviewData.now,
             refreshCommand = null,
             restartCommand = null,
@@ -452,7 +463,7 @@ private fun DeviceCardCommandInFlightPreview() {
     QhathiaTheme {
         DeviceCard(
             device = DeviceLinkingPreviewData.disconnected,
-            catalogCount = 12,
+            catalogCount = CatalogCount(active = 12, visible = 10),
             now = DeviceLinkingPreviewData.now,
             refreshCommand = DeviceCommand(
                 id = "c1",

@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
 import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandType
@@ -218,7 +219,7 @@ private fun DeviceLinkingContentPreview() {
         DeviceLinkingContent(
             uiState = DeviceLinkingUiState(
                 devices = persistentListOf(DeviceLinkingPreviewData.connected, DeviceLinkingPreviewData.disconnected),
-                catalogCount = 12,
+                catalogCount = CatalogCount(active = 12, visible = 10),
                 now = DeviceLinkingPreviewData.now,
                 commands = mapOf(
                     "d1" to mapOf(

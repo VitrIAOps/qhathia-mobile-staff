@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.data.repository
 
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
 import java.util.Locale
 import com.qhathia.mobile.staff.core.network.dto.RenameDeviceRequestDto
 import com.qhathia.mobile.staff.core.domain.model.PairingSessionStatus
@@ -89,8 +90,11 @@ class DeviceRepositoryImpl @Inject constructor(
             is NetworkResult.NetworkError -> Result.failure(DeviceSettingsException(DeviceSettingsError.Network))
         }
 
-    override suspend fun getCatalogCount(): Result<Int> =
-        catalogApiService.getCount().asDomainResult { it.activeProducts.coerceAtLeast(0) }
+    override suspend fun getCatalogCount(): Result<CatalogCount> =
+        catalogApiService.getCount().asDomainResult { dto ->
+            val active = dto.activeProducts.coerceAtLeast(0)
+            CatalogCount(active = active, visible = dto.visibleProducts?.coerceIn(0, active))
+        }
 
     override suspend fun sendCommand(
         deviceId: String,

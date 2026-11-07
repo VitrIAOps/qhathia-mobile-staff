@@ -56,6 +56,18 @@ data class StoreSettingsDto(
 @Serializable
 data class CatalogCountDto(
     val activeProducts: Int = 0,
+    /** Fase 42: what a tablet actually shows, with the same filter as `/catalog/by-category`. */
+    val visibleProducts: Int? = null,
+    /** Fase 42: why the rest are hidden. */
+    val hidden: CatalogHiddenDto? = null,
+)
+
+@Serializable
+data class CatalogHiddenDto(
+    val outOfStock: Int = 0,
+    val lowStock: Int = 0,
+    val consult: Int = 0,
+    val noActiveCategory: Int = 0,
 )
 
 /**

@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.devicelinking.ui
 
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
 import java.time.Instant
 import com.qhathia.mobile.staff.feature.devicelinking.model.RestartPhase
 import com.qhathia.mobile.staff.feature.devicelinking.model.RESTART_BACK_TIMEOUT
@@ -97,7 +98,7 @@ class DeviceLinkingViewModelTest {
 
         assertEquals(2, state.devices.size)
         assertTrue(state.hasDevices)
-        assertEquals(12, state.catalogCount)
+        assertEquals(CatalogCount(active = 12, visible = 12), state.catalogCount)
         assertFalse(state.isLoading)
         assertFalse(state.isError)
     }
@@ -550,6 +551,65 @@ class DeviceLinkingViewModelTest {
         clock.advanceBy(Duration.ofSeconds(10))
         viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
         assertEquals(loadsAfterInit + 1, repository.getDevicesCallCount)
+    }
+
+    @Test
+    fun `coming back to the screen re-reads the catalog count`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+        val countsBefore = repository.catalogCountCallCount
+        repository.catalogCountResult = Result.success(CatalogCount(active = 51, visible = 47))
+
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStopped)
+        clock.advanceBy(Duration.ofSeconds(10))
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+
+        assertEquals(countsBefore + 1, repository.catalogCountCallCount)
+        assertEquals(CatalogCount(active = 51, visible = 47), viewModel.uiState.value.catalogCount)
+    }
+
+    @Test
+    fun `a catalog refresh turning ACKED re-reads the count once`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+        viewModel.onEvent(DeviceLinkingUiEvent.RefreshCatalog("device-1"))
+        val countsBefore = repository.catalogCountCallCount
+        repository.catalogCountResult = Result.success(CatalogCount(active = 13, visible = 13))
+        repository.commandsResults["device-1"] = Result.success(
+            listOf(TestFixtures.deviceCommand(id = "cmd-1", status = DeviceCommandStatus.ACKED)),
+        )
+
+        advancePoll()
+        assertEquals(countsBefore + 1, repository.catalogCountCallCount)
+        assertEquals(13, viewModel.uiState.value.catalogCount?.shown)
+
+        advancePoll()
+        advancePoll()
+        assertEquals(countsBefore + 1, repository.catalogCountCallCount)
+    }
+
+    @Test
+    fun `a plain poll tick does not read the count`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+        val countsBefore = repository.catalogCountCallCount
+
+        repeat(4) { advancePoll() }
+
+        assertEquals(countsBefore, repository.catalogCountCallCount)
+    }
+
+    @Test
+    fun `a failed count re-read keeps the number shown`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+        repository.catalogCountResult = Result.failure(IOException("offline"))
+
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStopped)
+        clock.advanceBy(Duration.ofSeconds(10))
+        viewModel.onEvent(DeviceLinkingUiEvent.ScreenStarted)
+
+        assertEquals(CatalogCount(active = 12, visible = 12), viewModel.uiState.value.catalogCount)
     }
 
     // ---- Live refresh, restart phases, finished and overdue commands ----

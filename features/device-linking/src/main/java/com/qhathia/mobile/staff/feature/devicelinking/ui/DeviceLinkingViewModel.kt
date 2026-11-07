@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.devicelinking.ui
 
+import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
 import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import com.qhathia.mobile.staff.feature.devicelinking.model.suggestTabletName
@@ -107,7 +108,8 @@ class DeviceLinkingViewModel @Inject constructor(
                 // Back from Ajustes or from the background: what is shown may be stale.
                 val lastLoad = lastDevicesLoadAt
                 if (hasStarted && (lastLoad == null || !lastLoad.plus(START_REFRESH_MIN_GAP).isAfter(clock.instant()))) {
-                    viewModelScope.launch { refreshSilently() }
+                    // A product created or edited meanwhile changes the catalog count too.
+                    viewModelScope.launch { refreshSilently(includeCatalog = true) }
                 }
                 hasStarted = true
                 ensurePolling()
@@ -248,15 +250,24 @@ class DeviceLinkingViewModel @Inject constructor(
      * Re-reads the devices, then the commands of the tablets that need it, without a spinner; a
      * failed read keeps what is shown. Each tablet's commands are replaced, never merged, so a
      * command the server finished cannot linger as "Enviado".
+     *
+     * The catalog count is re-read with [includeCatalog] (coming back to the screen) and once when
+     * an "Actualizar catálogo" turns ACKED; a plain poll tick leaves it, since only product changes
+     * move it. A failed count read keeps the number shown.
      */
-    private suspend fun refreshSilently() {
-        getDevicesUseCase().onSuccess { devices ->
-            lastDevicesLoadAt = clock.instant()
-            _uiState.update { it.copy(devices = devices.toImmutableList(), now = clock.instant()) }
+    private suspend fun refreshSilently(includeCatalog: Boolean = false) {
+        coroutineScope {
+            val catalog = if (includeCatalog) async { getCatalogCountUseCase() } else null
+            getDevicesUseCase().onSuccess { devices ->
+                lastDevicesLoadAt = clock.instant()
+                _uiState.update { it.copy(devices = devices.toImmutableList(), now = clock.instant()) }
+            }
+            catalog?.await()?.onSuccess { count -> _uiState.update { it.copy(catalogCount = count) } }
         }
         val ids = _uiState.value.deviceIdsNeedingCommandPoll
         val results = coroutineScope { ids.map { id -> async { id to getDeviceCommandsUseCase(id) } }.awaitAll() }
         val now = clock.instant()
+        val before = _uiState.value.commands
         _uiState.update { state ->
             val replaced = state.commands.toMutableMap()
             results.forEach { (deviceId, result) ->
@@ -264,6 +275,18 @@ class DeviceLinkingViewModel @Inject constructor(
             }
             state.copy(commands = replaced, now = now)
         }
+        if (!includeCatalog && catalogRefreshJustAcked(before, _uiState.value.commands)) {
+            getCatalogCountUseCase().onSuccess { count -> _uiState.update { it.copy(catalogCount = count) } }
+        }
+    }
+
+    /** Whether some tablet's "Actualizar catálogo" was not ACKED in [before] and is in [after]. */
+    private fun catalogRefreshJustAcked(
+        before: Map<String, Map<DeviceCommandType, DeviceCommand>>,
+        after: Map<String, Map<DeviceCommandType, DeviceCommand>>,
+    ): Boolean = after.any { (deviceId, byType) ->
+        byType[DeviceCommandType.REFRESH_CATALOG]?.status == DeviceCommandStatus.ACKED &&
+            before[deviceId]?.get(DeviceCommandType.REFRESH_CATALOG)?.status != DeviceCommandStatus.ACKED
     }
 
     private fun submitPair() {

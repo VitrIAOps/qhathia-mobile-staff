@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.devicelinking.model
 
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
 import java.time.Duration
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
 import java.util.Locale
@@ -14,7 +15,7 @@ import java.time.Instant
 
 /**
  * Immutable snapshot of Dispositivos. [devices] is the store's paired tablets and [catalogCount] the
- * store-wide active catalog (`null` when unknown). [commands] keeps, per device, the latest command
+ * store's catalog as the tablets see it (`null` when unknown). [commands] keeps, per device, the latest command
  * of each type; [sendingCommands] are requests not yet answered.
  *
  * The pairing dialog owns its own transient sub-state: [pairCode] (always normalized to the pairing
@@ -25,7 +26,7 @@ data class DeviceLinkingUiState(
     val devices: ImmutableList<Device> = persistentListOf(),
     val isLoading: Boolean = false,
     val isError: Boolean = false,
-    val catalogCount: Int? = null,
+    val catalogCount: CatalogCount? = null,
     val commands: Map<String, Map<DeviceCommandType, DeviceCommand>> = emptyMap(),
     val sendingCommands: Set<CommandKey> = emptySet(),
     val pendingRestartDeviceId: String? = null,
