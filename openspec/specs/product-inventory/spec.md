@@ -8,6 +8,8 @@ Defines how a store owner views and filters the store's inventory in the Qhathia
 
 The Inventory screen SHALL retrieve the authenticated store's products from `GET /api/v1/products` and display each product as a row showing its primary image, name, price and availability indicator. The request SHALL be authenticated with the merchant's Bearer token via the existing authenticated HTTP client.
 
+The list SHALL be read again, quietly (keeping the rows on screen, with the active filters and search), each time the screen starts again after its first start: back to the tab, back from a pushed screen with Back, or back from the background. Pulling the list down SHALL read it again too, showing the pull indicator until the answer arrives. Pulling SHALL work on the empty and error states as well. A pull that fails SHALL keep the rows and say so; a quiet reload that fails SHALL say nothing.
+
 #### Scenario: Products load successfully
 
 - **WHEN** the merchant opens the Inventory screen and the products request succeeds with one or more products
@@ -27,6 +29,31 @@ The Inventory screen SHALL retrieve the authenticated store's products from `GET
 
 - **WHEN** the products request is in flight
 - **THEN** the screen shows a loading indicator and hides it once the request completes
+
+#### Scenario: Back to the tab
+
+- **WHEN** a product was created elsewhere and the merchant goes from Inicio back to Inventario
+- **THEN** the list is read again and the new product is listed, without a loading state replacing the rows
+
+#### Scenario: Back from a product with Back
+
+- **WHEN** a product was deleted elsewhere while its detail was open, and the merchant comes back with Back
+- **THEN** the list is read again and the product is no longer listed
+
+#### Scenario: First start does not read twice
+
+- **WHEN** the Inventory screen opens for the first time
+- **THEN** the products are requested once
+
+#### Scenario: Pull to refresh
+
+- **WHEN** the merchant pulls the list down, including when it shows "0 productos"
+- **THEN** the products are requested again and the pull indicator shows until the answer arrives
+
+#### Scenario: Pull to refresh fails
+
+- **WHEN** a pull-to-refresh request fails
+- **THEN** the rows on screen stay and an error message is shown
 
 ### Requirement: Category filter
 
@@ -398,6 +425,7 @@ On confirm the app SHALL call `DELETE /api/v1/products/{id}`. While the request 
 
 - **On success:** the dialog closes, the product is removed from the list without reloading it, the product count updates, and a message reads "Producto eliminado".
 - **When the product no longer exists (`404`):** the dialog closes, the product is removed from the list, and a message reads "Este producto ya había sido eliminado".
+- **When the product is in pending orders (`409 PRODUCT_IN_PENDING_ORDERS`):** the dialog stays open and shows the server's `detail`, with `Cancelar` and a destructive `Eliminar igual`. `Eliminar igual` calls `DELETE /api/v1/products/{id}?force=true`, whose result is handled like the first delete.
 - **On any other failure:** the dialog closes, the product stays in the list, and an error reads "No se pudo eliminar el producto. Inténtalo de nuevo".
 
 There SHALL be no undo.
@@ -421,6 +449,18 @@ There SHALL be no undo.
 #### Scenario: Already deleted elsewhere
 - **WHEN** the merchant confirms and the server answers `404`
 - **THEN** the product leaves the list and "Este producto ya había sido eliminado" is shown
+
+#### Scenario: Product in pending orders
+- **WHEN** the merchant confirms and the server answers `409 PRODUCT_IN_PENDING_ORDERS` with "Este producto está en 1 pedido pendiente (#400776)…"
+- **THEN** the dialog stays open showing that message, with `Cancelar` and `Eliminar igual`, and the product stays in the list
+
+#### Scenario: Deleting anyway
+- **WHEN** the merchant taps `Eliminar igual`
+- **THEN** the app calls `DELETE /api/v1/products/{id}?force=true` and, on `204`, the product leaves the list and "Producto eliminado" is shown
+
+#### Scenario: Cancelling after the pending-orders warning
+- **WHEN** the merchant taps `Cancelar` on the pending-orders warning
+- **THEN** the dialog closes, nothing else is requested and the product stays in the list
 
 #### Scenario: Failure
 - **WHEN** the merchant confirms and the request fails for any other reason (no connection, server error)

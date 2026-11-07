@@ -54,7 +54,7 @@ Each menu row SHALL show an icon, a title, a subtitle and a trailing chevron:
 - **Notificaciones**: "N de M alertas activas", counting only the alerts the backend supports: M is how many are supported and N how many of those are on.
 - **Seguridad**: "Contraseña, huella y sesiones".
 - **Configuración**: "Idioma de la app". Prices are not configured in the app, so the subtitle does not mention them.
-- **Dispositivos**: the number of tablets currently connected, plural-aware.
+- **Dispositivos**: the linked and active tablets, plural-aware and in the feminine ("tablet" is feminine in Spanish): "N vinculada(s) (M activa(s))".
 - **Ayuda**: "Soporte por WhatsApp y guías".
 
 While a live subtitle is loading or has failed, the row SHALL show its static fallback subtitle rather than a number.
@@ -67,9 +67,13 @@ While a live subtitle is loading or has failed, the row SHALL show its static fa
 - **WHEN** "Nuevo pedido" is turned off and the merchant returns to Mi perfil
 - **THEN** the Notificaciones row subtitle reads "1 de 2 alertas activas"
 
-#### Scenario: Connected tablets subtitle
-- **WHEN** the store has one tablet considered connected
-- **THEN** the Dispositivos row subtitle reads "1 tablet conectada"
+#### Scenario: Linked tablets subtitle
+- **WHEN** the store has three linked tablets and one is active
+- **THEN** the Dispositivos row subtitle reads "3 vinculadas (1 activa)"
+
+#### Scenario: Single tablet subtitle
+- **WHEN** the store has one linked tablet and it is active
+- **THEN** the Dispositivos row subtitle reads "1 vinculada (1 activa)"
 
 #### Scenario: Subtitle source fails
 - **WHEN** loading the notification preferences fails
