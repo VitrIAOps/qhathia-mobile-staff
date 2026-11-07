@@ -13,6 +13,7 @@ import com.qhathia.mobile.staff.core.network.dto.TopSellerItemDto
 import com.qhathia.mobile.staff.core.network.dto.TopSellersDto
 import com.qhathia.mobile.staff.core.network.dto.UnmetSearchExampleDto
 import com.qhathia.mobile.staff.core.network.dto.UnmetSearchGroupDto
+import com.qhathia.mobile.staff.core.network.dto.UnmetSearchVariantDto
 import com.qhathia.mobile.staff.core.network.dto.UnmetSearchesDto
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -118,6 +119,46 @@ class StoreInsightsMappersTest {
         assertEquals(-1, summary.highlightedBucketIndex)
         assertNull(summary.highlightedDeltaPercent)
         assertMoney("0", summary.total)
+    }
+
+    @Test
+    fun `an unmet search lists its other variants, at most three, without its own term`() {
+        val dto = UnmetSearchesDto(
+            groups = listOf(
+                UnmetSearchGroupDto(
+                    term = "soldadora",
+                    personCount = 3,
+                    variants = listOf(
+                        UnmetSearchVariantDto(term = "Soldadora", searchCount = 5),
+                        UnmetSearchVariantDto(term = "soldadora electrica", searchCount = 3),
+                        UnmetSearchVariantDto(term = "soldadora inverter", searchCount = 2),
+                        UnmetSearchVariantDto(term = "soldadora eléctrica", searchCount = 1),
+                        UnmetSearchVariantDto(term = "soldadora de punto", searchCount = 1),
+                        UnmetSearchVariantDto(term = "soldadora mig", searchCount = 1),
+                    ),
+                ),
+            ),
+        )
+
+        val suggestion = dto.toMissingProductSuggestions().single()
+
+        assertEquals(
+            listOf("soldadora electrica", "soldadora inverter", "soldadora de punto"),
+            suggestion.variants,
+        )
+        assertEquals(false, suggestion.personCountEstimated)
+    }
+
+    @Test
+    fun `an estimated count is flagged`() {
+        val dto = UnmetSearchesDto(
+            groups = listOf(UnmetSearchGroupDto(term = "pintura", personCount = 4, personCountEstimated = true)),
+        )
+
+        val suggestion = dto.toMissingProductSuggestions().single()
+
+        assertEquals(true, suggestion.personCountEstimated)
+        assertEquals(emptyList<String>(), suggestion.variants)
     }
 
     @Test
@@ -295,6 +336,38 @@ class StoreInsightsMappersTest {
         assertNull(ranking.topSellers.single().imageUrl)
         assertEquals(34, ranking.topSellers.single().unitsSold)
         assertMoney("620", ranking.immobilizedTotal)
+    }
+
+    @Test
+    fun `the ranking carries the period revenue, products sold, deleted products and asOf`() {
+        val dto = SalesRankingDto(
+            asOf = "2026-11-03T22:04:00Z",
+            topSellers = TopSellersDto(
+                totalRevenue = 2385.0,
+                periodRevenue = 2848.5,
+                productsSold = 11,
+                items = listOf(
+                    TopSellerItemDto(productId = "p1", name = "Taladro", revenue = 1870.0, unitsSold = 34),
+                    TopSellerItemDto(productId = "p2", name = "QA X OK", revenue = 515.0, unitsSold = 2, active = false),
+                ),
+            ),
+        )
+
+        val ranking = dto.toSalesRanking()
+
+        assertMoney("2848.5", ranking.periodRevenue!!)
+        assertEquals(11, ranking.productsSold)
+        assertEquals(Instant.parse("2026-11-03T22:04:00Z"), ranking.asOf)
+        assertEquals(listOf(true, false), ranking.topSellers.map { it.active })
+    }
+
+    @Test
+    fun `an older ranking answer has no period revenue, products sold nor asOf`() {
+        val ranking = SalesRankingDto().toSalesRanking()
+
+        assertNull(ranking.periodRevenue)
+        assertNull(ranking.productsSold)
+        assertNull(ranking.asOf)
     }
 
     @Test

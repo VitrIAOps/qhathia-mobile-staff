@@ -26,14 +26,17 @@ import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.salesstatistics.R
 
+private const val DISABLED_ALPHA = 0.38f
+
 /**
- * Gradient top bar: back, the "Resumen de ventas" title and share. Share renders and is announced,
- * but [onShare] has nothing to do yet.
+ * Gradient top bar: back, the "Resumen de ventas" title and share. Share is disabled while
+ * [shareEnabled] is false, that is, while the tab on screen has nothing loaded.
  */
 @Composable
 internal fun StatisticsTopBar(
     onBack: () -> Unit,
     onShare: () -> Unit,
+    shareEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -62,11 +65,11 @@ internal fun StatisticsTopBar(
                 .weight(1f)
                 .semantics { heading() },
         )
-        IconButton(onClick = onShare) {
+        IconButton(onClick = onShare, enabled = shareEnabled) {
             Icon(
                 imageVector = Icons.Outlined.Share,
                 contentDescription = stringResource(R.string.statistics_share_cd),
-                tint = QhathiaColors.onHeaderGradient,
+                tint = QhathiaColors.onHeaderGradient.copy(alpha = if (shareEnabled) 1f else DISABLED_ALPHA),
             )
         }
     }
@@ -77,6 +80,6 @@ internal fun StatisticsTopBar(
 @Composable
 private fun StatisticsTopBarPreview() {
     QhathiaTheme {
-        StatisticsTopBar(onBack = {}, onShare = {})
+        StatisticsTopBar(onBack = {}, onShare = {}, shareEnabled = true)
     }
 }

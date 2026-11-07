@@ -46,8 +46,7 @@ private val ChipIconSize = 12.dp
  * A product that is about to run out: its thumbnail, its name, how little is left, and a
  * `Reabastecer` action.
  *
- * [onRestock] is deliberately a no-op today: the suggestion carries the real product id, but there
- * is no restock flow for it to open yet.
+ * [onRestock] opens the product's Detalle, where its stock is edited.
  */
 @Composable
 internal fun RestockProductCard(

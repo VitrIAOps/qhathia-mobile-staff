@@ -20,12 +20,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.ui.component.QhathiaBadge
+import com.qhathia.mobile.staff.core.ui.component.time.rememberShortTimeFormatter
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -87,10 +91,11 @@ internal fun HomeHeader(
                 maxLines = 1,
             )
             if (lastUpdatedAt != null) {
+                val timeFormatter = rememberShortTimeFormatter()
                 Text(
                     text = stringResource(
                         R.string.home_last_updated,
-                        lastUpdatedAt.toLocalTimeLabel(),
+                        timeFormatter.format(lastUpdatedAt),
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = QhathiaColors.onHeaderGradient,
@@ -100,7 +105,16 @@ internal fun HomeHeader(
 
         IconButton(
             onClick = onOpenNotifications,
-            modifier = Modifier.clearAndSetSemantics { contentDescription = bellDescription },
+            // Stated in full: clearAndSetSemantics sits before the button's own click and role and
+            // would otherwise wipe them, leaving a node a screen reader cannot activate.
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = bellDescription
+                role = Role.Button
+                onClick {
+                    onOpenNotifications()
+                    true
+                }
+            },
         ) {
             Box {
                 Icon(

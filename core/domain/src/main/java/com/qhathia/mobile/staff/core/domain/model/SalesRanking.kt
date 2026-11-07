@@ -10,6 +10,8 @@ data class TopSellingProduct(
     val imageUrl: String?,
     val revenue: BigDecimal,
     val unitsSold: Int,
+    /** False when the product was deleted after selling; it stays in the ranking, marked. */
+    val active: Boolean = true,
 )
 
 /**
@@ -32,6 +34,10 @@ data class StalledProduct(
  * [immobilizedTotal] adds up the listed [needsAttention] products only. [needsAttentionTotalCount]
  * is how many products sold nothing in total, which can be more than are listed; null when the
  * backend did not report it.
+ *
+ * [periodRevenue] is the store's whole revenue for the period and [productsSold] how many distinct
+ * products sold, so the top sellers can be read as "S/ X de S/ Y"; [asOf] is when the figures were
+ * computed. All three are null on a backend that does not send them.
  */
 data class SalesRanking(
     val periodStart: Instant?,
@@ -41,4 +47,7 @@ data class SalesRanking(
     val immobilizedTotal: BigDecimal,
     val needsAttention: List<StalledProduct>,
     val needsAttentionTotalCount: Int? = null,
+    val periodRevenue: BigDecimal? = null,
+    val productsSold: Int? = null,
+    val asOf: Instant? = null,
 )

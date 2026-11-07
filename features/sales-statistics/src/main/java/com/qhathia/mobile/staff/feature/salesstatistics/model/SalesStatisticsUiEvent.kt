@@ -23,6 +23,12 @@ sealed interface SalesStatisticsUiEvent {
     /** The top-bar back control. */
     data object Back : SalesStatisticsUiEvent
 
-    /** The top-bar share control — designed, but with no action yet. */
+    /** The top-bar share control: shares the tab on screen, once it has loaded. */
     data object Share : SalesStatisticsUiEvent
+
+    /**
+     * The screen came back (`ON_START`): from the background or a pushed screen. Reloads the tab on
+     * screen, except the first time, which the initial load covers.
+     */
+    data object ScreenStarted : SalesStatisticsUiEvent
 }

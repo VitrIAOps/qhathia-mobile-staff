@@ -23,6 +23,7 @@ import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiE
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEvent
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiState
 import com.qhathia.mobile.staff.feature.productregister.model.parseTags
+import com.qhathia.mobile.staff.feature.productregister.navigation.PRODUCT_REGISTER_ARG_NAME
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.channels.BufferOverflow
@@ -49,6 +50,8 @@ import javax.inject.Inject
  * The form has one idempotency key, kept in [SavedStateHandle] so it survives process death, and
  * sent on every submit: a retry after a lost answer gets the product already created instead of a
  * duplicate. While submitting nothing leaves the screen, since leaving cancels the request.
+ *
+ * The form may open with a name ([PRODUCT_REGISTER_ARG_NAME]), which does not count as a change.
  */
 @HiltViewModel
 class ProductRegisterViewModel @Inject constructor(
@@ -75,6 +78,11 @@ class ProductRegisterViewModel @Inject constructor(
     val uiEffect: SharedFlow<ProductRegisterUiEffect> = _uiEffect.asSharedFlow()
 
     init {
+        // Opened from "Agregar": the searched name is a starting point, not something the merchant
+        // typed, so leaving untouched does not ask to discard it.
+        savedStateHandle.get<String>(PRODUCT_REGISTER_ARG_NAME)?.trim()?.takeIf { it.isNotEmpty() }?.let { name ->
+            _uiState.update { it.copy(name = name) }
+        }
         loadCategories()
     }
 

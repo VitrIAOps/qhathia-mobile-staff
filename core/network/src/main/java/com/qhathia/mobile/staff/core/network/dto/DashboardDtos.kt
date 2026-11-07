@@ -60,12 +60,21 @@ data class SalesRankingDto(
     val periodEnd: String? = null,
     val topSellers: TopSellersDto = TopSellersDto(),
     val needsAttention: NeedsAttentionDto = NeedsAttentionDto(),
+    /** When the figures were computed (Fase 42). */
+    val asOf: String? = null,
 )
 
+/**
+ * [totalRevenue] adds up the listed [items]; [periodRevenue] is the store's whole revenue for the
+ * period (the figure Inicio shows) and [productsSold] how many distinct products sold. The last two
+ * are null on a backend older than Fase 42.
+ */
 @Serializable
 data class TopSellersDto(
     val totalRevenue: Double = 0.0,
     val items: List<TopSellerItemDto> = emptyList(),
+    val periodRevenue: Double? = null,
+    val productsSold: Int? = null,
 )
 
 @Serializable
@@ -75,6 +84,8 @@ data class TopSellerItemDto(
     val imageUrl: String? = null,
     val revenue: Double = 0.0,
     val unitsSold: Int = 0,
+    /** False when the product was deleted after selling; it still counts in the ranking. */
+    val active: Boolean = true,
 )
 
 /**

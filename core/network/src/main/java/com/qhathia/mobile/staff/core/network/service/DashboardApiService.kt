@@ -35,12 +35,20 @@ class DashboardApiService(private val client: HttpClient) {
             }.body<SalesDashboardDto>()
         }.toNetworkResult()
 
-    /** Top sellers and stalled stock over [granularity], optionally for one category. */
-    suspend fun getRanking(granularity: String, categoryId: String?): NetworkResult<SalesRankingDto> =
+    /**
+     * Top sellers and stalled stock over [granularity], optionally for one category. [limit] caps
+     * the top sellers (the backend defaults to 3 and accepts up to 50).
+     */
+    suspend fun getRanking(
+        granularity: String,
+        categoryId: String?,
+        limit: Int = DEFAULT_RANKING_LIMIT,
+    ): NetworkResult<SalesRankingDto> =
         runCatching {
             client.get("api/v1/dashboard/ranking") {
                 parameter("granularity", granularity)
                 categoryId?.let { parameter("categoryId", it) }
+                parameter("limit", limit)
             }.body<SalesRankingDto>()
         }.toNetworkResult()
 
@@ -59,4 +67,9 @@ class DashboardApiService(private val client: HttpClient) {
                 limit?.let { parameter("limit", it) }
             }.body<RestockDto>()
         }.toNetworkResult()
+
+    companion object {
+        /** How many top sellers Ranking shows. */
+        const val DEFAULT_RANKING_LIMIT = 5
+    }
 }

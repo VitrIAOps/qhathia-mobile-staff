@@ -113,6 +113,14 @@ class HomeViewModel @Inject constructor(
             HomeUiEvent.OpenSalesStatistics -> viewModelScope.launch {
                 _uiEffect.emit(HomeUiEffect.NavigateToSalesStatistics(selectedPeriod.value))
             }
+
+            is HomeUiEvent.AddMissingProduct -> viewModelScope.launch {
+                _uiEffect.emit(HomeUiEffect.NavigateToProductRegister(event.name))
+            }
+
+            is HomeUiEvent.RestockProduct -> viewModelScope.launch {
+                _uiEffect.emit(HomeUiEffect.NavigateToProductDetail(event.productId))
+            }
         }
     }
 

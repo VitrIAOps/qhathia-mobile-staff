@@ -4,6 +4,12 @@
     <string name="statistics_title">Sales summary</string>
     <string name="statistics_back_cd">Back</string>
     <string name="statistics_share_cd">Share</string>
+    <string name="statistics_share_title">Share summary</string>
+    <string name="statistics_share_summary">Sales summary · %1$s\nSales: %2$s (%3$d sales, average ticket %4$s, %5$d units)</string>
+    <string name="statistics_share_ranking_header">Best sellers · %1$s</string>
+    <string name="statistics_share_ranking_row">%1$d. %2$s — %3$s</string>
+    <string name="statistics_share_activity">Activity · %1$s\nShoppers who used the tablet: %2$d · Products viewed: %3$d · Confirmed orders: %4$d</string>
+    <string name="statistics_share_activity_no_orders">Activity · %1$s\nShoppers who used the tablet: %2$d · Products viewed: %3$d</string>
 
     <!-- Tabs -->
     <string name="statistics_tab_summary">Summary</string>
@@ -28,6 +34,12 @@
         <item quantity="one">Brought in by your top product</item>
         <item quantity="other">Brought in by your %1$d top products</item>
     </plurals>
+    <plurals name="statistics_top_sellers_caption_share">
+        <item quantity="one">Top %1$d of %2$d product · %3$s of %4$s</item>
+        <item quantity="other">Top %1$d of %2$d products · %3$s of %4$s</item>
+    </plurals>
+    <string name="statistics_product_deleted">Deleted</string>
+    <string name="statistics_updated_at">Updated at %1$s</string>
     <string name="statistics_top_sellers_empty">No sales in this period yet.</string>
     <plurals name="statistics_units_sold">
         <item quantity="one">%1$d sold</item>
@@ -37,13 +49,13 @@
 
     <string name="statistics_needs_attention_title">Needs attention</string>
     <plurals name="statistics_needs_attention_caption">
-        <item quantity="one">Tied up in the unsold product</item>
-        <item quantity="other">Tied up in the %1$d unsold products</item>
+        <item quantity="one">Tied up in the in-stock product with no sales</item>
+        <item quantity="other">Tied up in the %1$d in-stock products with no sales</item>
     </plurals>
     <!-- %1$d listed products of %2$d without sales; only shown when %2$d is the larger. -->
     <plurals name="statistics_needs_attention_caption_partial">
-        <item quantity="one">Tied up in %1$d of %2$d unsold product</item>
-        <item quantity="other">Tied up in %1$d of the %2$d unsold products</item>
+        <item quantity="one">Tied up in %1$d of %2$d in-stock product with no sales</item>
+        <item quantity="other">Tied up in %1$d of the %2$d in-stock products with no sales</item>
     </plurals>
     <string name="statistics_needs_attention_empty">All your inventory moved in this period.</string>
     <plurals name="statistics_units_unsold">

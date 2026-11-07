@@ -114,7 +114,7 @@ internal fun HomeContent(
         item(key = "missing-products") {
             MissingProductsSection(
                 suggestions = uiState.missingProducts,
-                onAdd = { /* Inert by design — see MissingProductCard. */ },
+                onAdd = { suggestion -> onEvent(HomeUiEvent.AddMissingProduct(suggestion.name)) },
             )
         }
 
@@ -125,7 +125,7 @@ internal fun HomeContent(
         item(key = "restock-products") {
             RestockProductsSection(
                 suggestions = uiState.restockProducts,
-                onRestock = { /* Inert by design — see RestockProductCard. */ },
+                onRestock = { suggestion -> onEvent(HomeUiEvent.RestockProduct(suggestion.id)) },
             )
         }
     }

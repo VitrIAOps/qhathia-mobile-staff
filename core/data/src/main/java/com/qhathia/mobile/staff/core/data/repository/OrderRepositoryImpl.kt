@@ -13,6 +13,8 @@ import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.OrderMutationResult
 import com.qhathia.mobile.staff.core.network.service.OrderApiService
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -54,7 +56,21 @@ class OrderRepositoryImpl @Inject constructor(
         changes.tryEmit(Unit)
     }
 
-    override suspend fun refreshPendingOrderCount(): Result<Int> =
+    private val countMutex = Mutex()
+
+    /** Bumped by every successful count fetch; a waiter that sees it move takes that answer. */
+    private var countGeneration = 0L
+
+    override suspend fun refreshPendingOrderCount(reuseInFlight: Boolean): Result<Int> {
+        val seen = countGeneration
+        return countMutex.withLock {
+            // Someone fetched while we waited for the lock: their answer is fresh enough for us.
+            if (reuseInFlight && countGeneration != seen) return@withLock Result.success(pendingCount.value)
+            fetchPendingCount().onSuccess { countGeneration++ }
+        }
+    }
+
+    private suspend fun fetchPendingCount(): Result<Int> =
         when (val result = apiService.getOrders(
             statuses = listOf(OrderStatus.PENDING.name),
             query = null,
@@ -143,7 +159,9 @@ class OrderRepositoryImpl @Inject constructor(
      * after the answer), the order just handled is taken off locally so the badges do not keep it.
      */
     private suspend fun refreshCountAfterSettling() {
-        refreshPendingOrderCount().onFailure { pendingCount.update { (it - 1).coerceAtLeast(0) } }
+        // Fresh: a count request running since before the decision would still include this order.
+        refreshPendingOrderCount(reuseInFlight = false)
+            .onFailure { pendingCount.update { (it - 1).coerceAtLeast(0) } }
     }
 
     private fun OrderMutationResult.HttpError.toConfirmError(): ConfirmOrderError = when {
