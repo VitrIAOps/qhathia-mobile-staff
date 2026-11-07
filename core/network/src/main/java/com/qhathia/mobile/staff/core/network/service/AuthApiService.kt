@@ -16,6 +16,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import kotlinx.serialization.json.Json
 import javax.inject.Provider
 
 /** Header carrying the caller's refresh token so the backend can tell which session is "this one". */
@@ -31,23 +32,24 @@ const val REFRESH_TOKEN_HEADER = "X-Refresh-Token"
 class AuthApiService(
     private val publicClient: HttpClient,
     private val authenticatedClient: Provider<HttpClient>,
+    private val json: Json,
 ) {
 
     suspend fun login(request: LoginRequestDto): NetworkResult<AuthResponseDto> =
         runCatching {
             publicClient.post("api/v1/auth/login") { setBody(request) }.body<AuthResponseDto>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     suspend fun refresh(request: RefreshRequestDto): NetworkResult<AuthResponseDto> =
         runCatching {
             publicClient.post("api/v1/auth/refresh") { setBody(request) }.body<AuthResponseDto>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     suspend fun logout(request: LogoutRequestDto): NetworkResult<Unit> =
         runCatching {
             authenticatedClient.get().post("api/v1/auth/logout") { setBody(request) }
             Unit
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /**
      * The user's sessions. With [refreshToken] the backend flags this device as `current`; without
@@ -58,13 +60,13 @@ class AuthApiService(
             authenticatedClient.get().get("api/v1/auth/sessions") {
                 refreshTokenHeader(refreshToken)
             }.body<List<ActiveSessionDto>>()
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     suspend fun revokeSession(sessionId: String): NetworkResult<Unit> =
         runCatching {
             authenticatedClient.get().delete("api/v1/auth/sessions/$sessionId")
             Unit
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     /**
      * Closes every session except the one [refreshToken] belongs to. Without the token the backend
@@ -76,13 +78,13 @@ class AuthApiService(
                 refreshTokenHeader(refreshToken)
             }
             Unit
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     suspend fun changePassword(request: ChangePasswordRequestDto): NetworkResult<Unit> =
         runCatching {
             authenticatedClient.get().post("api/v1/auth/change-password") { setBody(request) }
             Unit
-        }.toNetworkResult()
+        }.toNetworkResult(json)
 
     private fun HttpRequestBuilder.refreshTokenHeader(refreshToken: String?) {
         if (refreshToken != null) header(REFRESH_TOKEN_HEADER, refreshToken)

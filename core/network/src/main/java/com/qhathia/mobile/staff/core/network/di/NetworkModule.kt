@@ -61,7 +61,8 @@ object NetworkModule {
     fun provideAuthApiService(
         @PublicClient publicClient: HttpClient,
         @AuthenticatedClient authenticatedClient: Provider<HttpClient>,
-    ): AuthApiService = AuthApiService(publicClient, authenticatedClient)
+        json: Json,
+    ): AuthApiService = AuthApiService(publicClient, authenticatedClient, json)
 
     @Provides
     @Singleton
@@ -90,8 +91,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideDeviceApiService(@AuthenticatedClient client: HttpClient): DeviceApiService =
-        DeviceApiService(client)
+    fun provideDeviceApiService(
+        @AuthenticatedClient client: HttpClient,
+        json: Json,
+    ): DeviceApiService = DeviceApiService(client, json)
 
     @Provides
     @Singleton
