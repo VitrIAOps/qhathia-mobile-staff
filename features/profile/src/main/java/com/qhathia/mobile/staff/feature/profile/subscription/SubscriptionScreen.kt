@@ -36,12 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qhathia.mobile.staff.core.domain.model.Subscription
-import com.qhathia.mobile.staff.core.ui.component.sales.toSolesLabel
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaComingSoonTag
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaGradientTopBar
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaNavigationRow
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaPlanProgressBar
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaSettingsSection
+import com.qhathia.mobile.staff.core.ui.format.toPenPrice
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -139,7 +139,7 @@ private fun PlanCard(subscription: Subscription, now: Instant) {
                 PlanBadgeRow(subscription)
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = subscription.priceMonthlyPen.toSolesLabel(),
+                        text = subscription.priceMonthlyPen.toPenPrice(),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                     )

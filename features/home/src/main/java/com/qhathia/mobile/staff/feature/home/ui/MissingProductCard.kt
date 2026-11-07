@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,12 +32,12 @@ import com.qhathia.mobile.staff.feature.home.R
 internal val MissingCardWidth = 209.dp
 
 /**
- * A product kiosk shoppers searched for and did not find: how many distinct people asked for it,
- * its canonical term, how they most often asked for it (when that says more than the term), and
- * an `Agregar` action.
+ * A product kiosk shoppers searched for and did not find: how many distinct people asked for it
+ * ("~N búsquedas" when the backend could only count searches), its canonical term, how they most
+ * often asked for it (when that says more than the term), the other terms they used, and an
+ * `Agregar` action.
  *
- * [onAdd] is deliberately a no-op today — there is no flow that creates a product from a search
- * yet, so the button renders as designed and goes nowhere. A null [onAdd] draws no button, for
+ * [onAdd] opens Registro with the term as the product name. A null [onAdd] draws no button, for
  * "También te piden", where there is nothing for the store to add.
  */
 @Composable
@@ -56,7 +58,7 @@ internal fun MissingProductCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PersonCountBlock(personCount = suggestion.personCount)
+            PersonCountBlock(personCount = suggestion.personCount, estimated = suggestion.personCountEstimated)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -78,6 +80,15 @@ internal fun MissingProductCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                if (suggestion.variants.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.home_missing_variants, suggestion.variants.joinToString(", ")),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
         if (onAdd != null) {
@@ -88,29 +99,40 @@ internal fun MissingProductCard(
 
 /**
  * The "9 / Personas" block — the whole reason the suggestion is worth acting on. It counts people,
- * not searches: one shopper retrying nine times is one person of demand.
+ * not searches: one shopper retrying nine times is one person of demand. When [estimated], the
+ * backend had no sessions to tell people apart, so it reads "~9 / Búsquedas" and says so aloud.
  */
 @Composable
 private fun PersonCountBlock(
     personCount: Int,
+    estimated: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val description = if (estimated) {
+        pluralStringResource(R.plurals.home_searches_estimated_cd, personCount, personCount)
+    } else {
+        "$personCount ${pluralStringResource(R.plurals.home_people_label, personCount)}"
+    }
     Column(
         modifier = modifier
             .background(QhathiaColors.searchCountContainer, RoundedCornerShape(Dimens.SpaceSm))
+            .clearAndSetSemantics { contentDescription = description }
             .padding(Dimens.SpaceSm),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(
-            text = personCount.toString(),
+            text = if (estimated) "~$personCount" else personCount.toString(),
             style = MaterialTheme.typography.headlineMedium,
             color = QhathiaColors.onSearchCountContainer,
             textAlign = TextAlign.Center,
             maxLines = 1,
         )
         Text(
-            text = pluralStringResource(R.plurals.home_people_label, personCount),
+            text = pluralStringResource(
+                if (estimated) R.plurals.home_searches_label else R.plurals.home_people_label,
+                personCount,
+            ),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = QhathiaColors.onSearchCountContainer,

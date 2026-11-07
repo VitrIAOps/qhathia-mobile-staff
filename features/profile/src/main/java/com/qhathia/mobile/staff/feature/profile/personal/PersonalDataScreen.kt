@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.profile.personal
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
@@ -42,6 +45,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qhathia.mobile.staff.core.domain.model.UserProfile
 import com.qhathia.mobile.staff.core.ui.component.QhathiaButton
+import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscardChangesDialog
 import com.qhathia.mobile.staff.core.ui.component.QhathiaTextField
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaComingSoonTag
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaGradientTopBar
@@ -56,7 +60,10 @@ import com.qhathia.mobile.staff.feature.profile.common.LoadingPane
 import com.qhathia.mobile.staff.feature.profile.common.initialsOf
 import com.qhathia.mobile.staff.feature.profile.hub.ProfileHubPreviewData
 
-/** Stateful Datos personales: binds the ViewModel and confirms a save with a snackbar. */
+/**
+ * Stateful Datos personales: binds the ViewModel, confirms a save with a snackbar, and routes both
+ * backs through the ViewModel so unsaved changes ask before leaving.
+ */
 @Composable
 fun PersonalDataScreen(
     onBack: () -> Unit,
@@ -66,18 +73,27 @@ fun PersonalDataScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val resources = LocalResources.current
+    val currentOnBack by rememberUpdatedState(onBack)
 
     LaunchedEffect(Unit) {
         viewModel.uiEffect.collect { effect ->
             when (effect) {
                 PersonalDataUiEffect.Saved ->
                     snackbarHostState.showSnackbar(resources.getString(R.string.personal_saved))
+                PersonalDataUiEffect.NavigateBack -> currentOnBack()
             }
         }
     }
+    BackHandler(enabled = uiState.isDirty || uiState.isSaving) {
+        viewModel.onEvent(PersonalDataUiEvent.BackRequested)
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
-        PersonalDataContent(uiState = uiState, onEvent = viewModel::onEvent, onBack = onBack)
+        PersonalDataContent(
+            uiState = uiState,
+            onEvent = viewModel::onEvent,
+            onBack = { viewModel.onEvent(PersonalDataUiEvent.BackRequested) },
+        )
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
@@ -106,6 +122,12 @@ fun PersonalDataContent(
             )
             is LoadState.Loaded -> PersonalDataBody(profile = profile.value, uiState = uiState, onEvent = onEvent)
         }
+    }
+    if (uiState.isDiscardDialogVisible) {
+        QhathiaDiscardChangesDialog(
+            onConfirm = { onEvent(PersonalDataUiEvent.DiscardConfirmed) },
+            onDismiss = { onEvent(PersonalDataUiEvent.DiscardDismissed) },
+        )
     }
 }
 
@@ -179,9 +201,12 @@ private fun PersonalDataBody(
                     onValueChange = { onEvent(PersonalDataUiEvent.PhoneChanged(it)) },
                     enabled = !uiState.isSaving,
                     errorText = uiState.phoneErrorRes?.let { stringResource(it) },
-                    helperText = stringResource(R.string.personal_phone_hint),
+                    helperText = stringResource(
+                        if (uiState.isRemovingPhone) R.string.personal_phone_will_remove else R.string.personal_phone_hint,
+                    ),
                     placeholder = stringResource(R.string.personal_phone_placeholder),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { if (uiState.canSave) onEvent(PersonalDataUiEvent.Save) }),
                     visualTransformation = PeruPhonePrefix,
                 )
             }
@@ -212,6 +237,7 @@ private fun LabelledField(
     helperText: String? = null,
     placeholder: String = label,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
@@ -225,6 +251,7 @@ private fun LabelledField(
             errorText = errorText,
             helperText = helperText,
             keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
             visualTransformation = visualTransformation,
         )
     }

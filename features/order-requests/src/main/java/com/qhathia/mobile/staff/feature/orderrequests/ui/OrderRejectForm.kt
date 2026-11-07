@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
+import com.qhathia.mobile.staff.feature.orderrequests.model.SubmitError
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +57,7 @@ internal fun OrderRejectForm(
     onCancel: () -> Unit,
     onConfirm: (String) -> Unit,
     modifier: Modifier = Modifier,
+    submitError: SubmitError? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val labels = RejectionReason.entries.associateWith { stringResource(it.labelRes) }
@@ -112,6 +114,8 @@ internal fun OrderRejectForm(
                 }
             }
         }
+
+        submitError?.let { DialogSubmitError(it) }
 
         Row(
             modifier = Modifier.fillMaxWidth(),

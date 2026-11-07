@@ -56,10 +56,8 @@
     <string name="discount_amount_label">Monto de descuento</string>
     <string name="discount_amount_placeholder">S/ 0.00</string>
     <string name="discount_quick_option">%1$d%%</string>
-    <string name="discount_original_price_format">%1$.2f</string>
-    <string name="discount_price_format">S/ %1$.2f</string>
-    <string name="discount_original_price_cd">Precio original: S/ %1$.2f</string>
-    <string name="discount_resulting_price_cd">Precio con descuento: S/ %1$.2f</string>
+    <string name="discount_original_price_cd">Precio original: %1$s</string>
+    <string name="discount_resulting_price_cd">Precio con descuento: %1$s</string>
     <string name="discount_cancel">Cancelar</string>
     <string name="discount_apply">Aplicar</string>
     <string name="discount_error_percentage">Ingresa un porcentaje entero entre 1 y 100</string>
@@ -82,7 +80,6 @@
 
     <!-- What the previews draw. This is Qhathia Discovery's own copy, shown exactly as shoppers
          read it, so it is not translated with the staff app. -->
-    <string name="preview_price_format" translatable="false">S/ %1$.2f</string>
     <string name="preview_missing_data" translatable="false">DATO NO INGRESADO</string>
     <plurals name="preview_stock_available" translatable="false">
         <item quantity="one">%d disponible</item>
@@ -134,4 +131,16 @@
     <string name="photo_source_title">Agregar foto</string>
     <string name="photo_source_camera">Tomar foto</string>
     <string name="photo_source_gallery">Elegir de la galería</string>
+    <string name="delete_product_message_unsaved">«%1$s» dejará de verse en el inventario y en la tablet. También se perderán los cambios que no guardaste. Esta acción no se puede deshacer.</string>
+    <string name="delete_product_confirm_force">Eliminar igual</string>
+    <string name="delete_product_pending_orders_fallback">Este producto está en pedidos pendientes (%1$s). Confírmalos o recházalos antes, o elimínalo igual.</string>
+    <string name="saving_product_cd">Guardando producto…</string>
+    <string name="password_show_cd">Mostrar contraseña</string>
+    <string name="password_hide_cd">Ocultar contraseña</string>
+
+    <!-- Leaving a form with unsaved changes -->
+    <string name="discard_changes_title">¿Descartar cambios?</string>
+    <string name="discard_changes_message">Si sales ahora, se borrarán todos los cambios no guardados.</string>
+    <string name="discard_changes_confirm">Descartar</string>
+    <string name="discard_changes_dismiss">Seguir editando</string>
 </resources>

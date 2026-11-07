@@ -2,6 +2,7 @@ package com.qhathia.mobile.staff.core.network.service
 
 import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.dto.AuthResponseDto
+import com.qhathia.mobile.staff.core.network.dto.ChangePasswordRequestDto
 import com.qhathia.mobile.staff.core.network.dto.LoginRequestDto
 import com.qhathia.mobile.staff.core.network.dto.LogoutRequestDto
 import io.ktor.client.HttpClient
@@ -37,7 +38,7 @@ class AuthApiServiceTest {
                 contentType(ContentType.Application.Json)
             }
         }
-        return AuthApiService(client, Provider { client })
+        return AuthApiService(client, Provider { client }, Json { ignoreUnknownKeys = true })
     }
 
     @Test
@@ -129,4 +130,25 @@ class AuthApiServiceTest {
         val error = assertInstanceOf(NetworkResult.HttpError::class.java, result)
         assertEquals(401, error.code)
     }
+
+    @Test
+    fun `given 401 CURRENT_PASSWORD_INCORRECT when changePassword then exposes errorCode and detail`() =
+        runTest {
+            val service = serviceReturning(
+                MockEngine {
+                    respond(
+                        content = """{"errorCode":"CURRENT_PASSWORD_INCORRECT","detail":"La contraseña actual no es correcta"}""",
+                        status = HttpStatusCode.Unauthorized,
+                        headers = headersOf("Content-Type", "application/problem+json"),
+                    )
+                },
+            )
+
+            val result = service.changePassword(ChangePasswordRequestDto("old", "new-password"))
+
+            val error = assertInstanceOf(NetworkResult.HttpError::class.java, result)
+            assertEquals(401, error.code)
+            assertEquals("CURRENT_PASSWORD_INCORRECT", error.problem?.errorCode)
+            assertEquals("La contraseña actual no es correcta", error.problem?.detail)
+        }
 }

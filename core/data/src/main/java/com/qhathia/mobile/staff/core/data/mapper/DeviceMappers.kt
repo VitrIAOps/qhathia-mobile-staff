@@ -77,5 +77,7 @@ fun DeviceCommandDto.toDomain(): DeviceCommand? {
         requestedAt = requestedAt.parseIsoInstant(),
         expiresAt = expiresAt.parseIsoInstant(),
         resultDetail = resultDetail?.trim()?.takeIf { it.isNotEmpty() },
+        deliveredAt = deliveredAt.parseIsoInstant(),
+        ackedAt = ackedAt.parseIsoInstant(),
     )
 }

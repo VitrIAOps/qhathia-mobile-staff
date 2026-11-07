@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.core.ui.component
 
+import com.qhathia.mobile.staff.core.ui.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -47,6 +50,7 @@ private const val PlaceholderAlpha = 0.5f
  * When [isPassword] is true the value is masked and a visibility toggle is shown.
  *
  * @param errorText shown (in the error color) when [isError]; otherwise [helperText] is shown.
+ * @param keyboardActions what the keyboard's action key does (e.g. submit on Done).
  */
 @Composable
 fun QhathiaTextField(
@@ -62,6 +66,7 @@ fun QhathiaTextField(
     errorText: String? = null,
     isPassword: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     singleLine: Boolean = true,
     minLines: Int = 1,
@@ -108,6 +113,7 @@ fun QhathiaTextField(
                 } else {
                     keyboardOptions
                 },
+                keyboardActions = keyboardActions,
                 visualTransformation = if (isPassword && !passwordVisible) {
                     PasswordVisualTransformation()
                 } else {
@@ -145,11 +151,9 @@ fun QhathiaTextField(
                                     } else {
                                         Icons.Filled.Visibility
                                     },
-                                    contentDescription = if (passwordVisible) {
-                                        "Hide password"
-                                    } else {
-                                        "Show password"
-                                    },
+                                    contentDescription = stringResource(
+                                        if (passwordVisible) R.string.password_hide_cd else R.string.password_show_cd,
+                                    ),
                                     tint = colors.onSurfaceVariant.copy(alpha = contentAlpha),
                                 )
                             }

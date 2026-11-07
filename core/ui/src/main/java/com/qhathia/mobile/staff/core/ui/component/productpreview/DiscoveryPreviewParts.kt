@@ -14,6 +14,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.qhathia.mobile.staff.core.ui.R
+import com.qhathia.mobile.staff.core.ui.format.toPenPrice
 import kotlin.math.roundToInt
 
 /**
@@ -55,7 +56,7 @@ internal fun DiscoveryPhoto(
 
 /** The price as Discovery writes it, e.g. `S/ 380.00`. */
 @Composable
-internal fun previewPriceText(price: Double): String = stringResource(R.string.preview_price_format, price)
+internal fun previewPriceText(price: Double): String = price.toPenPrice()
 
 /** A form value as entered, or the "not entered" placeholder when the merchant left it out. */
 @Composable

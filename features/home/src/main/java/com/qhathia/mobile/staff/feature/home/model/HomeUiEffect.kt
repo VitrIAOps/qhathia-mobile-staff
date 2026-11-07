@@ -16,4 +16,10 @@ sealed interface HomeUiEffect {
      * here with the selection intact. [period] is the period the card was showing.
      */
     data class NavigateToSalesStatistics(val period: SalesPeriod) : HomeUiEffect
+
+    /** Raised by `Agregar`: Registro with `Nombre` set to [prefillName]. The shell opens it over Inventario. */
+    data class NavigateToProductRegister(val prefillName: String) : HomeUiEffect
+
+    /** Raised by `Reabastecer`: that product's Detalle. The shell opens it over Inventario. */
+    data class NavigateToProductDetail(val productId: String) : HomeUiEffect
 }

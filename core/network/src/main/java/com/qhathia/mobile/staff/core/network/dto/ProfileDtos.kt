@@ -56,6 +56,18 @@ data class StoreSettingsDto(
 @Serializable
 data class CatalogCountDto(
     val activeProducts: Int = 0,
+    /** Fase 42: what a tablet actually shows, with the same filter as `/catalog/by-category`. */
+    val visibleProducts: Int? = null,
+    /** Fase 42: why the rest are hidden. */
+    val hidden: CatalogHiddenDto? = null,
+)
+
+@Serializable
+data class CatalogHiddenDto(
+    val outOfStock: Int = 0,
+    val lowStock: Int = 0,
+    val consult: Int = 0,
+    val noActiveCategory: Int = 0,
 )
 
 /**
@@ -73,4 +85,10 @@ data class NotificationPreferencesDto(
     val sellingSuggestions: Boolean = true,
     val activeCount: Int = 0,
     val totalCount: Int = 7,
+    /** Fase 42: which toggles the backend actually sends, by field name. */
+    val supported: Map<String, Boolean> = emptyMap(),
+    val supportedCount: Int? = null,
+    val supportedActiveCount: Int? = null,
+    /** How long before an order expires the `ORDER_EXPIRING` push is sent. */
+    val orderExpiringWarningMinutes: Int = 10,
 )

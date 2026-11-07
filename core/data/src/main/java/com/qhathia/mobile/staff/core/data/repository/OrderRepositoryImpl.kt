@@ -13,6 +13,12 @@ import com.qhathia.mobile.staff.core.network.NetworkResult
 import com.qhathia.mobile.staff.core.network.OrderMutationResult
 import com.qhathia.mobile.staff.core.network.service.OrderApiService
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
@@ -39,7 +45,32 @@ class OrderRepositoryImpl @Inject constructor(
 
     override val pendingOrderCount: Flow<Int> = pendingCount.asStateFlow()
 
-    override suspend fun refreshPendingOrderCount(): Result<Int> =
+    private val changes = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+
+    override val ordersChanged: Flow<Unit> = changes.asSharedFlow()
+
+    override fun notifyOrdersChanged() {
+        changes.tryEmit(Unit)
+    }
+
+    private val countMutex = Mutex()
+
+    /** Bumped by every successful count fetch; a waiter that sees it move takes that answer. */
+    private var countGeneration = 0L
+
+    override suspend fun refreshPendingOrderCount(reuseInFlight: Boolean): Result<Int> {
+        val seen = countGeneration
+        return countMutex.withLock {
+            // Someone fetched while we waited for the lock: their answer is fresh enough for us.
+            if (reuseInFlight && countGeneration != seen) return@withLock Result.success(pendingCount.value)
+            fetchPendingCount().onSuccess { countGeneration++ }
+        }
+    }
+
+    private suspend fun fetchPendingCount(): Result<Int> =
         when (val result = apiService.getOrders(
             statuses = listOf(OrderStatus.PENDING.name),
             query = null,
@@ -102,7 +133,7 @@ class OrderRepositoryImpl @Inject constructor(
         when (val result = apiService.confirmOrder(id)) {
             is OrderMutationResult.Success -> {
                 // One order just left PENDING; re-read the count so both badges move immediately.
-                refreshPendingOrderCount()
+                refreshCountAfterSettling()
                 Result.success(result.order.toDomain())
             }
             is OrderMutationResult.HttpError ->
@@ -114,7 +145,7 @@ class OrderRepositoryImpl @Inject constructor(
     override suspend fun rejectOrder(id: String, reason: String?): Result<OrderDetail> =
         when (val result = apiService.rejectOrder(id, reason)) {
             is OrderMutationResult.Success -> {
-                refreshPendingOrderCount()
+                refreshCountAfterSettling()
                 Result.success(result.order.toDomain())
             }
             is OrderMutationResult.HttpError ->
@@ -122,6 +153,16 @@ class OrderRepositoryImpl @Inject constructor(
             is OrderMutationResult.NetworkError ->
                 Result.failure(RejectOrderException(RejectOrderError.Network))
         }
+
+    /**
+     * After an order left PENDING the count is re-read; if that fails (the network dropped right
+     * after the answer), the order just handled is taken off locally so the badges do not keep it.
+     */
+    private suspend fun refreshCountAfterSettling() {
+        // Fresh: a count request running since before the decision would still include this order.
+        refreshPendingOrderCount(reuseInFlight = false)
+            .onFailure { pendingCount.update { (it - 1).coerceAtLeast(0) } }
+    }
 
     private fun OrderMutationResult.HttpError.toConfirmError(): ConfirmOrderError = when {
         code == HTTP_NOT_FOUND -> ConfirmOrderError.NotFound
@@ -131,6 +172,10 @@ class OrderRepositoryImpl @Inject constructor(
             requested = problem?.requested,
         )
         problem?.errorCode == ERROR_INVALID_STATE_TRANSITION -> ConfirmOrderError.AlreadyHandled
+        problem?.errorCode == ERROR_PRODUCT_NOT_SELLABLE -> ConfirmOrderError.ProductNotSellable(
+            productName = problem?.productName,
+            reason = problem?.reason,
+        )
         else -> ConfirmOrderError.Unknown("HTTP $code")
     }
 
@@ -152,5 +197,6 @@ class OrderRepositoryImpl @Inject constructor(
         val AUTH_ERROR_CODES = setOf(401, 403)
         const val ERROR_STOCK_INSUFFICIENT = "STOCK_INSUFFICIENT"
         const val ERROR_INVALID_STATE_TRANSITION = "INVALID_STATE_TRANSITION"
+        const val ERROR_PRODUCT_NOT_SELLABLE = "PRODUCT_NOT_SELLABLE"
     }
 }

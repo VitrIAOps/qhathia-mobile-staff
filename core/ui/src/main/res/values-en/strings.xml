@@ -49,10 +49,8 @@
     <string name="discount_amount_label">Discount amount</string>
     <string name="discount_amount_placeholder">S/ 0.00</string>
     <string name="discount_quick_option">%1$d%%</string>
-    <string name="discount_original_price_format">%1$.2f</string>
-    <string name="discount_price_format">S/ %1$.2f</string>
-    <string name="discount_original_price_cd">Original price: S/ %1$.2f</string>
-    <string name="discount_resulting_price_cd">Discounted price: S/ %1$.2f</string>
+    <string name="discount_original_price_cd">Original price: %1$s</string>
+    <string name="discount_resulting_price_cd">Discounted price: %1$s</string>
     <string name="discount_cancel">Cancel</string>
     <string name="discount_apply">Apply</string>
     <string name="discount_error_percentage">Enter a whole percentage between 1 and 100</string>
@@ -106,4 +104,16 @@
     <string name="photo_source_title">Add photo</string>
     <string name="photo_source_camera">Take photo</string>
     <string name="photo_source_gallery">Choose from gallery</string>
+    <string name="delete_product_message_unsaved">“%1$s” will no longer show in the inventory or on the tablet. The changes you have not saved will be lost too. This cannot be undone.</string>
+    <string name="delete_product_confirm_force">Delete anyway</string>
+    <string name="delete_product_pending_orders_fallback">This product is in pending orders (%1$s). Confirm or reject them first, or delete it anyway.</string>
+    <string name="saving_product_cd">Saving product…</string>
+    <string name="password_show_cd">Show password</string>
+    <string name="password_hide_cd">Hide password</string>
+
+    <!-- Leaving a form with unsaved changes -->
+    <string name="discard_changes_title">Discard changes?</string>
+    <string name="discard_changes_message">If you leave now, all unsaved changes will be lost.</string>
+    <string name="discard_changes_confirm">Discard</string>
+    <string name="discard_changes_dismiss">Keep editing</string>
 </resources>

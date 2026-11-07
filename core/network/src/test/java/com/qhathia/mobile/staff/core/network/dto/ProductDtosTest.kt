@@ -2,6 +2,7 @@ package com.qhathia.mobile.staff.core.network.dto
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -83,5 +84,47 @@ class ProductDtosTest {
 
         assertNull(detail.discountedPrice)
         assertNull(detail.discountEndsAt)
+    }
+
+    private fun encodeUpdate(dto: UpdateProductRequestDto) =
+        json.encodeToJsonElement(UpdateProductRequestDto.serializer(), dto).jsonObject
+
+    @Test
+    fun `an update with no stock or version leaves them out and still sends description and tags`() {
+        val body = encodeUpdate(UpdateProductRequestDto(name = "Taladro", price = 189.0, categoryId = "c1"))
+
+        assertFalse(body.containsKey("stock"))
+        assertFalse(body.containsKey("version"))
+        assertEquals(JsonPrimitive(""), body["description"])
+        assertEquals(JsonArray(emptyList()), body["tags"])
+        assertFalse(body.containsKey("allowDiscountInquiry"))
+        assertFalse(body.containsKey("position"))
+        assertFalse(body.containsKey("brand"))
+    }
+
+    @Test
+    fun `an update with stock and version sends both`() {
+        val body = encodeUpdate(
+            UpdateProductRequestDto(name = "Taladro", price = 189.0, stock = 4, version = 7, description = "650W"),
+        )
+
+        assertEquals(JsonPrimitive(4), body["stock"])
+        assertEquals(JsonPrimitive(7), body["version"])
+        assertEquals(JsonPrimitive("650W"), body["description"])
+    }
+
+    @Test
+    fun `a product detail carries its version`() {
+        val withVersion = lenientJson.decodeFromString(
+            ProductDetailDto.serializer(),
+            """{"id":"p1","name":"Foco LED","price":35.90,"version":8}""",
+        )
+        val without = lenientJson.decodeFromString(
+            ProductDetailDto.serializer(),
+            """{"id":"p1","name":"Foco LED","price":35.90}""",
+        )
+
+        assertEquals(8L, withVersion.version)
+        assertNull(without.version)
     }
 }

@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.navigation
 
+import com.qhathia.mobile.staff.feature.devicelinking.navigation.TABLET_UNLINKED_ALREADY_GONE_KEY
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -23,6 +24,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.qhathia.mobile.staff.core.ui.component.QhathiaBottomBar
 import com.qhathia.mobile.staff.core.ui.component.QhathiaBottomBarItem
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -42,11 +44,14 @@ import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RE
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_RESULT_PRODUCT_UPDATED
 import com.qhathia.mobile.staff.feature.productinventory.navigation.INVENTORY_ROUTE
 import com.qhathia.mobile.staff.feature.productinventory.navigation.inventoryGraph
+import com.qhathia.mobile.staff.feature.productdetail.navigation.PRODUCT_DETAIL_ROUTE
 import com.qhathia.mobile.staff.feature.productdetail.navigation.productDetailGraph
 import com.qhathia.mobile.staff.feature.productdetail.navigation.productDetailRoute
 import com.qhathia.mobile.staff.feature.productregister.navigation.PRODUCT_REGISTER_ROUTE
 import com.qhathia.mobile.staff.feature.productregister.navigation.productRegisterGraph
+import com.qhathia.mobile.staff.feature.productregister.navigation.productRegisterRoute
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.DEVICE_LINKING_ROUTE
+import com.qhathia.mobile.staff.feature.devicelinking.navigation.TABLET_SETTINGS_ROUTE
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.TABLET_UNLINKED_RESULT_KEY
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.deviceLinkingGraph
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.tabletSettingsRoute
@@ -54,6 +59,7 @@ import com.qhathia.mobile.staff.feature.orderrequests.navigation.ORDER_REQUESTS_
 import com.qhathia.mobile.staff.feature.orderrequests.navigation.orderRequestsGraph
 import com.qhathia.mobile.staff.feature.home.navigation.HOME_ROUTE
 import com.qhathia.mobile.staff.feature.home.navigation.homeGraph
+import com.qhathia.mobile.staff.feature.salesstatistics.navigation.SALES_STATISTICS_ROUTE
 import com.qhathia.mobile.staff.feature.salesstatistics.navigation.salesStatisticsGraph
 import com.qhathia.mobile.staff.feature.salesstatistics.navigation.salesStatisticsRoute
 import com.qhathia.mobile.staff.feature.profile.navigation.PROFILE_ROUTE
@@ -150,6 +156,8 @@ fun MainShell(
     LaunchedEffect(pendingDestination) {
         if (pendingDestination != DESTINATION_ORDER_REQUESTS) return@LaunchedEffect
         switchTab(ORDER_REQUESTS_ROUTE)
+        // Solicitudes may already be open, so the switch alone would not show the new order.
+        viewModel.onOrdersDeepLink()
         onPendingDestinationConsumed()
     }
 
@@ -195,69 +203,111 @@ fun MainShell(
                 // A push, not a tab switch: back returns to Inicio. Not a top-level route, so the
                 // bottom bar hides itself while it is shown.
                 onNavigateToSalesStatistics = { period ->
-                    navController.navigate(salesStatisticsRoute(period))
+                    navController.navigateOnce(salesStatisticsRoute(period))
+                },
+                // Through Inventario, so onSaved / onRegistered (which write Inventario's result
+                // keys to the previous entry) land on its list and its snackbar shows.
+                onNavigateToProductRegister = { name ->
+                    switchTab(INVENTORY_ROUTE)
+                    navController.navigate(productRegisterRoute(name)) { launchSingleTop = true }
+                },
+                onNavigateToProductDetail = { id ->
+                    switchTab(INVENTORY_ROUTE)
+                    navController.navigate(productDetailRoute(id)) { launchSingleTop = true }
                 },
             )
-            salesStatisticsGraph(onBack = { navController.popBackStack() })
+            salesStatisticsGraph(onBack = { navController.popIfOn(SALES_STATISTICS_ROUTE) })
             inventoryGraph(
-                onNavigateToRegister = { navController.navigate(PRODUCT_REGISTER_ROUTE) },
-                onNavigateToProductDetail = { id -> navController.navigate(productDetailRoute(id)) },
+                onNavigateToRegister = { navController.navigateOnce(productRegisterRoute()) },
+                onNavigateToProductDetail = { id -> navController.navigateOnce(productDetailRoute(id)) },
                 onNavigateToOrderRequests = { switchTab(ORDER_REQUESTS_ROUTE) },
             )
             productDetailGraph(
                 onSaved = {
-                    navController.previousBackStackEntry?.savedStateHandle
-                        ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_RESULT_PRODUCT_UPDATED)
-                    navController.popBackStack()
+                    navController.popIfOn(PRODUCT_DETAIL_ROUTE) {
+                        navController.previousBackStackEntry?.savedStateHandle
+                            ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_RESULT_PRODUCT_UPDATED)
+                    }
                 },
                 onDeleted = { alreadyDeleted ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set(
-                        INVENTORY_REGISTER_RESULT_KEY,
-                        if (alreadyDeleted) INVENTORY_RESULT_PRODUCT_ALREADY_DELETED else INVENTORY_RESULT_PRODUCT_DELETED,
-                    )
-                    navController.popBackStack()
+                    navController.popIfOn(PRODUCT_DETAIL_ROUTE) {
+                        navController.previousBackStackEntry?.savedStateHandle?.set(
+                            INVENTORY_REGISTER_RESULT_KEY,
+                            if (alreadyDeleted) INVENTORY_RESULT_PRODUCT_ALREADY_DELETED else INVENTORY_RESULT_PRODUCT_DELETED,
+                        )
+                    }
                 },
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popIfOn(PRODUCT_DETAIL_ROUTE) },
                 onNavigateToOrderRequests = ::leaveFormForOrderRequests,
             )
             productRegisterGraph(
                 onRegistered = { productId ->
-                    navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
-                        handle[INVENTORY_REGISTERED_PRODUCT_ID_KEY] = productId
-                        handle[INVENTORY_REGISTER_RESULT_KEY] = INVENTORY_REGISTER_RESULT_SUCCESS
+                    navController.popIfOn(PRODUCT_REGISTER_ROUTE) {
+                        navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                            handle[INVENTORY_REGISTERED_PRODUCT_ID_KEY] = productId
+                            handle[INVENTORY_REGISTER_RESULT_KEY] = INVENTORY_REGISTER_RESULT_SUCCESS
+                        }
                     }
-                    navController.popBackStack()
                 },
                 onPlanLimit = {
-                    navController.previousBackStackEntry?.savedStateHandle
-                        ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_REGISTER_RESULT_PLAN_LIMIT)
-                    navController.popBackStack()
+                    navController.popIfOn(PRODUCT_REGISTER_ROUTE) {
+                        navController.previousBackStackEntry?.savedStateHandle
+                            ?.set(INVENTORY_REGISTER_RESULT_KEY, INVENTORY_REGISTER_RESULT_PLAN_LIMIT)
+                    }
                 },
                 onDiscountFailed = { productId ->
-                    navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
-                        handle[INVENTORY_REGISTERED_PRODUCT_ID_KEY] = productId
-                        handle[INVENTORY_REGISTER_RESULT_KEY] = INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED
+                    navController.popIfOn(PRODUCT_REGISTER_ROUTE) {
+                        navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                            handle[INVENTORY_REGISTERED_PRODUCT_ID_KEY] = productId
+                            handle[INVENTORY_REGISTER_RESULT_KEY] = INVENTORY_REGISTER_RESULT_DISCOUNT_FAILED
+                        }
                     }
-                    navController.popBackStack()
                 },
-                onCancelled = { navController.popBackStack() },
+                onCancelled = { navController.popIfOn(PRODUCT_REGISTER_ROUTE) },
                 onNavigateToOrderRequests = ::leaveFormForOrderRequests,
             )
             orderRequestsGraph()
             profileGraph(
                 navController = navController,
                 // Pushed over Mi perfil like its other sections, so back returns there.
-                onNavigateToDevices = { navController.navigate(DEVICE_LINKING_ROUTE) },
+                onNavigateToDevices = { navController.navigateOnce(DEVICE_LINKING_ROUTE) },
                 onNavigateToOrderRequests = { switchTab(ORDER_REQUESTS_ROUTE) },
             )
             deviceLinkingGraph(
-                onBack = { navController.popBackStack() },
-                onOpenTabletSettings = { id -> navController.navigate(tabletSettingsRoute(id)) },
-                onTabletUnlinked = { id ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set(TABLET_UNLINKED_RESULT_KEY, id)
-                    navController.popBackStack()
+                // Shared by both screens of the graph; each pop still needs one of them on top.
+                onBack = { navController.popIfOn(DEVICE_LINKING_ROUTE, TABLET_SETTINGS_ROUTE) },
+                onOpenTabletSettings = { id -> navController.navigateOnce(tabletSettingsRoute(id)) },
+                onTabletUnlinked = { id, alreadyGone ->
+                    navController.popIfOn(TABLET_SETTINGS_ROUTE) {
+                        navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                            // The flag first: Dispositivos reacts to the id, and must already see it.
+                            handle[TABLET_UNLINKED_ALREADY_GONE_KEY] = alreadyGone
+                            handle[TABLET_UNLINKED_RESULT_KEY] = id
+                        }
+                    }
                 },
             )
         }
     }
+}
+
+/**
+ * Pops only while one of [routes] (the graph's route patterns, `{args}` included) is on top, after
+ * running [beforePop] (where a result is written to the entry below). A second tap on back, which
+ * arrives once the screen already left, would otherwise pop Inicio or Inventario and leave the
+ * `NavHost` with nothing to show.
+ */
+private inline fun NavController.popIfOn(vararg routes: String, beforePop: () -> Unit = {}) {
+    if (currentDestination?.route !in routes) return
+    beforePop()
+    popBackStack()
+}
+
+/**
+ * Navigates only from a screen that is still resumed, as a single top: a second tap during the
+ * transition would stack the same screen twice.
+ */
+private fun NavController.navigateOnce(route: String) {
+    if (currentBackStackEntry?.lifecycle?.currentState != Lifecycle.State.RESUMED) return
+    navigate(route) { launchSingleTop = true }
 }

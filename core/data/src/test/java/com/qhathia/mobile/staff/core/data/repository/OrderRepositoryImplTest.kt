@@ -16,8 +16,11 @@ import com.qhathia.mobile.staff.core.network.service.OrderApiService
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -295,6 +298,60 @@ class OrderRepositoryImplTest {
     }
 
     @Test
+    fun `concurrent refreshes send one request and share its count`() = runTest {
+        val answer = CompletableDeferred<NetworkResult<OrderPageDto>>()
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } coAnswers { answer.await() }
+
+        val first = async { repository.refreshPendingOrderCount() }
+        val second = async { repository.refreshPendingOrderCount() }
+        yield()
+        answer.complete(pendingPageOf(3))
+
+        assertEquals(3, first.await().getOrThrow())
+        assertEquals(3, second.await().getOrThrow())
+        coVerify(exactly = 1) { api.getOrders(listOf("PENDING"), null, 0, 1) }
+    }
+
+    @Test
+    fun `a refresh that must be fresh sends its own request after the one in flight`() = runTest {
+        val answer = CompletableDeferred<NetworkResult<OrderPageDto>>()
+        var calls = 0
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } coAnswers {
+            calls++
+            if (calls == 1) answer.await() else pendingPageOf(4)
+        }
+
+        val running = async { repository.refreshPendingOrderCount() }
+        val fresh = async { repository.refreshPendingOrderCount(reuseInFlight = false) }
+        yield()
+        answer.complete(pendingPageOf(3))
+
+        assertEquals(3, running.await().getOrThrow())
+        assertEquals(4, fresh.await().getOrThrow())
+        assertEquals(2, calls)
+        assertEquals(4, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `a failed refresh is not shared with the one waiting`() = runTest {
+        val answer = CompletableDeferred<NetworkResult<OrderPageDto>>()
+        var calls = 0
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } coAnswers {
+            calls++
+            if (calls == 1) answer.await() else pendingPageOf(2)
+        }
+
+        val failing = async { repository.refreshPendingOrderCount() }
+        val waiting = async { repository.refreshPendingOrderCount() }
+        yield()
+        answer.complete(NetworkResult.NetworkError(IOException("offline")))
+
+        assertTrue(failing.await().isFailure)
+        assertEquals(2, waiting.await().getOrThrow())
+        assertEquals(2, calls)
+    }
+
+    @Test
     fun `an auth failure resets the count to zero`() = runTest {
         coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns pendingPageOf(5)
         repository.refreshPendingOrderCount()
@@ -320,5 +377,51 @@ class OrderRepositoryImplTest {
         assertTrue(repository.refreshPendingOrderCount().isFailure)
         // Offline is not "nothing is pending"; the last known count stands.
         assertEquals(5, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `409 PRODUCT_NOT_SELLABLE maps to ProductNotSellable with the product and reason`() = runTest {
+        coEvery { api.confirmOrder("order-1") } returns OrderMutationResult.HttpError(
+            code = 409,
+            problem = OrderProblemDto(errorCode = "PRODUCT_NOT_SELLABLE", productName = "Taladro", reason = "INACTIVE"),
+        )
+
+        val error = repository.confirmOrder("order-1").errorOf<ConfirmOrderException>().error
+
+        assertEquals(ConfirmOrderError.ProductNotSellable("Taladro", "INACTIVE"), error)
+    }
+
+    @Test
+    fun `a confirm whose count cannot be re-read lowers the count by one`() = runTest {
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns pendingPageOf(2)
+        repository.refreshPendingOrderCount()
+        coEvery { api.confirmOrder("order-1") } returns OrderMutationResult.Success(detailDto())
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns
+            NetworkResult.NetworkError(IOException("offline"))
+
+        repository.confirmOrder("order-1")
+
+        assertEquals(1, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `a reject whose count cannot be re-read never goes below zero`() = runTest {
+        coEvery { api.rejectOrder("order-1", null) } returns OrderMutationResult.Success(detailDto())
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } returns
+            NetworkResult.NetworkError(IOException("offline"))
+
+        repository.rejectOrder("order-1", reason = null)
+
+        assertEquals(0, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `notifyOrdersChanged emits on ordersChanged`() = runTest {
+        val received = async { repository.ordersChanged.first() }
+        yield()
+
+        repository.notifyOrdersChanged()
+
+        assertEquals(Unit, received.await())
     }
 }

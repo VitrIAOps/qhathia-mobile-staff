@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.profile.security
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qhathia.mobile.staff.core.ui.component.QhathiaButton
+import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscardChangesDialog
 import com.qhathia.mobile.staff.core.ui.component.QhathiaTextField
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaGradientTopBar
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaSettingsSection
@@ -29,7 +32,10 @@ import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.profile.R
 
-/** Stateful Cambiar contraseña; [onPasswordChanged] returns to Seguridad with the result. */
+/**
+ * Stateful Cambiar contraseña; [onPasswordChanged] returns to Seguridad with the result. Both backs
+ * go through the ViewModel, so typed passwords ask before leaving.
+ */
 @Composable
 fun ChangePasswordScreen(
     onPasswordChanged: () -> Unit,
@@ -39,16 +45,26 @@ fun ChangePasswordScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnPasswordChanged by rememberUpdatedState(onPasswordChanged)
+    val currentOnBack by rememberUpdatedState(onBack)
 
     LaunchedEffect(Unit) {
         viewModel.uiEffect.collect { effect ->
             when (effect) {
                 ChangePasswordUiEffect.PasswordChanged -> currentOnPasswordChanged()
+                ChangePasswordUiEffect.NavigateBack -> currentOnBack()
             }
         }
     }
+    BackHandler(enabled = uiState.isDirty || uiState.isSubmitting) {
+        viewModel.onEvent(ChangePasswordUiEvent.BackRequested)
+    }
 
-    ChangePasswordContent(uiState = uiState, onEvent = viewModel::onEvent, onBack = onBack, modifier = modifier)
+    ChangePasswordContent(
+        uiState = uiState,
+        onEvent = viewModel::onEvent,
+        onBack = { viewModel.onEvent(ChangePasswordUiEvent.BackRequested) },
+        modifier = modifier,
+    )
 }
 
 /**
@@ -103,6 +119,7 @@ fun ChangePasswordContent(
                         },
                         enabled = !uiState.isSubmitting,
                         imeAction = ImeAction.Done,
+                        onImeAction = { if (uiState.canSubmit) onEvent(ChangePasswordUiEvent.Submit) },
                     )
                 }
             }
@@ -121,6 +138,12 @@ fun ChangePasswordContent(
             )
         }
     }
+    if (uiState.isDiscardDialogVisible) {
+        QhathiaDiscardChangesDialog(
+            onConfirm = { onEvent(ChangePasswordUiEvent.DiscardConfirmed) },
+            onDismiss = { onEvent(ChangePasswordUiEvent.DiscardDismissed) },
+        )
+    }
 }
 
 @Composable
@@ -132,6 +155,7 @@ private fun LabelledPasswordField(
     enabled: Boolean,
     helperText: String? = null,
     imeAction: ImeAction = ImeAction.Next,
+    onImeAction: (() -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
         Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
@@ -145,6 +169,8 @@ private fun LabelledPasswordField(
             errorText = errorText,
             helperText = helperText,
             keyboardOptions = KeyboardOptions(imeAction = imeAction),
+            keyboardActions = onImeAction?.let { action -> KeyboardActions(onDone = { action() }) }
+                ?: KeyboardActions.Default,
         )
     }
 }

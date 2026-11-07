@@ -3,9 +3,7 @@
 ## Purpose
 
 Defines how a store owner discounts a product in the Qhathia staff app: the two discount types (percentage and fixed amount in Peruvian soles) and the resulting price, the shared `Aplicar descuento` dialog with its validation limits (up to 100 % or up to the product's price, never below S/ 0.00), the summary label shown for an applied discount, and the operations against `/api/v1/products/{id}/discounts` — reading the current discount, saving one with delete-then-create replace semantics and a fixed one-week duration, and removing it. Where the discount is offered (registration form, product detail, inventory row menu) is specified by those capabilities.
-
 ## Requirements
-
 ### Requirement: Discount types and resulting price
 
 A product discount SHALL be either a percentage of the product price or a fixed amount in Peruvian soles. The resulting price SHALL be the original price minus the discount, rounded to two decimals and never below zero.
@@ -127,7 +125,7 @@ The app SHALL read a product's discounts from `GET /api/v1/products/{id}/discoun
 
 ### Requirement: Save a discount with replace semantics
 
-Saving a discount for an existing product SHALL first delete every discount the product currently has through `DELETE /api/v1/products/{id}/discounts/{discountId}` and then create the new one through `POST /api/v1/products/{id}/discounts`, so a product never holds more than one discount created by the app. The request SHALL send `discountType` as `PERCENTAGE` or `FIXED_AMOUNT` and the entered `value`.
+Saving a discount for an existing product SHALL first read the discounts the product has, then create the new one through `POST /api/v1/products/{id}/discounts`, and only after that delete every previously stored discount through `DELETE /api/v1/products/{id}/discounts/{discountId}`. A product therefore never loses its discount when a request fails midway. At worst it keeps two for a while, and the kiosk applies the one that leaves the lower price. The request SHALL send `discountType` as `PERCENTAGE` or `FIXED_AMOUNT` and the entered `value`.
 
 #### Scenario: Product without a previous discount
 
@@ -137,12 +135,17 @@ Saving a discount for an existing product SHALL first delete every discount the 
 #### Scenario: Product with a previous discount
 
 - **WHEN** a discount is saved for a product that already has one
-- **THEN** the existing discount is deleted first and the new one is created afterwards
+- **THEN** the new discount is created first and the previous one is deleted afterwards
 
-#### Scenario: Creation fails after the deletion
+#### Scenario: Creation fails
 
-- **WHEN** the existing discount was deleted but creating the new one fails
-- **THEN** the app reports the failure and shows the product as having no discount
+- **WHEN** creating the new discount fails
+- **THEN** no discount is deleted, the product keeps the discount it had, and the app reports the failure
+
+#### Scenario: Deleting the previous discount fails
+
+- **WHEN** the new discount was created but deleting the previous one fails
+- **THEN** the app reports the failure, and the product has both discounts until the next save removes the extra one
 
 ### Requirement: One-week discount duration
 
@@ -155,7 +158,7 @@ Every discount created by the app SHALL start at the moment it is saved and end 
 
 ### Requirement: Remove a discount
 
-Removing a product's discount SHALL delete every discount the product currently has through `DELETE /api/v1/products/{id}/discounts/{discountId}`.
+Removing a product's discount SHALL delete every discount the product currently has through `DELETE /api/v1/products/{id}/discounts/{discountId}`. A discount that answers `404` on delete SHALL count as already removed. When saving a discount deletes the previous ones, the same rule SHALL apply.
 
 #### Scenario: Discount removed
 
@@ -164,6 +167,11 @@ Removing a product's discount SHALL delete every discount the product currently 
 
 #### Scenario: Removal fails
 
-- **WHEN** the delete request fails
+- **WHEN** the delete request fails for a reason other than `404`
 - **THEN** an error message is shown and the product keeps showing its discount
+
+#### Scenario: A discount already deleted elsewhere
+
+- **WHEN** one of the product's discounts answers `404` on delete
+- **THEN** it counts as removed, the remaining ones are still deleted, and the removal succeeds
 

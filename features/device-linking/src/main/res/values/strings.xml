@@ -17,13 +17,18 @@
         <item quantity="one">%d producto</item>
         <item quantity="other">%d productos</item>
     </plurals>
+    <!-- Active products the tablet hides (Fase 42: activeProducts − visibleProducts). -->
+    <plurals name="device_catalog_hidden">
+        <item quantity="one">%d no se muestra (agotado, pocas unidades o a consultar)</item>
+        <item quantity="other">%d no se muestran (agotados, pocas unidades o a consultar)</item>
+    </plurals>
     <!-- %1$s is a relative time, e.g. "hace 4 min". -->
     <string name="device_catalog_updated">Actualizado %1$s</string>
     <string name="device_battery">Batería</string>
     <string name="device_connection">Conexión</string>
     <string name="device_store">Tienda</string>
     <string name="device_customers_today">Clientes hoy</string>
-    <string name="device_network_wifi">Wi Fi</string>
+    <string name="device_network_wifi">Wi-Fi</string>
     <string name="device_network_mobile">Datos móviles</string>
     <string name="device_network_online">En línea</string>
     <string name="device_network_limited">Limitada</string>
@@ -43,7 +48,7 @@
     <string name="device_command_ready">Listo</string>
     <string name="device_command_failed">Falló</string>
     <string name="device_command_failed_detail">Falló: %1$s</string>
-    <string name="device_command_expired">No se pudo entregar</string>
+    <string name="device_command_expired">No se pudo entregar: la tablet no se conectó en 10 min. Revisa que esté encendida y con internet.</string>
     <string name="device_command_error">No se pudo enviar la orden. Inténtalo de nuevo.</string>
 
     <!-- Unlink -->
@@ -61,7 +66,7 @@
     <string name="device_pair_code_placeholder">Código de vinculación</string>
     <string name="device_pair_submit">Vincular</string>
     <string name="device_pair_error_generic">No se pudo vincular la tablet. Inténtalo de nuevo.</string>
-    <string name="device_pair_error_invalid_code">Código inválido o expirado.</string>
+    <string name="device_pair_error_invalid_code">Ese código no existe. Revisa que sea el que muestra la tablet.</string>
 
     <!-- Ajustes de la tablet -->
     <string name="tablet_settings_entry">Ajustes de la tablet</string>
@@ -85,7 +90,7 @@
     <string name="tablet_settings_group_info">Información</string>
     <string name="tablet_settings_info_name">Nombre</string>
     <string name="tablet_settings_info_model">Modelo</string>
-    <string name="tablet_settings_info_serial">N.º de serie</string>
+    <string name="tablet_settings_info_serial">Número de serie</string>
     <string name="tablet_settings_info_linked">Vinculada desde</string>
     <string name="tablet_settings_info_app_version">Versión de la app</string>
     <string name="tablet_settings_info_store">Tienda</string>
@@ -108,4 +113,34 @@
     <string name="tablet_pin_saved">PIN actualizado</string>
     <string name="tablet_pin_removed">PIN quitado</string>
     <string name="tablet_pin_error">No se pudo guardar el PIN. Inténtalo de nuevo</string>
+    <string name="device_pair_name_placeholder">Nombre de la tablet (ej. Mostrador)</string>
+    <string name="device_pair_code_helper">5 caracteres, sin O, 0, I, L ni 1 · %1$d/%2$d</string>
+    <string name="device_pair_reject">Rechazar</string>
+    <string name="device_pair_waiting">Esperando a que la tablet confirme…</string>
+    <string name="device_pair_not_responding">La tablet no recibió la aprobación. Revisa que siga mostrando el código y que tenga internet.</string>
+    <string name="device_pair_undo">Deshacer vinculación</string>
+    <string name="device_pair_keep_waiting">Seguir esperando</string>
+    <string name="device_pair_success">Tablet «%1$s» vinculada</string>
+    <string name="device_pair_rejected">Rechazaste la vinculación. La tablet mostrará un aviso.</string>
+    <string name="device_pair_undone">Vinculación deshecha. Pide un código nuevo en la tablet.</string>
+    <string name="device_pair_error_expired">El código venció. En la tablet toca «Generar nuevo código».</string>
+    <string name="device_pair_error_used">Ese código ya se usó. Pide uno nuevo en la tablet.</string>
+    <string name="device_pair_error_cancelled">La tablet descartó ese código. Ingresa el que muestra ahora.</string>
+    <string name="device_pair_error_catalog">Tu catálogo aún no tiene suficientes productos con nombre, precio y foto para vincular una tablet.</string>
+    <string name="device_pair_error_catalog_unavailable">No pudimos verificar tu catálogo. Inténtalo en unos minutos.</string>
+    <string name="device_pair_error_network">Sin conexión. Inténtalo nuevamente.</string>
+    <string name="device_never_reported">Aún no se conecta</string>
+    <string name="device_status_with_model">%1$s · %2$s</string>
+    <string name="tablet_settings_rename_title">Nombre de la tablet</string>
+    <string name="tablet_settings_rename_save">Guardar</string>
+    <string name="tablet_settings_rename_cancel">Cancelar</string>
+    <string name="tablet_settings_rename_invalid">Escribe un nombre de 1 a 40 caracteres</string>
+    <string name="tablet_settings_rename_network">Sin conexión. Inténtalo nuevamente.</string>
+    <string name="tablet_settings_renamed">Nombre actualizado</string>
+    <string name="device_command_restarting">Reiniciando… esperando a que la tablet vuelva a reportar</string>
+    <string name="device_command_restart_not_back">La tablet no volvió a reportar tras el reinicio. Revísala.</string>
+    <string name="device_network_ethernet">Cable</string>
+    <string name="device_network_offline">Sin conexión</string>
+    <string name="device_network_other">Otra red</string>
+    <string name="device_unlink_error_network">Sin conexión. Inténtalo nuevamente.</string>
 </resources>

@@ -1,5 +1,16 @@
 package com.qhathia.mobile.staff.feature.devicelinking.ui
 
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
+import com.qhathia.mobile.staff.core.ui.component.time.rememberShortTimeFormatter
+import java.util.Locale
+import com.qhathia.mobile.staff.feature.devicelinking.model.RestartPhase
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.rounded.WifiOff
+import androidx.compose.material.icons.rounded.SignalWifiStatusbarConnectedNoInternet4
+import androidx.compose.material.icons.rounded.SignalCellularAlt
+import androidx.compose.material.icons.rounded.SettingsEthernet
+import androidx.compose.material.icons.rounded.Public
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -66,7 +77,7 @@ import java.time.Instant
 @Composable
 internal fun DeviceCard(
     device: Device,
-    catalogCount: Int?,
+    catalogCount: CatalogCount?,
     now: Instant,
     refreshCommand: DeviceCommand?,
     restartCommand: DeviceCommand?,
@@ -76,6 +87,7 @@ internal fun DeviceCard(
     onRestart: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenSettings: () -> Unit = {},
+    restartPhase: RestartPhase? = null,
 ) {
     val connected = device.isConnected(now)
     Surface(
@@ -98,12 +110,14 @@ internal fun DeviceCard(
                     value = device.batteryLevel?.let { "$it%" } ?: stringResource(R.string.device_missing),
                     label = stringResource(R.string.device_battery),
                 ),
-                end = Tile(
-                    icon = Icons.Rounded.Wifi,
-                    iconTint = MaterialTheme.colorScheme.secondary,
-                    value = networkLabel(device.networkStatus),
-                    label = stringResource(R.string.device_connection),
-                ),
+                end = networkPresentation(device.networkStatus, connected).let { (icon, label) ->
+                    Tile(
+                        icon = icon,
+                        iconTint = MaterialTheme.colorScheme.secondary,
+                        value = label,
+                        label = stringResource(R.string.device_connection),
+                    )
+                },
             )
             TileRow(
                 start = Tile(
@@ -126,8 +140,8 @@ internal fun DeviceCard(
                 onRefreshCatalog = onRefreshCatalog,
                 onRestart = onRestart,
             )
-            CommandStatusLine(labelRes = R.string.device_command_refresh_label, command = refreshCommand)
-            CommandStatusLine(labelRes = R.string.device_command_restart_label, command = restartCommand)
+            CommandStatusLine(labelRes = R.string.device_command_refresh_label, command = refreshCommand, now = now)
+            RestartStatusLine(command = restartCommand, phase = restartPhase, now = now)
         }
     }
 }
@@ -155,10 +169,21 @@ private fun DeviceIdentity(device: Device, connected: Boolean, onOpenSettings: (
                 val statusColor = if (connected) QhathiaColors.success else MaterialTheme.colorScheme.onSurfaceVariant
                 Box(modifier = Modifier.size(8.dp).background(statusColor, CircleShape))
                 Spacer(Modifier.width(Dimens.SpaceXs))
+                // A tablet that never reported is not "inactive": it has not connected yet.
+                val status = stringResource(
+                    when {
+                        device.lastPingAt == null -> R.string.device_never_reported
+                        connected -> R.string.device_connected
+                        else -> R.string.device_disconnected
+                    },
+                )
                 Text(
-                    text = stringResource(if (connected) R.string.device_connected else R.string.device_disconnected),
+                    // The model tells two tablets with similar names apart.
+                    text = device.model?.let { stringResource(R.string.device_status_with_model, status, it) } ?: status,
                     style = MaterialTheme.typography.bodySmall,
                     color = statusColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -174,11 +199,12 @@ private fun DeviceIdentity(device: Device, connected: Boolean, onOpenSettings: (
 }
 
 /**
- * Product count and "Actualizado hace X". [updatedAt] is the most recent of the tablet's catalog
- * sync and its last report, so the line shows the last time the tablet was in touch.
+ * The products the tablet shows, how many it hides (out of stock, low on stock, "a consultar"), and
+ * "Actualizado hace X". [updatedAt] is the most recent of the tablet's catalog sync and its last
+ * report, so the line shows the last time the tablet was in touch.
  */
 @Composable
-private fun CatalogBox(catalogCount: Int?, updatedAt: Instant?, now: Instant) {
+private fun CatalogBox(catalogCount: CatalogCount?, updatedAt: Instant?, now: Instant) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -192,12 +218,20 @@ private fun CatalogBox(catalogCount: Int?, updatedAt: Instant?, now: Instant) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = catalogCount?.let { pluralStringResource(R.plurals.device_catalog_products, it, it) }
+            text = catalogCount?.shown?.let { pluralStringResource(R.plurals.device_catalog_products, it, it) }
                 ?: stringResource(R.string.device_missing),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
+        val hidden = catalogCount?.hidden ?: 0
+        if (hidden > 0) {
+            Text(
+                text = pluralStringResource(R.plurals.device_catalog_hidden, hidden, hidden),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (updatedAt != null) {
             Text(
                 text = stringResource(R.string.device_catalog_updated, relativeTimeBetween(updatedAt, now).label()),
@@ -242,25 +276,24 @@ private fun TileCell(tile: Tile, modifier: Modifier = Modifier) {
         Icon(imageVector = tile.icon, contentDescription = null, tint = tile.iconTint)
         Spacer(Modifier.width(Dimens.SpaceSm))
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = tile.value,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (tile.comingSoon) {
-                    Spacer(Modifier.width(Dimens.SpaceXs))
-                    QhathiaComingSoonTag()
-                }
-            }
+            Text(
+                text = tile.value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Text(
                 text = tile.label,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // On its own line: next to the value it ran out of room and broke in two.
+            if (tile.comingSoon) {
+                Spacer(Modifier.height(Dimens.SpaceXs))
+                QhathiaComingSoonTag()
+            }
         }
     }
 }
@@ -272,7 +305,7 @@ private fun CommandActions(
     onRefreshCatalog: () -> Unit,
     onRestart: () -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm), modifier = Modifier.fillMaxWidth()) {
+    val refresh: @Composable (Modifier) -> Unit = { buttonModifier ->
         Button(
             onClick = onRefreshCatalog,
             enabled = !isRefreshBusy,
@@ -281,34 +314,68 @@ private fun CommandActions(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
-            modifier = Modifier.weight(1.4f).height(Dimens.ButtonHeight),
+            modifier = buttonModifier.heightIn(min = Dimens.ButtonHeight),
         ) {
             Icon(imageVector = Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(Dimens.IconSm))
             Spacer(Modifier.width(Dimens.SpaceXs))
             Text(text = stringResource(R.string.device_refresh_catalog), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+    }
+    val restart: @Composable (Modifier) -> Unit = { buttonModifier ->
         OutlinedButton(
             onClick = onRestart,
             enabled = !isRestartBusy,
             shape = RoundedCornerShape(Dimens.FieldRadius),
-            modifier = Modifier.weight(1f).height(Dimens.ButtonHeight),
+            modifier = buttonModifier.heightIn(min = Dimens.ButtonHeight),
         ) {
             Icon(imageVector = Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(Dimens.IconSm))
             Spacer(Modifier.width(Dimens.SpaceXs))
-            Text(text = stringResource(R.string.device_restart), maxLines = 1)
+            Text(text = stringResource(R.string.device_restart), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+    // With a large font two buttons side by side cut their labels, so they stack.
+    if (LocalDensity.current.fontScale > STACKED_ACTIONS_FONT_SCALE) {
+        Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm), modifier = Modifier.fillMaxWidth()) {
+            refresh(Modifier.fillMaxWidth())
+            restart(Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm), modifier = Modifier.fillMaxWidth()) {
+            refresh(Modifier.weight(1.4f))
+            restart(Modifier.weight(1f))
         }
     }
 }
 
 /** "Catálogo: Enviado" — shown only once a command of that type exists. */
 @Composable
-private fun CommandStatusLine(labelRes: Int, command: DeviceCommand?) {
-    val status = command?.statusLabel() ?: return
-    val color = when (command.status) {
-        DeviceCommandStatus.ACKED -> QhathiaColors.success
-        DeviceCommandStatus.FAILED, DeviceCommandStatus.EXPIRED -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
+private fun CommandStatusLine(labelRes: Int, command: DeviceCommand?, now: Instant) {
+    val status = command?.statusLabel(now) ?: return
+    StatusText(labelRes = labelRes, status = status, color = command.statusColor(now))
+}
+
+/**
+ * The restart line. An ack does not prove the tablet came back, so while [phase] is known it says
+ * so: restarting until the tablet reports again, done once it does, and a warning if it does not.
+ */
+@Composable
+private fun RestartStatusLine(command: DeviceCommand?, phase: RestartPhase?, now: Instant) {
+    val (status, color) = when (phase) {
+        RestartPhase.RESTARTING ->
+            stringResource(R.string.device_command_restarting) to MaterialTheme.colorScheme.onSurfaceVariant
+        RestartPhase.BACK -> stringResource(R.string.device_command_ready) to QhathiaColors.success
+        RestartPhase.NOT_BACK ->
+            stringResource(R.string.device_command_restart_not_back) to MaterialTheme.colorScheme.error
+        RestartPhase.SENT, null -> {
+            val label = command?.statusLabel(now) ?: return
+            label to command.statusColor(now)
+        }
     }
+    StatusText(labelRes = R.string.device_command_restart_label, status = status, color = color)
+}
+
+@Composable
+private fun StatusText(labelRes: Int, status: String, color: androidx.compose.ui.graphics.Color) {
     Text(
         text = stringResource(R.string.device_command_status_line, stringResource(labelRes), status),
         style = MaterialTheme.typography.bodySmall,
@@ -317,9 +384,24 @@ private fun CommandStatusLine(labelRes: Int, command: DeviceCommand?) {
 }
 
 @Composable
+private fun DeviceCommand.statusColor(now: Instant): androidx.compose.ui.graphics.Color = when {
+    isOverdue(now) -> MaterialTheme.colorScheme.error
+    status == DeviceCommandStatus.ACKED -> QhathiaColors.success
+    status == DeviceCommandStatus.FAILED || status == DeviceCommandStatus.EXPIRED -> MaterialTheme.colorScheme.error
+    else -> MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+/** A command long past its deadline reads as expired even before the server says so. */
+@Composable
+private fun DeviceCommand.statusLabel(now: Instant): String? = when {
+    isOverdue(now) -> stringResource(R.string.device_command_expired)
+    else -> statusLabel()
+}
+
+@Composable
 private fun DeviceCommand.statusLabel(): String? = when (status) {
     DeviceCommandStatus.PENDING, DeviceCommandStatus.DELIVERED -> expiresAt
-        ?.let { stringResource(R.string.device_command_sent_retry_at, it.toShortLocalTime()) }
+        ?.let { stringResource(R.string.device_command_sent_retry_at, rememberShortTimeFormatter().format(it)) }
         ?: stringResource(R.string.device_command_sent)
     DeviceCommandStatus.ACKED -> stringResource(R.string.device_command_ready)
     DeviceCommandStatus.FAILED -> resultDetail
@@ -329,15 +411,31 @@ private fun DeviceCommand.statusLabel(): String? = when (status) {
     DeviceCommandStatus.UNKNOWN -> null
 }
 
+/**
+ * The connection tile's icon and label. The raw value the tablet reports is never shown, and an
+ * "OFFLINE" left over from before the tablet reconnected does not contradict an active card.
+ */
 @Composable
-private fun networkLabel(networkStatus: String?): String = when (networkStatus?.uppercase()) {
-    null -> stringResource(R.string.device_missing)
-    "WIFI" -> stringResource(R.string.device_network_wifi)
-    "MOBILE", "CELLULAR", "LTE", "4G", "5G" -> stringResource(R.string.device_network_mobile)
-    "ONLINE" -> stringResource(R.string.device_network_online)
-    "LIMITED" -> stringResource(R.string.device_network_limited)
-    else -> networkStatus
-}
+private fun networkPresentation(networkStatus: String?, connected: Boolean): Pair<ImageVector, String> =
+    when (networkStatus?.uppercase(Locale.ROOT)) {
+        null -> Icons.Rounded.Public to stringResource(R.string.device_missing)
+        "WIFI" -> Icons.Rounded.Wifi to stringResource(R.string.device_network_wifi)
+        "MOBILE", "CELLULAR", "LTE", "4G", "5G" ->
+            Icons.Rounded.SignalCellularAlt to stringResource(R.string.device_network_mobile)
+        "ETHERNET" -> Icons.Rounded.SettingsEthernet to stringResource(R.string.device_network_ethernet)
+        "OFFLINE" -> if (connected) {
+            Icons.Rounded.Public to stringResource(R.string.device_network_online)
+        } else {
+            Icons.Rounded.WifiOff to stringResource(R.string.device_network_offline)
+        }
+        "ONLINE" -> Icons.Rounded.Public to stringResource(R.string.device_network_online)
+        "LIMITED" ->
+            Icons.Rounded.SignalWifiStatusbarConnectedNoInternet4 to stringResource(R.string.device_network_limited)
+        else -> Icons.Rounded.Public to stringResource(R.string.device_network_other)
+    }
+
+/** Above this font scale the two command buttons stack. */
+private const val STACKED_ACTIONS_FONT_SCALE = 1.15f
 
 @Preview(name = "Device card — light", showBackground = true)
 @Preview(name = "Device card — dark", showBackground = true, uiMode = 0x20)
@@ -346,7 +444,7 @@ private fun DeviceCardPreview() {
     QhathiaTheme {
         DeviceCard(
             device = DeviceLinkingPreviewData.connected,
-            catalogCount = 12,
+            catalogCount = CatalogCount(active = 12, visible = 10),
             now = DeviceLinkingPreviewData.now,
             refreshCommand = null,
             restartCommand = null,
@@ -365,7 +463,7 @@ private fun DeviceCardCommandInFlightPreview() {
     QhathiaTheme {
         DeviceCard(
             device = DeviceLinkingPreviewData.disconnected,
-            catalogCount = 12,
+            catalogCount = CatalogCount(active = 12, visible = 10),
             now = DeviceLinkingPreviewData.now,
             refreshCommand = DeviceCommand(
                 id = "c1",

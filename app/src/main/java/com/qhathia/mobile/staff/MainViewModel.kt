@@ -1,5 +1,10 @@
 package com.qhathia.mobile.staff
 
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import com.qhathia.mobile.staff.core.domain.repository.NetworkMonitor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveBiometricEnabledUseCase
@@ -33,13 +38,16 @@ import javax.inject.Inject
  * It also holds the section a notification tap asked for until the shell can honour it. The state
  * lives here rather than in the Activity so it survives configuration changes and — more
  * importantly — the `Loading → Authenticated` transition: a push tapped while logged out (or locked)
- * is applied once the merchant is in.
+ * is applied once the merchant is in. While the lock is due, the shell's "consumed" call keeps the
+ * destination: a shell composed for a moment just before the lock is dropped with it, and the one
+ * after the fingerprint must still find it.
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
     observeSession: ObserveSessionUseCase,
-    observeBiometricEnabled: ObserveBiometricEnabledUseCase,
+    private val observeBiometricEnabled: ObserveBiometricEnabledUseCase,
     private val registerPushToken: RegisterPushTokenUseCase,
+    private val networkMonitor: NetworkMonitor,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -58,11 +66,19 @@ class MainViewModel @Inject constructor(
      * start) leaves any pending destination alone.
      */
     fun onDeepLink(destination: String?) {
-        if (destination != null) _pendingDestination.value = destination
+        if (destination == null) return
+        // The tap and the return to the foreground arrive in either order: lock now if it is due, so
+        // the shell still on screen cannot take the destination with it.
+        if (backgroundedLongEnough()) unlocked.value = false
+        _pendingDestination.value = destination
     }
 
-    /** Called by the shell once it has navigated, so the jump does not repeat. */
+    /**
+     * Called by the shell once it has navigated, so the jump does not repeat. Ignored while the lock
+     * is due, because that shell is about to be replaced by the gate.
+     */
     fun onPendingDestinationConsumed() {
+        if (isLockDue()) return
         _pendingDestination.value = null
     }
 
@@ -78,9 +94,28 @@ class MainViewModel @Inject constructor(
 
     /** The app came back; a long enough absence locks it again. */
     fun onAppForegrounded() {
-        val since = backgroundedAt ?: return
+        if (backgroundedLongEnough()) unlocked.value = false
         backgroundedAt = null
-        if (Duration.between(since, clock.instant()) >= RELOCK_AFTER) unlocked.value = false
+    }
+
+    /**
+     * The fingerprint preference as last read, apart from [authState] so that state keeps starting at
+     * [AuthState.Loading]. Null until the first read. Declared before [authState] so it subscribes
+     * first.
+     */
+    private val biometricEnabledNow: StateFlow<Boolean?> =
+        observeBiometricEnabled().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** Whether the biometric gate is showing or about to show. An unread preference counts as due. */
+    private fun isLockDue(): Boolean {
+        val biometric = biometricEnabledNow.value ?: return true
+        if (!biometric) return false
+        return !unlocked.value || backgroundedLongEnough()
+    }
+
+    private fun backgroundedLongEnough(): Boolean {
+        val since = backgroundedAt ?: return false
+        return Duration.between(since, clock.instant()) >= RELOCK_AFTER
     }
 
     private val isAuthenticated = observeSession()
@@ -88,8 +123,9 @@ class MainViewModel @Inject constructor(
         .distinctUntilChanged()
         .onEach { authenticated ->
             if (authenticated) {
-                viewModelScope.launch { registerPushToken() }
+                ensurePushRegistered()
             } else {
+                pushJob?.cancel()
                 // The next session starts with a password login, which already proves who is there.
                 unlocked.value = true
             }
@@ -110,8 +146,34 @@ class MainViewModel @Inject constructor(
                 initialValue = AuthState.Loading,
             )
 
+    private var pushJob: Job? = null
+
+    /**
+     * Registers the push token for the signed-in session. A failure (typically no network at start)
+     * is retried as soon as the network is back, or after a short wait, a bounded number of times,
+     * so the phone does not miss order pushes until the next login. Cancelled on sign-out.
+     */
+    private fun ensurePushRegistered() {
+        pushJob?.cancel()
+        pushJob = viewModelScope.launch {
+            repeat(MAX_PUSH_ATTEMPTS) {
+                if (registerPushToken().isSuccess) return@launch
+                withTimeoutOrNull(PUSH_RETRY_WAIT.toMillis()) { networkMonitor.isOnline.first { it } }
+                delay(PUSH_RETRY_PAUSE.toMillis())
+            }
+        }
+    }
+
     companion object {
         val RELOCK_AFTER: Duration = Duration.ofMinutes(5)
+
+        const val MAX_PUSH_ATTEMPTS = 10
+
+        /** How long a retry waits for the network to come back before trying anyway. */
+        val PUSH_RETRY_WAIT: Duration = Duration.ofSeconds(15)
+
+        /** A short pause so a network that flaps does not burn the attempts at once. */
+        val PUSH_RETRY_PAUSE: Duration = Duration.ofSeconds(1)
     }
 }
 

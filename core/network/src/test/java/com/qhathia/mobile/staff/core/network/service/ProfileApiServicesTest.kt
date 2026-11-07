@@ -56,7 +56,7 @@ class ProfileApiServicesTest {
     @Test
     fun `sessions carry the refresh token header only when given one`() = runTest {
         val http = client { json("[]") }
-        val service = AuthApiService(http, Provider { http })
+        val service = AuthApiService(http, Provider { http }, Json { ignoreUnknownKeys = true })
 
         service.getSessions("rt-1")
         service.revokeOthers(null)

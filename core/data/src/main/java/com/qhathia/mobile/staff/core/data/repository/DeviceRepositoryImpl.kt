@@ -1,5 +1,10 @@
 package com.qhathia.mobile.staff.core.data.repository
 
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
+import java.util.Locale
+import com.qhathia.mobile.staff.core.network.dto.RenameDeviceRequestDto
+import com.qhathia.mobile.staff.core.domain.model.PairingSessionStatus
+import com.qhathia.mobile.staff.core.domain.model.PairedDevice
 import com.qhathia.mobile.staff.core.data.mapper.toDomain
 import com.qhathia.mobile.staff.core.data.mapper.toRequestDto
 import com.qhathia.mobile.staff.core.domain.model.Device
@@ -22,10 +27,10 @@ import javax.inject.Inject
 
 /**
  * Maps transport [NetworkResult]s to domain [Result]s at the data boundary, so the domain and
- * presentation layers never see Ktor or DTO types. Pairing approves the entered code with default
- * device metadata (POC); a successful approve maps to `Result.success(Unit)` and any failure carries
- * a [PairDeviceException] whose [PairDeviceError] is derived from the HTTP status (400 → invalid
- * code, 409/503 → catalog not ready).
+ * presentation layers never see Ktor or DTO types. Approving a pairing returns the device and
+ * session it created, so the screen can wait for the tablet to exchange the code. Pairing failures
+ * carry a [PairDeviceException] chosen by the backend's `errorCode`; unlink, rename and settings
+ * failures carry a [DeviceSettingsException].
  */
 class DeviceRepositoryImpl @Inject constructor(
     private val apiService: DeviceApiService,
@@ -35,29 +40,61 @@ class DeviceRepositoryImpl @Inject constructor(
     override suspend fun getDevices(): Result<List<Device>> =
         apiService.getDevices().asDomainResult { devices -> devices.map { it.toDomain() } }
 
-    override suspend fun pairDevice(code: String): Result<Unit> {
+    override suspend fun pairDevice(code: String, name: String?): Result<PairedDevice> {
         val body = PairDeviceRequestDto(
-            pairingToken = code.trim(),
+            pairingToken = code.normalizedCode(),
             decision = DECISION_APPROVE,
-            deviceName = DEFAULT_DEVICE_NAME,
+            deviceName = name?.trim()?.takeIf { it.isNotEmpty() },
             platform = PLATFORM_ANDROID,
-            appVersion = DEFAULT_APP_VERSION,
         )
         return when (val result = apiService.pairDevice(body)) {
-            is NetworkResult.Success ->
-                Result.success(Unit)
-            is NetworkResult.HttpError ->
-                Result.failure(PairDeviceException(result.code.toPairError()))
-            is NetworkResult.NetworkError ->
-                Result.failure(PairDeviceException(PairDeviceError.Network))
+            is NetworkResult.Success -> {
+                val deviceId = result.data.deviceId
+                val sessionId = result.data.sessionId
+                if (deviceId == null || sessionId == null) {
+                    Result.failure(PairDeviceException(PairDeviceError.Unknown("Approval without device or session")))
+                } else {
+                    Result.success(PairedDevice(deviceId, sessionId, result.data.deviceName))
+                }
+            }
+            is NetworkResult.HttpError -> Result.failure(PairDeviceException(result.toPairError()))
+            is NetworkResult.NetworkError -> Result.failure(PairDeviceException(PairDeviceError.Network))
         }
     }
 
-    override suspend fun unlinkDevice(deviceId: String): Result<Unit> =
-        apiService.unlinkDevice(deviceId).asDomainResult { }
+    override suspend fun rejectPairing(code: String): Result<Unit> {
+        val body = PairDeviceRequestDto(pairingToken = code.normalizedCode(), decision = DECISION_REJECT)
+        return when (val result = apiService.pairDevice(body)) {
+            is NetworkResult.Success -> Result.success(Unit)
+            is NetworkResult.HttpError -> Result.failure(PairDeviceException(result.toPairError()))
+            is NetworkResult.NetworkError -> Result.failure(PairDeviceException(PairDeviceError.Network))
+        }
+    }
 
-    override suspend fun getCatalogCount(): Result<Int> =
-        catalogApiService.getCount().asDomainResult { it.activeProducts.coerceAtLeast(0) }
+    override suspend fun getPairingStatus(sessionId: String): Result<PairingSessionStatus> =
+        apiService.getPairingStatus(sessionId).asDomainResult {
+            PairingSessionStatus(status = it.status, tokenExchanged = it.tokenExchanged)
+        }
+
+    override suspend fun unlinkDevice(deviceId: String): Result<Unit> =
+        when (val result = apiService.unlinkDevice(deviceId)) {
+            is NetworkResult.Success -> Result.success(Unit)
+            is NetworkResult.HttpError -> Result.failure(DeviceSettingsException(result.code.toSettingsError()))
+            is NetworkResult.NetworkError -> Result.failure(DeviceSettingsException(DeviceSettingsError.Network))
+        }
+
+    override suspend fun renameDevice(deviceId: String, name: String): Result<Device> =
+        when (val result = apiService.renameDevice(deviceId, RenameDeviceRequestDto(name))) {
+            is NetworkResult.Success -> Result.success(result.data.toDomain())
+            is NetworkResult.HttpError -> Result.failure(DeviceSettingsException(result.code.toSettingsError()))
+            is NetworkResult.NetworkError -> Result.failure(DeviceSettingsException(DeviceSettingsError.Network))
+        }
+
+    override suspend fun getCatalogCount(): Result<CatalogCount> =
+        catalogApiService.getCount().asDomainResult { dto ->
+            val active = dto.activeProducts.coerceAtLeast(0)
+            CatalogCount(active = active, visible = dto.visibleProducts?.coerceIn(0, active))
+        }
 
     override suspend fun sendCommand(
         deviceId: String,
@@ -93,16 +130,30 @@ class DeviceRepositoryImpl @Inject constructor(
         else -> DeviceSettingsError.Unknown("HTTP $this")
     }
 
-    private fun Int.toPairError(): PairDeviceError = when (this) {
-        400 -> PairDeviceError.InvalidCode
-        409, 503 -> PairDeviceError.CatalogNotReady
-        else -> PairDeviceError.Unknown("HTTP $this")
+    /** The backend normalizes too; this keeps what is sent equal to what the field shows. */
+    private fun String.normalizedCode(): String = trim().uppercase(Locale.ROOT)
+
+    /** By the ProblemDetail `errorCode` first: the four code errors are all HTTP 400. */
+    private fun NetworkResult.HttpError.toPairError(): PairDeviceError {
+        val errorCode = problem?.errorCode
+        return when {
+            errorCode == ERROR_EXPIRED -> PairDeviceError.ExpiredCode
+            errorCode == ERROR_ALREADY_USED -> PairDeviceError.AlreadyUsedCode
+            errorCode == ERROR_CANCELLED -> PairDeviceError.CancelledCode
+            errorCode == ERROR_CATALOG_THRESHOLD || code == 409 -> PairDeviceError.CatalogNotReady(problem?.detail)
+            code == 503 -> PairDeviceError.CatalogCheckUnavailable
+            code == 400 -> PairDeviceError.InvalidCode
+            else -> PairDeviceError.Unknown("HTTP $code")
+        }
     }
 
     companion object {
         private const val DECISION_APPROVE = "APPROVE"
+        private const val DECISION_REJECT = "REJECT"
         private const val PLATFORM_ANDROID = "ANDROID"
-        private const val DEFAULT_DEVICE_NAME = "Tablet"
-        private const val DEFAULT_APP_VERSION = "1.0.0"
+        private const val ERROR_EXPIRED = "PAIRING_TOKEN_EXPIRED"
+        private const val ERROR_ALREADY_USED = "PAIRING_TOKEN_ALREADY_USED"
+        private const val ERROR_CANCELLED = "PAIRING_TOKEN_CANCELLED"
+        private const val ERROR_CATALOG_THRESHOLD = "CATALOG_THRESHOLD_NOT_MET"
     }
 }

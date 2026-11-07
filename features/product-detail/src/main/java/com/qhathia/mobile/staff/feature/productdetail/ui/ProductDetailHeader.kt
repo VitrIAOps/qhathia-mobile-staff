@@ -25,6 +25,7 @@ internal fun ProductDetailHeader(
     onOpenOrderRequests: () -> Unit,
     modifier: Modifier = Modifier,
     bellEnabled: Boolean = true,
+    backEnabled: Boolean = true,
 ) {
     Row(
         modifier = modifier
@@ -32,7 +33,7 @@ internal fun ProductDetailHeader(
             .padding(vertical = Dimens.SpaceSm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack) {
+        IconButton(onClick = onBack, enabled = backEnabled) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = stringResource(R.string.detail_back_cd),

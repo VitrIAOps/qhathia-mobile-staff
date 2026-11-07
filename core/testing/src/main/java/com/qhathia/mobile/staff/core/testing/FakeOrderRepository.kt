@@ -5,6 +5,8 @@ import com.qhathia.mobile.staff.core.domain.model.OrderPage
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
 import com.qhathia.mobile.staff.core.domain.repository.OrderRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -48,6 +50,21 @@ class FakeOrderRepository : OrderRepository {
     var refreshPendingCountCallCount: Int = 0
         private set
 
+    /** The `reuseInFlight` of every [refreshPendingOrderCount] call, in order. */
+    val refreshReuseFlags: MutableList<Boolean> = mutableListOf()
+
+    private val changes = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
+
+    override val ordersChanged: Flow<Unit> = changes.asSharedFlow()
+
+    var notifyOrdersChangedCount: Int = 0
+        private set
+
+    override fun notifyOrdersChanged() {
+        notifyOrdersChangedCount++
+        changes.tryEmit(Unit)
+    }
+
     /** Pushes [count] straight onto [pendingOrderCount], bypassing any query. */
     fun emitPendingCount(count: Int) {
         pendingCount.value = count
@@ -88,8 +105,9 @@ class FakeOrderRepository : OrderRepository {
         return result
     }
 
-    override suspend fun refreshPendingOrderCount(): Result<Int> {
+    override suspend fun refreshPendingOrderCount(reuseInFlight: Boolean): Result<Int> {
         refreshPendingCountCallCount++
+        refreshReuseFlags += reuseInFlight
         pendingCountResult.getOrNull()?.let { pendingCount.value = it }
         return pendingCountResult
     }

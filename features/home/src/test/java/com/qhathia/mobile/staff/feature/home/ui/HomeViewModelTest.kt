@@ -329,6 +329,30 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `Reabastecer asks the shell for that product's detail`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(HomeUiEvent.RestockProduct("product-7"))
+            assertEquals(HomeUiEffect.NavigateToProductDetail("product-7"), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `Agregar asks the shell for Registro with the searched name`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(HomeUiEvent.AddMissingProduct("Soldadora"))
+            assertEquals(HomeUiEffect.NavigateToProductRegister("Soldadora"), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `a period that sold nothing still loads without an error`() = runTest {
         insights.setSummary(
             SalesPeriod.HOURLY,

@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 import javax.inject.Inject
 
 /**
@@ -31,8 +33,10 @@ import javax.inject.Inject
  * only — the subscription and the tablets, all in parallel and each failing on its own. The role
  * comes from the session, so a SELLER never issues a request the backend would refuse.
  *
- * The screen refreshes on every resume, which is how a toggle changed in Notificaciones shows up in
- * the menu on return. A refresh already in flight absorbs the next request.
+ * It loads on resume, not in `init`, so opening it makes one round of requests. Coming back within
+ * [FRESH_FOR] loads nothing, except from a screen that changes what the hub shows
+ * ([RELOAD_AFTER]), which always reloads: that is how a toggle changed in Notificaciones shows up
+ * on return. A retry always reloads, and a refresh already in flight absorbs the next request.
  */
 @HiltViewModel
 class ProfileHubViewModel @Inject constructor(
@@ -55,15 +59,19 @@ class ProfileHubViewModel @Inject constructor(
     val uiEffect: SharedFlow<ProfileHubUiEffect> = _uiEffect.asSharedFlow()
 
     private var refreshJob: Job? = null
+    private var lastRefreshedAt: Instant? = null
 
-    init {
-        refresh()
-    }
+    /** The section the merchant last opened from here, until the next resume reads it. */
+    private var lastOpened: ProfileDestination? = null
 
     fun onEvent(event: ProfileHubUiEvent) {
         when (event) {
-            ProfileHubUiEvent.Refresh -> refresh()
-            is ProfileHubUiEvent.Open -> _uiEffect.tryEmit(ProfileHubUiEffect.Navigate(event.destination))
+            ProfileHubUiEvent.Resumed -> onResumed()
+            ProfileHubUiEvent.Retry -> refresh()
+            is ProfileHubUiEvent.Open -> {
+                lastOpened = event.destination
+                _uiEffect.tryEmit(ProfileHubUiEffect.Navigate(event.destination))
+            }
             ProfileHubUiEvent.LogoutRequested ->
                 _uiState.update { it.copy(isLogoutConfirmVisible = true) }
             ProfileHubUiEvent.LogoutDismissed ->
@@ -75,8 +83,17 @@ class ProfileHubViewModel @Inject constructor(
         }
     }
 
+    private fun onResumed() {
+        val returningFrom = lastOpened
+        lastOpened = null
+        val since = lastRefreshedAt
+        val stale = since == null || Duration.between(since, clock.instant()) >= FRESH_FOR
+        if (stale || returningFrom in RELOAD_AFTER) refresh()
+    }
+
     private fun refresh() {
         if (refreshJob?.isActive == true) return
+        lastRefreshedAt = clock.instant()
         refreshJob = viewModelScope.launch {
             val session = observeSessionUseCase().first()
             val role = session?.user?.role ?: UserRole.UNKNOWN
@@ -109,7 +126,7 @@ class ProfileHubViewModel @Inject constructor(
     private suspend fun loadAlertCounts() {
         getNotificationPreferencesUseCase()
             .onSuccess { prefs ->
-                _uiState.update { it.copy(alertCounts = AlertCounts(prefs.activeCount, prefs.totalCount)) }
+                _uiState.update { it.copy(alertCounts = AlertCounts(prefs.supportedActiveCount, prefs.supportedCount)) }
             }
     }
 
@@ -134,5 +151,17 @@ class ProfileHubViewModel @Inject constructor(
                     )
                 }
             }
+    }
+
+    companion object {
+        /** How long a load stays good enough for a plain return. */
+        val FRESH_FOR: Duration = Duration.ofSeconds(30)
+
+        /** Screens that change what the hub shows: coming back from them always reloads. */
+        val RELOAD_AFTER: Set<ProfileDestination> = setOf(
+            ProfileDestination.PERSONAL_DATA,
+            ProfileDestination.NOTIFICATIONS,
+            ProfileDestination.DEVICES,
+        )
     }
 }

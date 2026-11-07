@@ -1,5 +1,12 @@
 package com.qhathia.mobile.staff.core.network
 
+import android.util.Log
+import kotlin.coroutines.cancellation.CancellationException
+import io.ktor.http.HttpStatusCode
+import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.HttpClientConfig
+import com.qhathia.mobile.staff.core.network.dto.ProblemDto
 import com.qhathia.mobile.staff.core.network.service.REFRESH_TOKEN_HEADER
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -30,6 +37,9 @@ object KtorClientFactory {
     private const val CONNECT_TIMEOUT_MS = 15_000L
     private const val SOCKET_TIMEOUT_MS = 30_000L
 
+    /** Logcat tag of the debug HTTP log: `adb logcat -s KtorClient`. */
+    private const val LOG_TAG = "KtorClient"
+
     /**
      * @param tokenProvider when non-null, installs the bearer [Auth] plugin (token load + refresh).
      *   Pass null for the public client used by login/refresh, avoiding any refresh recursion.
@@ -38,7 +48,14 @@ object KtorClientFactory {
         config: NetworkConfig,
         json: Json,
         tokenProvider: AuthTokenProvider?,
-    ): HttpClient = HttpClient(CIO) {
+    ): HttpClient = HttpClient(CIO) { configure(config, json, tokenProvider) }
+
+    /** The whole client setup, apart from the engine, so tests can run it on a mock engine. */
+    internal fun HttpClientConfig<*>.configure(
+        config: NetworkConfig,
+        json: Json,
+        tokenProvider: AuthTokenProvider?,
+    ) {
         // Non-2xx responses throw a ResponseException, which toNetworkResult() maps to HttpError.
         expectSuccess = true
 
@@ -52,9 +69,11 @@ object KtorClientFactory {
         }
         if (config.enableLogging) {
             install(Logging) {
+                // Bodies stay, so the backend's answers can be read; their secrets (passwords,
+                // tokens, the exit PIN, phone and email) do not. Debug builds only.
                 logger = object : Logger {
                     override fun log(message: String) {
-                        println("[KtorClient] $message")
+                        Log.d(LOG_TAG, redactSecrets(message))
                     }
                 }
                 level = LogLevel.BODY
@@ -67,6 +86,12 @@ object KtorClientFactory {
         }
         if (tokenProvider != null) {
             install(Auth) {
+                // A wrong current password is a 401 too, but not an expired token: refreshing and
+                // replaying would cost a request and, if the refresh failed, the whole session.
+                reAuthorizeOnResponse { response ->
+                    response.status == HttpStatusCode.Unauthorized &&
+                        response.problemErrorCode(json) != ERROR_CURRENT_PASSWORD_INCORRECT
+                }
                 bearer {
                     loadTokens { tokenProvider.loadTokens() }
                     refreshTokens { tokenProvider.refreshTokens() }
@@ -80,3 +105,16 @@ object KtorClientFactory {
         }
     }
 }
+
+/** The `errorCode` of a ProblemDetail body, best effort; null when it cannot be read. */
+private suspend fun HttpResponse.problemErrorCode(json: Json): String? =
+    try {
+        json.decodeFromString<ProblemDto>(bodyAsText()).errorCode
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
+
+/** The 401 that means "the current password is wrong", not "the token expired" (Fase 36). */
+internal const val ERROR_CURRENT_PASSWORD_INCORRECT = "CURRENT_PASSWORD_INCORRECT"

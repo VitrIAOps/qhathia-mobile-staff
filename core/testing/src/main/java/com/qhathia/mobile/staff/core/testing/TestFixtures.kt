@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.testing
 
+import com.qhathia.mobile.staff.core.domain.model.PairedDevice
 import com.qhathia.mobile.staff.core.domain.model.AuthTokens
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
@@ -114,6 +115,8 @@ object TestFixtures {
         position: Int = 0,
         discountedPrice: Double? = null,
         discountEndsAt: Instant? = null,
+        version: Long? = 7,
+        active: Boolean = true,
     ) = ProductDetail(
         id = id,
         name = name,
@@ -128,6 +131,8 @@ object TestFixtures {
         position = position,
         discountedPrice = discountedPrice,
         discountEndsAt = discountEndsAt,
+        version = version,
+        active = active,
     )
 
     fun deviceSettings(
@@ -168,12 +173,11 @@ object TestFixtures {
     fun productUpdate(
         name: String = "Taladro Percutor Bosch GSB 13 RE",
         price: Double = 189.0,
-        stock: Int = 12,
-        description: String? = "Taladro percutor de 650W con maletín",
+        stock: Int? = 12,
+        description: String = "Taladro percutor de 650W con maletín",
         categoryId: String = "category-1",
         tags: List<String> = listOf("herramientas", "bosch"),
-        allowDiscountInquiry: Boolean = false,
-        position: Int = 0,
+        version: Long? = 7,
     ) = ProductUpdate(
         name = name,
         price = price,
@@ -181,14 +185,19 @@ object TestFixtures {
         description = description,
         categoryId = categoryId,
         tags = tags,
-        allowDiscountInquiry = allowDiscountInquiry,
-        position = position,
+        version = version,
     )
 
     fun category(
         id: String = "category-1",
         name: String = "Electrónica",
     ) = Category(id, name)
+
+    fun pairedDevice(
+        deviceId: String = "device-new",
+        sessionId: String = "session-1",
+        name: String? = "Tablet 2",
+    ) = PairedDevice(deviceId = deviceId, sessionId = sessionId, name = name)
 
     fun device(
         id: String = "device-1",
@@ -225,7 +234,9 @@ object TestFixtures {
         requestedAt: Instant? = NOW,
         expiresAt: Instant? = requestedAt?.plus(Duration.ofMinutes(10)),
         resultDetail: String? = null,
-    ) = DeviceCommand(id, type, status, requestedAt, expiresAt, resultDetail)
+        deliveredAt: Instant? = null,
+        ackedAt: Instant? = null,
+    ) = DeviceCommand(id, type, status, requestedAt, expiresAt, resultDetail, deliveredAt, ackedAt)
 
     fun userProfile(
         id: String = "user-1",
@@ -256,10 +267,14 @@ object TestFixtures {
     fun notificationPreferences(
         values: Map<NotificationPreference, Boolean> =
             NotificationPreference.entries.associateWith { it != NotificationPreference.LOW_BATTERY },
+        supported: Set<NotificationPreference> = NotificationPreferences.DEFAULT_SUPPORTED,
+        orderExpiringWarningMinutes: Int = NotificationPreferences.DEFAULT_WARNING_MINUTES,
     ) = NotificationPreferences(
         values = values,
         activeCount = values.count { it.value },
         totalCount = NotificationPreference.entries.size,
+        supported = supported,
+        orderExpiringWarningMinutes = orderExpiringWarningMinutes,
     )
 
     fun activeSession(
@@ -287,7 +302,8 @@ object TestFixtures {
         categoryId: String = "category-1",
         tags: List<String> = listOf("vintage"),
         images: List<SelectedImage> = listOf(selectedImage()),
-    ) = NewProduct(name, price, quantity, description, categoryId, tags, images)
+        idempotencyKey: String = "8a3f6f8e-1c2d-4e5f-9a0b-1c2d3e4f5a6b",
+    ) = NewProduct(name, price, quantity, description, categoryId, tags, images, idempotencyKey)
 
     fun salesBucket(
         label: String = "Sem 1",
@@ -460,6 +476,9 @@ object TestFixtures {
         productStock: Int? = 12,
         productAvailability: Availability? = Availability.AVAILABLE,
         productImageUrl: String? = null,
+        listPrice: Double? = null,
+        productActive: Boolean = true,
+        currentProductName: String? = null,
     ) = OrderItem(
         id = id,
         productId = productId,
@@ -470,6 +489,9 @@ object TestFixtures {
         productStock = productStock,
         productAvailability = productAvailability,
         productImageUrl = productImageUrl,
+        listPrice = listPrice,
+        productActive = productActive,
+        currentProductName = currentProductName,
     )
 
     fun orderDetail(

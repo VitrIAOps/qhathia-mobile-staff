@@ -62,6 +62,9 @@ fun OrderItemDto.toDomain(): OrderItem = OrderItem(
     productStock = productStock,
     productAvailability = productAvailability.toAvailabilityOrNull(),
     productImageUrl = productImageUrl?.takeIf { it.isNotBlank() },
+    listPrice = listPriceSnapshot,
+    productActive = productActive,
+    currentProductName = currentProductName?.takeIf { it.isNotBlank() },
 )
 
 /**

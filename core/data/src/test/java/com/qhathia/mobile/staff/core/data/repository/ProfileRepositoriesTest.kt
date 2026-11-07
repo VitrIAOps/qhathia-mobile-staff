@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.data.repository
 
+import com.qhathia.mobile.staff.core.network.dto.ProblemDto
 import com.qhathia.mobile.staff.core.domain.model.AppLanguage
 import com.qhathia.mobile.staff.core.domain.model.ChangePasswordError
 import com.qhathia.mobile.staff.core.domain.model.ChangePasswordException
@@ -117,7 +118,11 @@ class ProfileRepositoriesTest {
         assertEquals("refresh-token", body.captured.currentRefreshToken)
 
         val cases = mapOf(
-            NetworkResult.HttpError(401, "") to ChangePasswordError.WrongCurrent,
+            NetworkResult.HttpError(401, "", ProblemDto(errorCode = "CURRENT_PASSWORD_INCORRECT")) to
+                ChangePasswordError.WrongCurrent,
+            // A 401 about the session, not the password: the auth plugin already dealt with it.
+            NetworkResult.HttpError(401, "", ProblemDto(errorCode = "UNAUTHORIZED")) to
+                ChangePasswordError.Unknown("HTTP 401"),
             NetworkResult.HttpError(400, "") to ChangePasswordError.SameAsCurrent,
             NetworkResult.HttpError(422, "") to ChangePasswordError.Validation,
             NetworkResult.NetworkError(IOException("offline")) to ChangePasswordError.Network,

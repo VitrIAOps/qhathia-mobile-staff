@@ -55,6 +55,26 @@ class DashboardDtosTest {
     }
 
     @Test
+    fun `a ranking response carries the Fase 42 fields`() {
+        val dto = json.decodeFromString<SalesRankingDto>(
+            """
+            {
+              "asOf": "2026-11-03T22:04:00Z",
+              "topSellers": {
+                "totalRevenue": 2385.00, "periodRevenue": 2848.50, "productsSold": 11,
+                "items": [ { "productId": "p-1", "name": "QA X OK", "revenue": 515.0, "unitsSold": 2, "active": false } ]
+              }
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals("2026-11-03T22:04:00Z", dto.asOf)
+        assertEquals(2848.50, dto.topSellers.periodRevenue)
+        assertEquals(11, dto.topSellers.productsSold)
+        assertEquals(false, dto.topSellers.items.single().active)
+    }
+
+    @Test
     fun `a ranking response from an older backend has no total count`() {
         val dto = json.decodeFromString<SalesRankingDto>("""{ "needsAttention": { "totalImmobilized": 0.0 } }""")
 

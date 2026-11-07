@@ -33,13 +33,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.qhathia.mobile.staff.core.ui.component.time.rememberShortTimeFormatter
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.feature.orderrequests.R
 import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 /**
  * Gradient header of the Solicitudes screen: the screen title with the last-successful-load time
@@ -78,10 +76,11 @@ internal fun OrderRequestsHeader(
                     color = QhathiaColors.onHeaderGradient,
                 )
                 if (lastUpdatedAt != null) {
+                    val timeFormatter = rememberShortTimeFormatter()
                     Text(
                         text = stringResource(
                             R.string.order_requests_last_updated,
-                            lastUpdatedAt.toLocalTimeLabel(),
+                            timeFormatter.format(lastUpdatedAt),
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = QhathiaColors.onHeaderGradient,
@@ -164,9 +163,3 @@ private fun OrderSearchField(
         )
     }
 }
-
-/** The device-local wall-clock time of the load, formatted for the device locale. */
-private fun Instant.toLocalTimeLabel(): String =
-    DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
-        .withZone(ZoneId.systemDefault())
-        .format(this)

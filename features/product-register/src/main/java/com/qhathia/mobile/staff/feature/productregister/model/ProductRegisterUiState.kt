@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.feature.productregister.model
 
 import androidx.annotation.StringRes
+import com.qhathia.mobile.staff.core.common.validation.MAX_PRODUCT_PHOTOS
 import com.qhathia.mobile.staff.core.common.validation.isValidPrice
 import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.isValidQuantity
@@ -52,13 +53,28 @@ data class ProductRegisterUiState(
             isValidPrice(price) &&
             isValidQuantity(quantity) &&
             selectedCategoryId != null &&
-            images.isNotEmpty()
+            images.isNotEmpty() &&
+            images.size <= MAX_PRODUCT_PHOTOS
+
+    /** Another photo fits under the backend's limit. */
+    val canAddPhotos: Boolean
+        get() = images.size < MAX_PRODUCT_PHOTOS
 
     /** What the product costs with [discount] applied; null without a discount or a valid price. */
     val discountedPrice: Double?
         get() {
             val applied = discount ?: return null
             return parsePrice(price)?.let { applied.applyTo(it) }
+        }
+
+    /**
+     * The applied discount no longer fits the price typed: only a fixed amount above the price.
+     * Submitting removes it with a message instead of creating a product priced at zero.
+     */
+    val isDiscountOverPrice: Boolean
+        get() {
+            val applied = discount ?: return false
+            return parsePrice(price)?.let { !applied.fits(it) } == true
         }
 
     /** A discount needs a price to be taken off, so the toggle stays locked until one is entered. */

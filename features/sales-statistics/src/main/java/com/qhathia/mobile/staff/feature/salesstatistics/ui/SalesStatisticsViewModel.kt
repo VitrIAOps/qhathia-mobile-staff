@@ -42,6 +42,10 @@ import javax.inject.Inject
  *
  * A filter change clears the tab's figures before loading — last week's numbers under "Mensual"
  * would read as the month's. A failed retry for the same filters keeps them next to the error.
+ *
+ * Coming back to the screen reloads the tab on screen, keeping its figures until the answer: a
+ * restock elsewhere changes "Lo que necesita atención". Back is emitted once, so a double tap can
+ * never pop the screen below.
  */
 @HiltViewModel
 class SalesStatisticsViewModel @Inject constructor(
@@ -70,6 +74,12 @@ class SalesStatisticsViewModel @Inject constructor(
 
     private var inFlight: TabQuery? = null
     private var loadJob: Job? = null
+
+    /** The first `ON_START` arrives while the load started in `init` is already running. */
+    private var hasStarted = false
+
+    /** Set once back was emitted; later taps would pop the screen below this one. */
+    private var isLeaving = false
 
     init {
         viewModelScope.launch {
@@ -103,12 +113,31 @@ class SalesStatisticsViewModel @Inject constructor(
 
             SalesStatisticsUiEvent.Retry -> loadActiveTab(force = true)
 
-            SalesStatisticsUiEvent.Back -> viewModelScope.launch {
-                _uiEffect.emit(SalesStatisticsUiEffect.NavigateBack)
+            SalesStatisticsUiEvent.Back -> {
+                if (isLeaving) return
+                isLeaving = true
+                viewModelScope.launch { _uiEffect.emit(SalesStatisticsUiEffect.NavigateBack) }
             }
 
-            // Designed, but there is nothing to share to yet.
-            SalesStatisticsUiEvent.Share -> Unit
+            SalesStatisticsUiEvent.Share -> {
+                val state = _uiState.value
+                if (state.isShareEnabled) {
+                    viewModelScope.launch { _uiEffect.emit(SalesStatisticsUiEffect.Share(state.selectedTab)) }
+                }
+            }
+
+            SalesStatisticsUiEvent.ScreenStarted -> {
+                if (hasStarted) {
+                    // Every tab is stale now; the one on screen reloads keeping its figures, the
+                    // others when they are shown.
+                    val onScreen = _uiState.value.activeQuery()
+                    val keep = loadedQueries[onScreen.tab]
+                    loadedQueries.clear()
+                    if (keep == onScreen) loadedQueries[onScreen.tab] = onScreen
+                    loadActiveTab(force = true)
+                }
+                hasStarted = true
+            }
         }
     }
 

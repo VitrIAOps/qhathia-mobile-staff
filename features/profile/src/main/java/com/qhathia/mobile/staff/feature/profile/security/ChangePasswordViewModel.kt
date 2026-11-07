@@ -24,7 +24,8 @@ internal val PASSWORD_LENGTH = 8..100
 
 /**
  * Cambiar contraseña. Field errors are string resources; [bannerErrorRes] carries failures that
- * belong to no field (connectivity, unknown).
+ * belong to no field (connectivity, unknown). [isDiscardDialogVisible] is the "¿Descartar cambios?"
+ * asked when leaving with something typed.
  */
 data class ChangePasswordUiState(
     val currentPassword: String = "",
@@ -34,7 +35,12 @@ data class ChangePasswordUiState(
     @param:StringRes val newPasswordErrorRes: Int? = null,
     @param:StringRes val bannerErrorRes: Int? = null,
     val isSubmitting: Boolean = false,
+    val isDiscardDialogVisible: Boolean = false,
 ) {
+    /** Nothing is loaded here, so any typing is a change worth asking about. */
+    val isDirty: Boolean
+        get() = currentPassword.isNotEmpty() || newPassword.isNotEmpty() || confirmation.isNotEmpty()
+
     /** Shown as soon as the confirmation diverges, not only on submit. */
     val isConfirmationMismatch: Boolean
         get() = confirmation.isNotEmpty() && confirmation != newPassword
@@ -51,10 +57,16 @@ sealed interface ChangePasswordUiEvent {
     data class NewPasswordChanged(val value: String) : ChangePasswordUiEvent
     data class ConfirmationChanged(val value: String) : ChangePasswordUiEvent
     data object Submit : ChangePasswordUiEvent
+
+    /** System back or the top bar's back. */
+    data object BackRequested : ChangePasswordUiEvent
+    data object DiscardConfirmed : ChangePasswordUiEvent
+    data object DiscardDismissed : ChangePasswordUiEvent
 }
 
 sealed interface ChangePasswordUiEffect {
     data object PasswordChanged : ChangePasswordUiEffect
+    data object NavigateBack : ChangePasswordUiEffect
 }
 
 /**
@@ -87,6 +99,22 @@ class ChangePasswordViewModel @Inject constructor(
                 it.copy(confirmation = event.value, bannerErrorRes = null)
             }
             ChangePasswordUiEvent.Submit -> submit()
+            ChangePasswordUiEvent.BackRequested -> onBackRequested()
+            ChangePasswordUiEvent.DiscardConfirmed -> {
+                _uiState.update { it.copy(isDiscardDialogVisible = false) }
+                _uiEffect.tryEmit(ChangePasswordUiEffect.NavigateBack)
+            }
+            ChangePasswordUiEvent.DiscardDismissed -> _uiState.update { it.copy(isDiscardDialogVisible = false) }
+        }
+    }
+
+    /** Leaving mid-request would drop its result, so back waits; typed passwords ask first. */
+    private fun onBackRequested() {
+        val state = _uiState.value
+        when {
+            state.isSubmitting -> Unit
+            state.isDirty -> _uiState.update { it.copy(isDiscardDialogVisible = true) }
+            else -> _uiEffect.tryEmit(ChangePasswordUiEffect.NavigateBack)
         }
     }
 

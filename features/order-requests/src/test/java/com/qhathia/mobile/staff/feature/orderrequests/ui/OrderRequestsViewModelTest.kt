@@ -10,6 +10,7 @@ import com.qhathia.mobile.staff.core.domain.model.RejectOrderException
 import com.qhathia.mobile.staff.core.domain.usecase.ConfirmOrderUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrderDetailUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrdersUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.ObserveOrdersChangedUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObservePendingOrderCountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RejectOrderUseCase
 import com.qhathia.mobile.staff.core.testing.FakeOrderRepository
@@ -18,7 +19,9 @@ import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsFilter
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiEffect
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderRequestsUiEvent
+import com.qhathia.mobile.staff.feature.orderrequests.R
 import com.qhathia.mobile.staff.feature.orderrequests.model.RejectionReason
+import com.qhathia.mobile.staff.feature.orderrequests.model.SubmitError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -57,6 +60,7 @@ class OrderRequestsViewModelTest {
         confirmOrderUseCase = ConfirmOrderUseCase(repository),
         rejectOrderUseCase = RejectOrderUseCase(repository),
         observePendingOrderCountUseCase = ObservePendingOrderCountUseCase(repository),
+        observeOrdersChangedUseCase = ObserveOrdersChangedUseCase(repository),
     )
 
     /**
@@ -437,13 +441,14 @@ class OrderRequestsViewModelTest {
             viewModel.onEvent(OrderRequestsUiEvent.ConfirmOrder("order-1"))
             runCurrent()
 
-            assertTrue(awaitItem() is OrderRequestsUiEffect.ShowError)
-            cancelAndIgnoreRemainingEvents()
+            // The error is read inside the dialog; the snackbar would sit under its scrim.
+            expectNoEvents()
         }
 
         val detail = viewModel.uiState.value.detail
         assertNotNull(detail)
         assertFalse(detail?.isSubmitting ?: true)
+        assertEquals(SubmitError(R.string.order_error_network), detail?.submitError)
     }
 
     @Test
@@ -481,5 +486,214 @@ class OrderRequestsViewModelTest {
 
         assertEquals(listOf(OrderStatus.CONFIRMED), repository.lastListCall?.statuses)
         assertEquals("mari", repository.lastListCall?.query)
+    }
+
+    // ---- Re-query on change and on return, settled orders, inline dialog errors ----
+
+    /** Comfortably past the 300 ms debounce of the orders-changed signal. */
+    private val pastSignalDebounceMs = 400L
+
+    private fun listCalls() = repository.calls.count { it.size > 1 }
+
+    private fun pendingPageOf(vararg ids: String) = Result.success(
+        OrderPage(orders = ids.map { TestFixtures.order(id = it) }, totalElements = ids.size),
+    )
+
+    @Test
+    fun `orders changed elsewhere re-query the list`() = runTest {
+        createViewModel()
+        runCurrent()
+        val before = listCalls()
+
+        repository.notifyOrdersChanged()
+        advanceTimeBy(pastSignalDebounceMs)
+        runCurrent()
+
+        assertEquals(before + 1, listCalls())
+    }
+
+    @Test
+    fun `a burst of changes re-queries once`() = runTest {
+        createViewModel()
+        runCurrent()
+        val before = listCalls()
+
+        repeat(3) { repository.notifyOrdersChanged() }
+        advanceTimeBy(pastSignalDebounceMs)
+        runCurrent()
+
+        assertEquals(before + 1, listCalls())
+    }
+
+    @Test
+    fun `the first screen start is the initial load and later ones re-query`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        val before = listCalls()
+
+        viewModel.onEvent(OrderRequestsUiEvent.ScreenStarted)
+        runCurrent()
+        assertEquals(before, listCalls())
+
+        viewModel.onEvent(OrderRequestsUiEvent.ScreenStarted)
+        runCurrent()
+        assertEquals(before + 1, listCalls())
+    }
+
+    @Test
+    fun `a quiet re-query that fails keeps the list and says nothing`() = runTest {
+        repository.ordersResult = pendingPageOf("order-1")
+        val viewModel = createViewModel()
+        runCurrent()
+        repository.ordersResult = Result.failure(IOException("offline"))
+
+        viewModel.uiEffect.test {
+            repository.notifyOrdersChanged()
+            advanceTimeBy(pastSignalDebounceMs)
+            runCurrent()
+            expectNoEvents()
+        }
+        assertEquals(listOf("order-1"), viewModel.uiState.value.orders.map { it.id })
+    }
+
+    @Test
+    fun `a confirmed order leaves Pendientes even when the reload fails`() = runTest {
+        repository.ordersResult = pendingPageOf("order-1", "order-2")
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.OpenDetail("order-1"))
+        runCurrent()
+        repository.ordersResult = Result.failure(IOException("offline"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(OrderRequestsUiEvent.ConfirmOrder("order-1"))
+            runCurrent()
+            assertEquals(OrderRequestsUiEffect.ShowConfirmedSnackbar, awaitItem())
+            expectNoEvents()
+        }
+        assertEquals(listOf("order-2"), viewModel.uiState.value.orders.map { it.id })
+    }
+
+    @Test
+    fun `a stale page after a confirm does not bring the order back`() = runTest {
+        repository.ordersResult = pendingPageOf("order-1", "order-2")
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.OpenDetail("order-1"))
+        runCurrent()
+
+        // The server still answers with the order as pending (a read before the confirm landed).
+        viewModel.onEvent(OrderRequestsUiEvent.ConfirmOrder("order-1"))
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.Refresh)
+        runCurrent()
+
+        assertEquals(listOf("order-2"), viewModel.uiState.value.orders.map { it.id })
+    }
+
+    @Test
+    fun `an order already handled elsewhere leaves Pendientes at once`() = runTest {
+        repository.ordersResult = pendingPageOf("order-1", "order-2")
+        repository.confirmResult = Result.failure(ConfirmOrderException(ConfirmOrderError.AlreadyHandled))
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.OpenDetail("order-1"))
+        runCurrent()
+        repository.ordersResult = Result.failure(IOException("offline"))
+
+        viewModel.onEvent(OrderRequestsUiEvent.ConfirmOrder("order-1"))
+        runCurrent()
+
+        assertEquals(listOf("order-2"), viewModel.uiState.value.orders.map { it.id })
+    }
+
+    @Test
+    fun `a network error on confirm stays in the dialog with no snackbar`() = runTest {
+        repository.confirmResult = Result.failure(ConfirmOrderException(ConfirmOrderError.Network))
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.OpenDetail("order-1"))
+        runCurrent()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(OrderRequestsUiEvent.ConfirmOrder("order-1"))
+            runCurrent()
+            expectNoEvents()
+        }
+        val detail = checkNotNull(viewModel.uiState.value.detail)
+        assertEquals(SubmitError(R.string.order_error_network), detail.submitError)
+        assertFalse(detail.isSubmitting)
+    }
+
+    @Test
+    fun `a network error on reject stays in the form with no snackbar`() = runTest {
+        repository.rejectResult = Result.failure(RejectOrderException(RejectOrderError.Network))
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.StartRejection("order-1", "859653"))
+        viewModel.onEvent(OrderRequestsUiEvent.SelectRejectionReason(RejectionReason.entries.first()))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(OrderRequestsUiEvent.ConfirmRejection("Sin stock"))
+            runCurrent()
+            expectNoEvents()
+        }
+        val detail = checkNotNull(viewModel.uiState.value.detail)
+        assertNotNull(detail.rejection)
+        assertEquals(SubmitError(R.string.order_error_network), detail.submitError)
+    }
+
+    @Test
+    fun `a product no longer for sale keeps the dialog with its name`() = runTest {
+        repository.confirmResult = Result.failure(
+            ConfirmOrderException(ConfirmOrderError.ProductNotSellable("Taladro", "INACTIVE")),
+        )
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.OpenDetail("order-1"))
+        runCurrent()
+
+        viewModel.onEvent(OrderRequestsUiEvent.ConfirmOrder("order-1"))
+        runCurrent()
+
+        assertEquals(
+            SubmitError(R.string.order_error_not_sellable, "Taladro"),
+            viewModel.uiState.value.detail?.submitError,
+        )
+    }
+
+    @Test
+    fun `trying again clears the inline error`() = runTest {
+        repository.confirmResult = Result.failure(ConfirmOrderException(ConfirmOrderError.Network))
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.OpenDetail("order-1"))
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.ConfirmOrder("order-1"))
+        runCurrent()
+
+        repository.confirmResult = Result.success(TestFixtures.orderDetail())
+        viewModel.onEvent(OrderRequestsUiEvent.ConfirmOrder("order-1"))
+        runCurrent()
+
+        assertNull(viewModel.uiState.value.detail)
+        assertEquals(listOf("order-1", "order-1"), repository.confirmedIds)
+    }
+
+    @Test
+    fun `retrying a failed detail requests it again`() = runTest {
+        repository.detailResult = Result.failure(IOException("offline"))
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.OpenDetail("order-1"))
+        runCurrent()
+        assertTrue(viewModel.uiState.value.detail?.isError == true)
+
+        repository.detailResult = Result.success(TestFixtures.orderDetail())
+        viewModel.onEvent(OrderRequestsUiEvent.OpenDetail("order-1"))
+        runCurrent()
+
+        assertEquals(listOf("order-1", "order-1"), repository.requestedDetailIds)
+        assertNotNull(viewModel.uiState.value.detail?.order)
     }
 }

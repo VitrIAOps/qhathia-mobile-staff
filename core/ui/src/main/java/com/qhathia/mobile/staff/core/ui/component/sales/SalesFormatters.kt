@@ -1,16 +1,12 @@
 package com.qhathia.mobile.staff.core.ui.component.sales
 
+import com.qhathia.mobile.staff.core.ui.format.toPenAmount
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.text.NumberFormat
-import java.util.Locale
 import kotlin.math.abs
 
-/** Peruvian soles as the design writes them: `S/ 5,770`, grouped, without decimals. */
-fun BigDecimal.toSolesLabel(): String {
-    val format = NumberFormat.getIntegerInstance(Locale.US)
-    return "S/ ${format.format(setScale(0, RoundingMode.HALF_UP))}"
-}
+/** Peruvian soles as the dashboards write them: `S/ 5,770`, grouped, without decimals. */
+fun BigDecimal.toSolesLabel(): String = toPenAmount()
 
 /** Which way a percentage moved once rounded for display. */
 enum class PercentTrend { UP, DOWN, FLAT }

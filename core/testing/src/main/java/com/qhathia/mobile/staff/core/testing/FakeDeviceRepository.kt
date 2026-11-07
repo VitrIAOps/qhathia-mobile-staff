@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.core.testing
 
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
+import com.qhathia.mobile.staff.core.domain.model.PairingSessionStatus
+import com.qhathia.mobile.staff.core.domain.model.PairedDevice
 import com.qhathia.mobile.staff.core.domain.model.Device
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommand
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
@@ -16,8 +19,26 @@ import com.qhathia.mobile.staff.core.domain.repository.DeviceRepository
 class FakeDeviceRepository : DeviceRepository {
 
     var devicesResult: Result<List<Device>> = Result.success(listOf(TestFixtures.device()))
-    var pairResult: Result<Unit> = Result.success(Unit)
-    var catalogCountResult: Result<Int> = Result.success(12)
+    var pairResult: Result<PairedDevice> = Result.success(TestFixtures.pairedDevice())
+    var rejectResult: Result<Unit> = Result.success(Unit)
+
+    /** One answer per [getPairingStatus] call; once empty, [pairingStatusResult] answers. */
+    val statusResults: ArrayDeque<Result<PairingSessionStatus>> = ArrayDeque()
+    var pairingStatusResult: Result<PairingSessionStatus> =
+        Result.success(PairingSessionStatus(status = "APPROVED", tokenExchanged = false))
+    var statusCallCount: Int = 0
+        private set
+
+    /** When null, the rename succeeds with the device renamed. */
+    var renameResult: Result<Device>? = null
+    val renames: MutableList<Pair<String, String>> = mutableListOf()
+
+    /** Every code sent to [rejectPairing], in order. */
+    val rejectedCodes: MutableList<String> = mutableListOf()
+    var catalogCountResult: Result<CatalogCount> = Result.success(CatalogCount(active = 12, visible = 12))
+
+    var catalogCountCallCount: Int = 0
+        private set
     var unlinkResult: Result<Unit> = Result.success(Unit)
 
     /** Every device id sent to [unlinkDevice], in order. */
@@ -46,6 +67,8 @@ class FakeDeviceRepository : DeviceRepository {
         private set
     var lastPairedCode: String? = null
         private set
+    var lastPairName: String? = null
+        private set
     var pairCallCount: Int = 0
         private set
     var getCommandsCallCount: Int = 0
@@ -59,10 +82,28 @@ class FakeDeviceRepository : DeviceRepository {
         return devicesResult
     }
 
-    override suspend fun pairDevice(code: String): Result<Unit> {
+    override suspend fun pairDevice(code: String, name: String?): Result<PairedDevice> {
         pairCallCount++
         lastPairedCode = code
+        lastPairName = name
         return pairResult
+    }
+
+    override suspend fun rejectPairing(code: String): Result<Unit> {
+        rejectedCodes += code
+        return rejectResult
+    }
+
+    override suspend fun getPairingStatus(sessionId: String): Result<PairingSessionStatus> {
+        statusCallCount++
+        return statusResults.removeFirstOrNull() ?: pairingStatusResult
+    }
+
+    override suspend fun renameDevice(deviceId: String, name: String): Result<Device> {
+        renames += deviceId to name
+        renameResult?.let { return it }
+        val current = devicesResult.getOrNull()?.firstOrNull { it.id == deviceId } ?: TestFixtures.device(id = deviceId)
+        return Result.success(current.copy(name = name))
     }
 
     override suspend fun unlinkDevice(deviceId: String): Result<Unit> {
@@ -70,7 +111,10 @@ class FakeDeviceRepository : DeviceRepository {
         return unlinkResult
     }
 
-    override suspend fun getCatalogCount(): Result<Int> = catalogCountResult
+    override suspend fun getCatalogCount(): Result<CatalogCount> {
+        catalogCountCallCount++
+        return catalogCountResult
+    }
 
     override suspend fun sendCommand(
         deviceId: String,

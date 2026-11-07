@@ -14,4 +14,10 @@
     <!-- Fallback (unknown events) -->
     <string name="notif_order_updated_body">El estado de una orden cambió</string>
     <string name="notif_order_generic_title">Actualización de órdenes</string>
+
+    <!-- Group summary over the order notifications -->
+    <plurals name="notif_orders_summary_title">
+        <item quantity="one">%d orden por atender</item>
+        <item quantity="other">%d órdenes por atender</item>
+    </plurals>
 </resources>

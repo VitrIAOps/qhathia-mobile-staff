@@ -29,6 +29,7 @@ fun ImagePickerSection(
     onRemove: (String) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    canAdd: Boolean = true,
 ) {
     val tiles = remember(images) { images.map { PhotoTile(key = it.uri, model = it.uri) }.toImmutableList() }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs)) {
@@ -48,6 +49,7 @@ fun ImagePickerSection(
             onPick = { picked -> onPick(picked.map { SelectedImage(uri = it.uri, mimeType = it.mimeType) }) },
             onRemove = onRemove,
             enabled = enabled,
+            canAdd = canAdd,
             modifier = Modifier.padding(top = Dimens.SpaceSm),
         )
     }

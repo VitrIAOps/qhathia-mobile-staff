@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.productinventory.ui
 
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.Lifecycle
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -58,6 +60,9 @@ fun InventoryScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     val resources = LocalResources.current
+
+    // The tab's state is restored on return, so the list would otherwise stay as it was left.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onEvent(InventoryUiEvent.ScreenStarted) }
 
     LaunchedEffect(Unit) {
         viewModel.uiEffect.collect { effect ->

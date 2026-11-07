@@ -17,10 +17,24 @@ interface OrderRepository {
     val pendingOrderCount: Flow<Int>
 
     /**
+     * Fires when orders changed somewhere else (a push, a notification tap). It carries no data:
+     * screens that list orders re-run their own query on it. It is a signal, not a cache.
+     */
+    val ordersChanged: Flow<Unit>
+
+    /** Tells every [ordersChanged] observer to re-query. */
+    fun notifyOrdersChanged()
+
+    /**
      * Re-reads the pending count and publishes it to [pendingOrderCount]. Failing with an auth
      * error resets the cache to zero, so a count cannot outlive the session it was read under.
+     *
+     * One request runs at a time. With [reuseInFlight], a caller that arrives while one is running
+     * takes its answer instead of sending another, so Inicio and the shell entering together cost
+     * one request. A caller that needs a count read after something it just learned (a push, a
+     * decision) passes false: it waits for the running request and then sends its own.
      */
-    suspend fun refreshPendingOrderCount(): Result<Int>
+    suspend fun refreshPendingOrderCount(reuseInFlight: Boolean = true): Result<Int>
 
     /**
      * Lists the store's orders, newest first. [statuses] is sent as the backend's comma-separated

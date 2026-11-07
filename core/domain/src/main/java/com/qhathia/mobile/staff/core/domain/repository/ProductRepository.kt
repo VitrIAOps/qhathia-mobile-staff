@@ -33,16 +33,17 @@ interface ProductRepository {
     suspend fun getProduct(id: String): Result<ProductDetail>
 
     /**
-     * Replaces the editable fields of the product [id]. The endpoint is a full replace, so [product]
-     * must carry every field, not just the changed ones. Failures carry an `UpdateProductException`.
+     * Updates the product [id] with [product] (a partial update) and returns the product as stored,
+     * with its new version. Failures carry an `UpdateProductException`; a stale version is
+     * `UpdateProductError.Conflict`.
      */
-    suspend fun updateProduct(id: String, product: ProductUpdate): Result<Unit>
+    suspend fun updateProduct(id: String, product: ProductUpdate): Result<ProductDetail>
 
     /**
      * Deletes the product [id]. It is a soft delete with no way back: the product leaves the
      * inventory and the kiosk catalog. Failures carry an `UpdateProductException` (404 → not found).
      */
-    suspend fun deleteProduct(id: String): Result<Unit>
+    suspend fun deleteProduct(id: String, force: Boolean = false): Result<Unit>
 
     /**
      * Compresses and uploads [images] to the existing product [id] in one request. They are added

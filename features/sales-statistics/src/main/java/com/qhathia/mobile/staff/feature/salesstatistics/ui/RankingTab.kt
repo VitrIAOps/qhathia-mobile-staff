@@ -59,11 +59,7 @@ internal fun RankingTab(
         RankingCard(
             title = stringResource(R.string.statistics_top_sellers_title),
             totalLabel = ranking.topSellersRevenue.toSolesLabel(),
-            caption = pluralStringResource(
-                R.plurals.statistics_top_sellers_caption,
-                ranking.topSellers.size,
-                ranking.topSellers.size,
-            ),
+            caption = topSellersCaption(ranking),
             accent = QhathiaColors.success,
             trendIcon = Icons.AutoMirrored.Filled.TrendingUp,
             emptyMessage = stringResource(R.string.statistics_top_sellers_empty),
@@ -181,19 +177,45 @@ private fun RankingCard(
     }
 }
 
+/**
+ * "Top 5 de 11 productos · S/ 2,385 de S/ 2,849" when the backend says how many products sold and
+ * the period's whole revenue; the listed products' count alone otherwise (older backend).
+ */
+@Composable
+private fun topSellersCaption(ranking: SalesRanking): String {
+    val listed = ranking.topSellers.size
+    val sold = ranking.productsSold
+    val periodRevenue = ranking.periodRevenue
+    return if (sold != null && periodRevenue != null) {
+        pluralStringResource(
+            R.plurals.statistics_top_sellers_caption_share,
+            sold,
+            listed,
+            sold,
+            ranking.topSellersRevenue.toSolesLabel(),
+            periodRevenue.toSolesLabel(),
+        )
+    } else {
+        pluralStringResource(R.plurals.statistics_top_sellers_caption, listed, listed)
+    }
+}
+
 @Composable
 private fun TopSellerRow(position: Int, product: TopSellingProduct) {
     val units = pluralStringResource(R.plurals.statistics_units_sold, product.unitsSold, product.unitsSold)
     val amount = product.revenue.toSolesLabel()
+    // A product deleted after selling still earned its place; it is marked, never dropped.
+    val deleted = stringResource(R.string.statistics_product_deleted).takeUnless { product.active }
     RankingProductRow(
         name = product.name,
+        nameSuffix = deleted,
         imageUrl = product.imageUrl,
         detail = units,
         amount = amount,
         contentDescription = stringResource(
             R.string.statistics_top_seller_row_cd,
             position,
-            product.name,
+            if (deleted != null) "${product.name}, $deleted" else product.name,
             units,
             amount,
         ),

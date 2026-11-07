@@ -1,7 +1,9 @@
 package com.qhathia.mobile.staff.feature.productregister.ui
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.qhathia.mobile.staff.core.common.validation.MAX_PRODUCT_PHOTOS
 import com.qhathia.mobile.staff.core.common.validation.isValidProductName
 import com.qhathia.mobile.staff.core.common.validation.parsePrice
 import com.qhathia.mobile.staff.core.common.validation.parseQuantity
@@ -21,6 +23,7 @@ import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiE
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEvent
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiState
 import com.qhathia.mobile.staff.feature.productregister.model.parseTags
+import com.qhathia.mobile.staff.feature.productregister.navigation.PRODUCT_REGISTER_ARG_NAME
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.channels.BufferOverflow
@@ -32,6 +35,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -42,15 +46,27 @@ import javax.inject.Inject
  *
  * An optional discount is kept on the form and only sent once registration returns the new
  * product's id, since a discount cannot exist before its product does.
+ *
+ * The form has one idempotency key, kept in [SavedStateHandle] so it survives process death, and
+ * sent on every submit: a retry after a lost answer gets the product already created instead of a
+ * duplicate. While submitting nothing leaves the screen, since leaving cancels the request.
+ *
+ * The form may open with a name ([PRODUCT_REGISTER_ARG_NAME]), which does not count as a change.
  */
 @HiltViewModel
 class ProductRegisterViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val registerProductUseCase: RegisterProductUseCase,
     private val draftProductFromImageUseCase: DraftProductFromImageUseCase,
     private val optimizeDescriptionUseCase: OptimizeDescriptionUseCase,
     private val saveProductDiscountUseCase: SaveProductDiscountUseCase,
 ) : ViewModel() {
+
+    private val idempotencyKey: String =
+        savedStateHandle.get<String>(KEY_IDEMPOTENCY) ?: UUID.randomUUID().toString().also {
+            savedStateHandle[KEY_IDEMPOTENCY] = it
+        }
 
     private val _uiState = MutableStateFlow(ProductRegisterUiState())
     val uiState: StateFlow<ProductRegisterUiState> = _uiState.asStateFlow()
@@ -62,6 +78,11 @@ class ProductRegisterViewModel @Inject constructor(
     val uiEffect: SharedFlow<ProductRegisterUiEffect> = _uiEffect.asSharedFlow()
 
     init {
+        // Opened from "Agregar": the searched name is a starting point, not something the merchant
+        // typed, so leaving untouched does not ask to discard it.
+        savedStateHandle.get<String>(PRODUCT_REGISTER_ARG_NAME)?.trim()?.takeIf { it.isNotEmpty() }?.let { name ->
+            _uiState.update { it.copy(name = name) }
+        }
         loadCategories()
     }
 
@@ -98,7 +119,8 @@ class ProductRegisterViewModel @Inject constructor(
             ProductRegisterUiEvent.PreviewDismissed ->
                 _uiState.update { it.copy(showPreview = false) }
             ProductRegisterUiEvent.Submit -> submit()
-            ProductRegisterUiEvent.CancelRequested -> onCancelRequested()
+            ProductRegisterUiEvent.CancelRequested ->
+                if (!_uiState.value.isSubmitting) onCancelRequested()
             // Disabled in the header while saving; ignored here too so a stray tap cannot leave.
             ProductRegisterUiEvent.OrderRequestsRequested ->
                 if (!_uiState.value.isSubmitting) leave(Exit.ORDER_REQUESTS)
@@ -120,18 +142,13 @@ class ProductRegisterViewModel @Inject constructor(
         _uiState.update { it.copy(name = value, nameError = error, isDirty = true) }
     }
 
+    /**
+     * Never touches the discount: an empty or half-typed price ("150.") would otherwise drop it and
+     * the product would be created without it. A fixed amount over the price is caught on submit.
+     */
     private fun onPriceChanged(value: String) {
         val error = if (value.isNotBlank() && parsePrice(value) == null) R.string.register_error_price else null
-        val newPrice = parsePrice(value)
-        _uiState.update { state ->
-            state.copy(
-                price = value,
-                priceError = error,
-                // A discount that no longer fits the price (or has no price to apply to) is dropped.
-                discount = state.discount?.takeIf { newPrice != null && it.fits(newPrice) },
-                isDirty = true,
-            )
-        }
+        _uiState.update { it.copy(price = value, priceError = error, isDirty = true) }
     }
 
     private fun onDiscountToggled(enabled: Boolean) {
@@ -164,17 +181,26 @@ class ProductRegisterViewModel @Inject constructor(
         _uiState.update { it.copy(quantity = value, quantityError = error, isDirty = true) }
     }
 
+    /**
+     * Adds the picked photos: only JPG and PNG, no duplicates, and only as many as fit under
+     * [MAX_PRODUCT_PHOTOS]. Anything left out is explained with a message (the format first).
+     */
     private fun onImagesPicked(picked: List<SelectedImage>) {
+        if (_uiState.value.isSubmitting) return
         val (valid, invalid) = picked.partition { it.mimeType.lowercase() in SUPPORTED_MIME_TYPES }
-        if (valid.isNotEmpty()) {
+        val current = _uiState.value.images
+        val existingUris = current.map { it.uri }.toSet()
+        val fresh = valid.filter { it.uri !in existingUris }.distinctBy { it.uri }
+        val room = (MAX_PRODUCT_PHOTOS - current.size).coerceAtLeast(0)
+        val accepted = fresh.take(room)
+        if (accepted.isNotEmpty()) {
             _uiState.update { state ->
-                val existingUris = state.images.map { it.uri }.toSet()
-                val merged = state.images + valid.filter { it.uri !in existingUris }
-                state.copy(images = merged.toImmutableList(), isDirty = true)
+                state.copy(images = (state.images + accepted).toImmutableList(), isDirty = true)
             }
         }
-        if (invalid.isNotEmpty()) {
-            emit(ProductRegisterUiEffect.ShowError(R.string.register_error_image_format))
+        when {
+            invalid.isNotEmpty() -> emit(ProductRegisterUiEffect.ShowError(R.string.register_error_image_format))
+            fresh.size > accepted.size -> emit(ProductRegisterUiEffect.ShowError(R.string.register_photos_limit_reached))
         }
     }
 
@@ -271,6 +297,12 @@ class ProductRegisterViewModel @Inject constructor(
     private fun submit() {
         val current = _uiState.value
         if (!current.isSubmitEnabled) return
+        // Checked before anything is sent: the backend would price the product at zero.
+        if (current.isDiscountOverPrice) {
+            _uiState.update { it.copy(discount = null, isDirty = true) }
+            emit(ProductRegisterUiEffect.ShowError(R.string.register_discount_removed_over_price))
+            return
+        }
         val price = parsePrice(current.price) ?: return
         val quantity = parseQuantity(current.quantity) ?: return
         val categoryId = current.selectedCategoryId ?: return
@@ -283,6 +315,7 @@ class ProductRegisterViewModel @Inject constructor(
             categoryId = categoryId,
             tags = parseTags(current.tags),
             images = current.images.toList(),
+            idempotencyKey = idempotencyKey,
         )
 
         viewModelScope.launch {
@@ -342,6 +375,7 @@ class ProductRegisterViewModel @Inject constructor(
     }
 
     private companion object {
+        const val KEY_IDEMPOTENCY = "register_idempotency_key"
         val SUPPORTED_MIME_TYPES = setOf("image/jpeg", "image/jpg", "image/png")
     }
 }

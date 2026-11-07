@@ -749,10 +749,15 @@ Define a sealed `NetworkResult` type in `core:network` to represent the three po
 // core:network — NetworkResult.kt
 sealed class NetworkResult<out T> {
     data class Success<T>(val data: T) : NetworkResult<T>()
-    data class HttpError(val code: Int, val message: String) : NetworkResult<Nothing>()
+    data class HttpError(
+        val code: Int,
+        val message: String,
+        val problem: ProblemDto? = null,   // the backend's ProblemDetail, when it was read
+    ) : NetworkResult<Nothing>()
     data class NetworkError(val cause: Throwable) : NetworkResult<Nothing>()
 }
 
+// Does not read the error body.
 fun <T> Result<T>.toNetworkResult(): NetworkResult<T> = fold(
     onSuccess = { NetworkResult.Success(it) },
     onFailure = { throwable ->
@@ -765,7 +770,16 @@ fun <T> Result<T>.toNetworkResult(): NetworkResult<T> = fold(
         }
     },
 )
+
+// Same mapping, plus a best-effort read of the ProblemDetail body into HttpError.problem.
+suspend fun <T> Result<T>.toNetworkResult(json: Json): NetworkResult<T>
 ```
+
+Every backend error is an `application/problem+json` body with an `errorCode`, a Spanish `detail` and, for some errors, extra fields (`currentVersion`, `pendingOrders`, `reason`…). `ProblemDto` (`core:network/dto/ProblemDto.kt`) holds them, all optional; a missing, empty or non-JSON body gives `problem = null` and the error keeps its status.
+
+- A service whose callers need the `errorCode` receives the shared `Json` and maps every call with `toNetworkResult(json)`. Today that covers `ProductApiService`, `DeviceApiService` and `AuthApiService`. `OrderApiService` keeps its own `OrderProblemDto`.
+- When two errors share a status (e.g. `CURRENT_PASSWORD_INCORRECT` and `SESSION_REVOKED`, both 401), the repository decides by `problem?.errorCode` first and falls back to `code`.
+- To add an extra field, add it to `ProblemDto` with a default. Never create a second ProblemDetail DTO for a service.
 
 ---
 

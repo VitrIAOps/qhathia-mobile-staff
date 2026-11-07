@@ -120,7 +120,7 @@ class StoreInsightsRepositoryImplTest {
 
     @Test
     fun `the ranking is requested with its period and category and mapped`() = runTest {
-        coEvery { dashboard.getRanking("DAILY", "category-1") } returns NetworkResult.Success(
+        coEvery { dashboard.getRanking("DAILY", "category-1", any()) } returns NetworkResult.Success(
             SalesRankingDto(
                 topSellers = TopSellersDto(
                     totalRevenue = 1870.0,
@@ -138,11 +138,11 @@ class StoreInsightsRepositoryImplTest {
     @Test
     fun `ranking errors fail the result`() = runTest {
         val cause = IOException("offline")
-        coEvery { dashboard.getRanking(any(), any()) } returns NetworkResult.NetworkError(cause)
+        coEvery { dashboard.getRanking(any(), any(), any()) } returns NetworkResult.NetworkError(cause)
 
         assertSame(cause, repository.getSalesRanking(SalesPeriod.WEEKLY, null).exceptionOrNull())
 
-        coEvery { dashboard.getRanking(any(), any()) } returns NetworkResult.HttpError(500, "Server Error")
+        coEvery { dashboard.getRanking(any(), any(), any()) } returns NetworkResult.HttpError(500, "Server Error")
 
         assertTrue(repository.getSalesRanking(SalesPeriod.WEEKLY, null).isFailure)
     }
