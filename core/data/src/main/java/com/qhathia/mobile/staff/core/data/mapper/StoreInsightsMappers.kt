@@ -74,6 +74,7 @@ fun SalesRankingDto.toSalesRanking(): SalesRanking = SalesRanking(
                 imageUrl = item.imageUrl.blankToNull(),
                 revenue = item.revenue.toMoney(),
                 unitsSold = item.unitsSold,
+                active = item.active,
             )
         },
     immobilizedTotal = needsAttention.totalImmobilized.toMoney(),
@@ -92,6 +93,9 @@ fun SalesRankingDto.toSalesRanking(): SalesRanking = SalesRanking(
         }
         .sortedByDescending { it.immobilizedAmount },
     needsAttentionTotalCount = needsAttention.totalCount?.takeIf { it >= 0 },
+    periodRevenue = topSellers.periodRevenue?.toMoney(),
+    productsSold = topSellers.productsSold?.takeIf { it >= 0 },
+    asOf = asOf.toInstantOrNull(),
 )
 
 /**
@@ -146,8 +150,22 @@ private fun UnmetSearchGroupDto.toMissingProductSuggestion(): MissingProductSugg
         name = canonical.replaceFirstChar { it.titlecase(SPANISH_PERU) },
         personCount = personCount,
         example = mostFrequentExample(canonical),
+        variants = otherVariants(canonical),
+        personCountEstimated = personCountEstimated,
     )
 }
+
+/** The terms folded into the group other than its own, in the backend's order, at most three. */
+private fun UnmetSearchGroupDto.otherVariants(canonical: String): List<String> {
+    val own = canonical.normalizedForComparison()
+    return variants
+        .map { it.term.trim() }
+        .filter { it.isNotEmpty() && it.normalizedForComparison() != own }
+        .distinctBy { it.normalizedForComparison() }
+        .take(MAX_VARIANTS)
+}
+
+private const val MAX_VARIANTS = 3
 
 /**
  * The raw text shoppers used most often, kept only when it says something the term does not:

@@ -17,6 +17,8 @@ class HandleOrderPushUseCaseTest {
 
         assertEquals(1, repository.notifyOrdersChangedCount)
         assertEquals(1, repository.refreshPendingCountCallCount)
+        // A count request already running may predate the order: never share it.
+        assertEquals(listOf(false), repository.refreshReuseFlags)
     }
 
     @Test

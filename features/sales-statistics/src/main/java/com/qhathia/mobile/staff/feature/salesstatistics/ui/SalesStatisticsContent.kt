@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.ui.component.QhathiaSegmentedControl
+import com.qhathia.mobile.staff.core.ui.component.time.rememberShortTimeFormatter
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.salesstatistics.R
@@ -37,7 +39,6 @@ import com.qhathia.mobile.staff.feature.salesstatistics.model.SalesStatisticsUiS
 import com.qhathia.mobile.staff.feature.salesstatistics.model.StatisticsTab
 import com.qhathia.mobile.staff.feature.salesstatistics.model.TabContent
 import kotlinx.collections.immutable.toImmutableList
-import java.time.Instant
 
 private val TABS = StatisticsTab.entries.toImmutableList()
 private val LoadingPlaceholderHeight = 240.dp
@@ -52,13 +53,17 @@ internal fun SalesStatisticsContent(
     onEvent: (SalesStatisticsUiEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val (start, end) = uiState.activeBounds()
+    val (start, end) = uiState.boundsOf(uiState.selectedTab)
     val rangeLabel = periodRangeLabel(
         period = uiState.period,
         start = start,
         end = end,
-        locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0],
+        locale = LocalConfiguration.current.locales[0],
+        timeFormatter = rememberShortTimeFormatter(zone = LIMA),
     )
+    // When Ranking's figures were computed; only Ranking reports it.
+    val asOf = uiState.ranking.data?.asOf?.takeIf { uiState.selectedTab == StatisticsTab.RANKING }
+    val asOfFormatter = rememberShortTimeFormatter()
     val onRetry = { onEvent(SalesStatisticsUiEvent.Retry) }
 
     Column(
@@ -69,6 +74,7 @@ internal fun SalesStatisticsContent(
         StatisticsTopBar(
             onBack = { onEvent(SalesStatisticsUiEvent.Back) },
             onShare = { onEvent(SalesStatisticsUiEvent.Share) },
+            shareEnabled = uiState.isShareEnabled,
         )
         LazyColumn(
             modifier = Modifier
@@ -90,6 +96,15 @@ internal fun SalesStatisticsContent(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.semantics { heading() },
+                    )
+                }
+            }
+            if (asOf != null) {
+                item(key = "as-of") {
+                    Text(
+                        text = stringResource(R.string.statistics_updated_at, asOfFormatter.format(asOf)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -128,13 +143,6 @@ internal fun SalesStatisticsContent(
         }
     }
 }
-
-/** The bounds of the data the active tab shows, which is always the current filters' data. */
-private fun SalesStatisticsUiState.activeBounds(): Pair<Instant?, Instant?> = when (selectedTab) {
-    StatisticsTab.SUMMARY -> summary.data?.let { it.periodStart to it.periodEnd }
-    StatisticsTab.RANKING -> ranking.data?.let { it.periodStart to it.periodEnd }
-    StatisticsTab.ACTIVITY -> activity.data?.let { it.periodStart to it.periodEnd }
-} ?: (null to null)
 
 /**
  * A tab's loading, error and content treatments: data on screen stays next to an error from a

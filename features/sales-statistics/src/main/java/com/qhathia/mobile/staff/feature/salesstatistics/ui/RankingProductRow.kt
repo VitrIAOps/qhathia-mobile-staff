@@ -23,8 +23,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -44,6 +47,7 @@ private val RowSpacing = 12.dp
  *
  * The row is announced as a single node from [contentDescription], so a screen reader reads
  * "1. Taladro percutor Bosch GSB, 34 vendidos, S/ 1,870" instead of four loose fragments.
+ * [nameSuffix] ("Eliminado") follows the name, muted.
  */
 @Composable
 internal fun RankingProductRow(
@@ -54,7 +58,9 @@ internal fun RankingProductRow(
     contentDescription: String,
     leading: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    nameSuffix: String? = null,
 ) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -72,7 +78,12 @@ internal fun RankingProductRow(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = name,
+                text = buildAnnotatedString {
+                    append(name)
+                    if (nameSuffix != null) {
+                        withStyle(SpanStyle(color = muted, fontWeight = FontWeight.Normal)) { append(" · $nameSuffix") }
+                    }
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,

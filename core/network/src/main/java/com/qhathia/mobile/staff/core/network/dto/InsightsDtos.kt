@@ -23,6 +23,10 @@ data class UnmetSearchesDto(
  * One canonical [term]. [personCount] — distinct kiosk sessions — is the demand metric;
  * [searchCount] counts every attempt, including one shopper retrying. [examples] are the most
  * frequent raw texts behind the term.
+ *
+ * Fase 41: [variants] are the top terms folded into this group ("soldadora electrica" under
+ * "soldadora"), and [personCountEstimated] says [personCount] counts searches because there were
+ * no sessions to count people by.
  */
 @Serializable
 data class UnmetSearchGroupDto(
@@ -30,6 +34,14 @@ data class UnmetSearchGroupDto(
     val personCount: Int = 0,
     val searchCount: Int = 0,
     val examples: List<UnmetSearchExampleDto> = emptyList(),
+    val variants: List<UnmetSearchVariantDto> = emptyList(),
+    val personCountEstimated: Boolean = false,
+)
+
+@Serializable
+data class UnmetSearchVariantDto(
+    val term: String = "",
+    val searchCount: Int = 0,
 )
 
 @Serializable

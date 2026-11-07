@@ -50,6 +50,9 @@ class FakeOrderRepository : OrderRepository {
     var refreshPendingCountCallCount: Int = 0
         private set
 
+    /** The `reuseInFlight` of every [refreshPendingOrderCount] call, in order. */
+    val refreshReuseFlags: MutableList<Boolean> = mutableListOf()
+
     private val changes = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
 
     override val ordersChanged: Flow<Unit> = changes.asSharedFlow()
@@ -102,8 +105,9 @@ class FakeOrderRepository : OrderRepository {
         return result
     }
 
-    override suspend fun refreshPendingOrderCount(): Result<Int> {
+    override suspend fun refreshPendingOrderCount(reuseInFlight: Boolean): Result<Int> {
         refreshPendingCountCallCount++
+        refreshReuseFlags += reuseInFlight
         pendingCountResult.getOrNull()?.let { pendingCount.value = it }
         return pendingCountResult
     }

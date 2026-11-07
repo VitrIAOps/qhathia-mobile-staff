@@ -12,7 +12,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 /** The zone the backend cuts its periods on; the label must name the merchant's calendar days. */
-private val LIMA: ZoneId = ZoneId.of("America/Lima")
+internal val LIMA: ZoneId = ZoneId.of("America/Lima")
 private val SPANISH_PERU: Locale = Locale.forLanguageTag("es-PE")
 private val HOUR_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
@@ -20,7 +20,8 @@ private val HOUR_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm"
  * The calendar range a period covers, as the design writes it, in the app [locale]:
  * `24 – 30 de marzo` / `March 24 – 30`, `30 de marzo – 5 de abril` / `March 30 – April 5`,
  * `marzo 2026` / `March 2026`, `30 de marzo, 14:00 – 15:00` / `March 30, 14:00 – 15:00`.
- * Null without a start bound.
+ * Null without a start bound. The hours use [timeFormatter], which the screen builds from the
+ * phone's 12/24-hour setting; the default is the 24-hour form.
  *
  * The contract does not say whether [end] is exclusive, so the last day is read at `end − 1 ns`:
  * right for both an exclusive midnight and an inclusive `23:59:59.999`.
@@ -30,13 +31,14 @@ internal fun periodRangeLabel(
     start: Instant?,
     end: Instant?,
     locale: Locale = SPANISH_PERU,
+    timeFormatter: DateTimeFormatter = HOUR_FORMAT,
 ): String? {
     val from = start?.atZone(LIMA) ?: return null
     return when (period) {
         SalesPeriod.MONTHLY -> "${from.monthName(locale)} ${from.year}"
         SalesPeriod.DAILY -> from.dayAndMonth(locale)
         SalesPeriod.HOURLY ->
-            "${from.dayAndMonth(locale)}, ${from.format(HOUR_FORMAT)} – ${from.plusHours(1).format(HOUR_FORMAT)}"
+            "${from.dayAndMonth(locale)}, ${from.format(timeFormatter)} – ${from.plusHours(1).format(timeFormatter)}"
         SalesPeriod.WEEKLY -> weekLabel(from, end, locale)
     }
 }

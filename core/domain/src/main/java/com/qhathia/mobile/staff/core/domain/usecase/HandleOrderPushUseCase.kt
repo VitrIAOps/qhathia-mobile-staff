@@ -16,7 +16,8 @@ class HandleOrderPushUseCase @Inject constructor(
     suspend operator fun invoke(event: String?) {
         if (event != EVENT_NEW_ORDER && event != EVENT_ORDER_TAKEN) return
         repository.notifyOrdersChanged()
-        runCatching { repository.refreshPendingOrderCount() }
+        // A count request already running may have left before this order existed.
+        runCatching { repository.refreshPendingOrderCount(reuseInFlight = false) }
     }
 
     private companion object {

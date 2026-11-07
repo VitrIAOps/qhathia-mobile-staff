@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class StatisticsFormattersTest {
@@ -57,6 +58,16 @@ class StatisticsFormattersTest {
         assertEquals(
             "30 de marzo, 14:00 – 15:00",
             periodRangeLabel(SalesPeriod.HOURLY, at(2026, 3, 30, 14), at(2026, 3, 30, 15)),
+        )
+    }
+
+    @Test
+    fun `an hour follows the formatter it is given, such as a 12-hour one`() {
+        val twelveHour = DateTimeFormatter.ofPattern("h:mm a", Locale.US)
+
+        assertEquals(
+            "30 de marzo, 2:00 PM – 3:00 PM",
+            periodRangeLabel(SalesPeriod.HOURLY, at(2026, 3, 30, 14), at(2026, 3, 30, 15), timeFormatter = twelveHour),
         )
     }
 

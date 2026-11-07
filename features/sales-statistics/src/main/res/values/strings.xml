@@ -4,6 +4,13 @@
     <string name="statistics_title">Resumen de ventas</string>
     <string name="statistics_back_cd">Volver</string>
     <string name="statistics_share_cd">Compartir</string>
+    <!-- Compartir: the share sheet and the plain text sent. No customer data. -->
+    <string name="statistics_share_title">Compartir resumen</string>
+    <string name="statistics_share_summary">Resumen de ventas · %1$s\nVentas: %2$s (%3$d ventas, ticket promedio %4$s, %5$d unidades)</string>
+    <string name="statistics_share_ranking_header">Lo que más vende · %1$s</string>
+    <string name="statistics_share_ranking_row">%1$d. %2$s — %3$s</string>
+    <string name="statistics_share_activity">Actividad · %1$s\nClientes que usaron la tablet: %2$d · Productos consultados: %3$d · Pedidos confirmados: %4$d</string>
+    <string name="statistics_share_activity_no_orders">Actividad · %1$s\nClientes que usaron la tablet: %2$d · Productos consultados: %3$d</string>
 
     <!-- Tabs -->
     <string name="statistics_tab_summary">Resumen</string>
@@ -28,6 +35,15 @@
         <item quantity="one">Generados por tu producto principal</item>
         <item quantity="other">Generados por tus %1$d productos principales</item>
     </plurals>
+    <!-- %1$d listed, %2$d products that sold (picks the plural), %3$s listed revenue, %4$s the period's revenue. -->
+    <plurals name="statistics_top_sellers_caption_share">
+        <item quantity="one">Top %1$d de %2$d producto · %3$s de %4$s</item>
+        <item quantity="other">Top %1$d de %2$d productos · %3$s de %4$s</item>
+    </plurals>
+    <!-- After the name of a top seller deleted since it sold. -->
+    <string name="statistics_product_deleted">Eliminado</string>
+    <!-- Under the range on Ranking: when its figures were computed. -->
+    <string name="statistics_updated_at">Actualizado a las %1$s</string>
     <string name="statistics_top_sellers_empty">Aún no hay ventas en este periodo.</string>
     <plurals name="statistics_units_sold">
         <item quantity="one">%1$d vendido</item>
@@ -38,13 +54,13 @@
 
     <string name="statistics_needs_attention_title">Lo que necesita atención</string>
     <plurals name="statistics_needs_attention_caption">
-        <item quantity="one">Inmovilizados en el producto sin ventas</item>
-        <item quantity="other">Inmovilizados en los %1$d productos sin ventas</item>
+        <item quantity="one">Inmovilizados en el producto con stock sin ventas</item>
+        <item quantity="other">Inmovilizados en los %1$d productos con stock sin ventas</item>
     </plurals>
     <!-- %1$d listed products of %2$d without sales; only shown when %2$d is the larger. -->
     <plurals name="statistics_needs_attention_caption_partial">
-        <item quantity="one">Inmovilizados en %1$d de %2$d producto sin ventas</item>
-        <item quantity="other">Inmovilizados en %1$d de los %2$d productos sin ventas</item>
+        <item quantity="one">Inmovilizados en %1$d de %2$d producto con stock sin ventas</item>
+        <item quantity="other">Inmovilizados en %1$d de los %2$d productos con stock sin ventas</item>
     </plurals>
     <string name="statistics_needs_attention_empty">Todo tu inventario se movió en este periodo.</string>
     <plurals name="statistics_units_unsold">

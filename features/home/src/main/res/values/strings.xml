@@ -27,6 +27,17 @@
     <string name="home_add_product">Agregar</string>
     <!-- How shoppers asked for a missing product, in quotes under its name. -->
     <string name="home_missing_example">“%1$s”</string>
+    <!-- Other terms shoppers used for the same product. %1$s: comma-separated terms. -->
+    <string name="home_missing_variants">También: %1$s</string>
+    <!-- Under "~N" when the backend counted searches because there were no sessions. -->
+    <plurals name="home_searches_label">
+        <item quantity="one">Búsqueda</item>
+        <item quantity="other">Búsquedas</item>
+    </plurals>
+    <plurals name="home_searches_estimated_cd">
+        <item quantity="one">Aproximadamente %1$d búsqueda</item>
+        <item quantity="other">Aproximadamente %1$d búsquedas</item>
+    </plurals>
     <!-- Row of what shoppers asked for outside the store's line of business. -->
     <string name="home_other_requests_title">También te piden</string>
     <string name="home_restock_product">Reabastecer</string>

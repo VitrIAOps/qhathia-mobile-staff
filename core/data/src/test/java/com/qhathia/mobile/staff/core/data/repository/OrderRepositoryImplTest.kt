@@ -1,7 +1,5 @@
 package com.qhathia.mobile.staff.core.data.repository
 
-import kotlinx.coroutines.yield
-import kotlinx.coroutines.async
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderError
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderException
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
@@ -18,8 +16,11 @@ import com.qhathia.mobile.staff.core.network.service.OrderApiService
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -294,6 +295,60 @@ class OrderRepositoryImplTest {
         repository.rejectOrder("order-1", reason = null)
 
         assertEquals(2, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `concurrent refreshes send one request and share its count`() = runTest {
+        val answer = CompletableDeferred<NetworkResult<OrderPageDto>>()
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } coAnswers { answer.await() }
+
+        val first = async { repository.refreshPendingOrderCount() }
+        val second = async { repository.refreshPendingOrderCount() }
+        yield()
+        answer.complete(pendingPageOf(3))
+
+        assertEquals(3, first.await().getOrThrow())
+        assertEquals(3, second.await().getOrThrow())
+        coVerify(exactly = 1) { api.getOrders(listOf("PENDING"), null, 0, 1) }
+    }
+
+    @Test
+    fun `a refresh that must be fresh sends its own request after the one in flight`() = runTest {
+        val answer = CompletableDeferred<NetworkResult<OrderPageDto>>()
+        var calls = 0
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } coAnswers {
+            calls++
+            if (calls == 1) answer.await() else pendingPageOf(4)
+        }
+
+        val running = async { repository.refreshPendingOrderCount() }
+        val fresh = async { repository.refreshPendingOrderCount(reuseInFlight = false) }
+        yield()
+        answer.complete(pendingPageOf(3))
+
+        assertEquals(3, running.await().getOrThrow())
+        assertEquals(4, fresh.await().getOrThrow())
+        assertEquals(2, calls)
+        assertEquals(4, repository.pendingOrderCount.first())
+    }
+
+    @Test
+    fun `a failed refresh is not shared with the one waiting`() = runTest {
+        val answer = CompletableDeferred<NetworkResult<OrderPageDto>>()
+        var calls = 0
+        coEvery { api.getOrders(listOf("PENDING"), null, 0, 1) } coAnswers {
+            calls++
+            if (calls == 1) answer.await() else pendingPageOf(2)
+        }
+
+        val failing = async { repository.refreshPendingOrderCount() }
+        val waiting = async { repository.refreshPendingOrderCount() }
+        yield()
+        answer.complete(NetworkResult.NetworkError(IOException("offline")))
+
+        assertTrue(failing.await().isFailure)
+        assertEquals(2, waiting.await().getOrThrow())
+        assertEquals(2, calls)
     }
 
     @Test

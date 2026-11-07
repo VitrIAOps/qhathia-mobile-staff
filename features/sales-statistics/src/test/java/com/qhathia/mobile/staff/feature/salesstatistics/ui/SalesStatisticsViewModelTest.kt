@@ -216,4 +216,85 @@ class SalesStatisticsViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `back twice leaves once`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(SalesStatisticsUiEvent.Back)
+            viewModel.onEvent(SalesStatisticsUiEvent.Back)
+            assertEquals(SalesStatisticsUiEffect.NavigateBack, awaitItem())
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `share on a loaded tab asks the screen to share that tab`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(SalesStatisticsUiEvent.Share)
+            assertEquals(SalesStatisticsUiEffect.Share(StatisticsTab.SUMMARY), awaitItem())
+        }
+    }
+
+    @Test
+    fun `share with nothing loaded emits nothing`() = runTest {
+        insights.failEverything(IOException("offline"))
+        val viewModel = createViewModel()
+        runCurrent()
+        assertFalse(viewModel.uiState.value.isShareEnabled)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(SalesStatisticsUiEvent.Share)
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `the first screen start loads nothing extra`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.onEvent(SalesStatisticsUiEvent.ScreenStarted)
+        runCurrent()
+
+        assertEquals(1, insights.summaryRequests.size)
+    }
+
+    @Test
+    fun `coming back reloads the tab on screen and keeps its figures meanwhile`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(SalesStatisticsUiEvent.SelectTab(StatisticsTab.RANKING))
+        runCurrent()
+        viewModel.onEvent(SalesStatisticsUiEvent.ScreenStarted)
+        val shown = viewModel.uiState.value.ranking.data
+
+        viewModel.onEvent(SalesStatisticsUiEvent.ScreenStarted)
+
+        assertEquals(shown, viewModel.uiState.value.ranking.data)
+        runCurrent()
+        assertEquals(2, insights.rankingRequests.size)
+        assertNotNull(viewModel.uiState.value.ranking.data)
+    }
+
+    @Test
+    fun `after coming back the other tabs reload when shown`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(SalesStatisticsUiEvent.SelectTab(StatisticsTab.RANKING))
+        runCurrent()
+        viewModel.onEvent(SalesStatisticsUiEvent.ScreenStarted)
+        viewModel.onEvent(SalesStatisticsUiEvent.ScreenStarted)
+        runCurrent()
+
+        viewModel.onEvent(SalesStatisticsUiEvent.SelectTab(StatisticsTab.SUMMARY))
+        runCurrent()
+
+        assertEquals(2, insights.summaryRequests.size)
+    }
 }

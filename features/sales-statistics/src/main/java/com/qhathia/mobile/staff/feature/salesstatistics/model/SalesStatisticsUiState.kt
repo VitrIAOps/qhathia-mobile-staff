@@ -30,4 +30,12 @@ data class SalesStatisticsUiState(
 ) {
     /** The category selector is hidden on Actividad, which cannot be filtered by category. */
     val isCategoryFilterVisible: Boolean get() = selectedTab != StatisticsTab.ACTIVITY
+
+    /** Share needs something to share: the tab on screen loaded and not reloading. */
+    val isShareEnabled: Boolean
+        get() = when (selectedTab) {
+            StatisticsTab.SUMMARY -> summary.data != null && !summary.isLoading
+            StatisticsTab.RANKING -> ranking.data != null && !ranking.isLoading
+            StatisticsTab.ACTIVITY -> activity.data != null && !activity.isLoading
+        }
 }

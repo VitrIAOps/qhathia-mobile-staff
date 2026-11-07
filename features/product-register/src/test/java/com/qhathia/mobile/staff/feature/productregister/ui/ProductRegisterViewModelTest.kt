@@ -26,6 +26,7 @@ import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiE
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEvent
 import com.qhathia.mobile.staff.feature.productregister.R
 import com.qhathia.mobile.staff.feature.productregister.model.toPreviewData
+import com.qhathia.mobile.staff.feature.productregister.navigation.PRODUCT_REGISTER_ARG_NAME
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -199,6 +200,34 @@ class ProductRegisterViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertFalse(viewModel.uiState.value.showDiscardDialog)
+    }
+
+    @Test
+    fun `a prefilled name is set and is not a change`() = runTest {
+        val viewModel = createViewModel(SavedStateHandle(mapOf(PRODUCT_REGISTER_ARG_NAME to "Soldadora")))
+
+        assertEquals("Soldadora", viewModel.uiState.value.name)
+        assertFalse(viewModel.uiState.value.isDirty)
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.CancelRequested)
+            assertEquals(ProductRegisterUiEffect.NavigateBackCancelled, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `editing after the prefill is a change`() = runTest {
+        val viewModel = createViewModel(SavedStateHandle(mapOf(PRODUCT_REGISTER_ARG_NAME to "Soldadora")))
+
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("120"))
+        viewModel.onEvent(ProductRegisterUiEvent.CancelRequested)
+
+        assertTrue(viewModel.uiState.value.showDiscardDialog)
+    }
+
+    @Test
+    fun `opened without a name the form starts empty`() = runTest {
+        assertEquals("", createViewModel().uiState.value.name)
     }
 
     @Test

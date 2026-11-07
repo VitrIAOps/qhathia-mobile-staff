@@ -15,19 +15,24 @@ import com.qhathia.mobile.staff.feature.home.model.HomeUiEvent
 
 /**
  * Stateful Inicio entry point: binds [HomeViewModel], renders [HomeContent] and raises navigation to
- * the shell — the bell as a tab switch to Solicitudes, `Ver más` as a push of the sales statistics.
+ * the shell — the bell as a tab switch to Solicitudes, `Ver más` as a push of the sales statistics,
+ * `Agregar` and `Reabastecer` as Registro and Detalle (which the shell opens over Inventario).
  * Tells the ViewModel each time the tab comes back on screen, so it can reload.
  */
 @Composable
 fun HomeScreen(
     onNavigateToOrderRequests: () -> Unit,
     onNavigateToSalesStatistics: (SalesPeriod) -> Unit,
+    onNavigateToProductRegister: (prefillName: String) -> Unit,
+    onNavigateToProductDetail: (productId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnNavigateToOrderRequests by rememberUpdatedState(onNavigateToOrderRequests)
     val currentOnNavigateToSalesStatistics by rememberUpdatedState(onNavigateToSalesStatistics)
+    val currentOnNavigateToProductRegister by rememberUpdatedState(onNavigateToProductRegister)
+    val currentOnNavigateToProductDetail by rememberUpdatedState(onNavigateToProductDetail)
 
     LaunchedEffect(Unit) {
         viewModel.uiEffect.collect { effect ->
@@ -35,6 +40,10 @@ fun HomeScreen(
                 HomeUiEffect.NavigateToOrderRequests -> currentOnNavigateToOrderRequests()
                 is HomeUiEffect.NavigateToSalesStatistics ->
                     currentOnNavigateToSalesStatistics(effect.period)
+                is HomeUiEffect.NavigateToProductRegister ->
+                    currentOnNavigateToProductRegister(effect.prefillName)
+                is HomeUiEffect.NavigateToProductDetail ->
+                    currentOnNavigateToProductDetail(effect.productId)
             }
         }
     }
