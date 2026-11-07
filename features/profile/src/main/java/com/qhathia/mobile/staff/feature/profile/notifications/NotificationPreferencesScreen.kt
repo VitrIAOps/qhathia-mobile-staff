@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,17 +45,17 @@ private data class ToggleSpec(
 
 private data class ToggleGroup(@param:StringRes val title: Int, val toggles: List<ToggleSpec>)
 
-/** The groups are presentation only: the backend returns the seven toggles flat. */
+/**
+ * The groups are presentation only: the backend returns the seven toggles flat. Which of them are
+ * live comes from the backend's `supported`; the rest show "Próximamente".
+ */
 private val Groups = listOf(
     ToggleGroup(
         R.string.notifications_group_orders,
         listOf(
             ToggleSpec(NotificationPreference.NEW_ORDER, R.string.notifications_new_order),
-            ToggleSpec(
-                NotificationPreference.ORDER_EXPIRING,
-                R.string.notifications_order_expiring,
-                R.string.notifications_order_expiring_subtitle,
-            ),
+            // Its subtitle is a plural over the backend's warning minutes, drawn in ToggleGroupSection.
+            ToggleSpec(NotificationPreference.ORDER_EXPIRING, R.string.notifications_order_expiring),
         ),
     ),
     ToggleGroup(
@@ -151,11 +152,23 @@ private fun ToggleGroupSection(
 ) {
     QhathiaSettingsSection(title = stringResource(group.title)) {
         group.toggles.forEachIndexed { index, toggle ->
+            // A toggle the backend does not send yet promises nothing: no switch, no subtitle.
+            val supported = preferences.isSupported(toggle.preference)
+            val subtitle = when {
+                !supported -> null
+                toggle.preference == NotificationPreference.ORDER_EXPIRING -> pluralStringResource(
+                    R.plurals.notifications_order_expiring_subtitle,
+                    preferences.orderExpiringWarningMinutes,
+                    preferences.orderExpiringWarningMinutes,
+                )
+                else -> toggle.subtitle?.let { stringResource(it) }
+            }
             QhathiaSwitchRow(
                 title = stringResource(toggle.title),
-                subtitle = toggle.subtitle?.let { stringResource(it) },
+                subtitle = subtitle,
                 checked = preferences.isEnabled(toggle.preference),
                 enabled = toggle.preference !in saving,
+                comingSoon = !supported,
                 onCheckedChange = { onEvent(NotificationPreferencesUiEvent.Toggle(toggle.preference, it)) },
                 showDivider = index < group.toggles.lastIndex,
             )

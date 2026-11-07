@@ -263,10 +263,14 @@ object TestFixtures {
     fun notificationPreferences(
         values: Map<NotificationPreference, Boolean> =
             NotificationPreference.entries.associateWith { it != NotificationPreference.LOW_BATTERY },
+        supported: Set<NotificationPreference> = NotificationPreferences.DEFAULT_SUPPORTED,
+        orderExpiringWarningMinutes: Int = NotificationPreferences.DEFAULT_WARNING_MINUTES,
     ) = NotificationPreferences(
         values = values,
         activeCount = values.count { it.value },
         totalCount = NotificationPreference.entries.size,
+        supported = supported,
+        orderExpiringWarningMinutes = orderExpiringWarningMinutes,
     )
 
     fun activeSession(

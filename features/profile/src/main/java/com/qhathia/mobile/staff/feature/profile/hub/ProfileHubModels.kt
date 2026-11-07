@@ -53,8 +53,11 @@ data class AlertCounts(val active: Int, val total: Int)
 data class TabletCounts(val linked: Int, val connected: Int)
 
 sealed interface ProfileHubUiEvent {
-    /** Reload every block — sent on start and whenever the screen resumes. */
-    data object Refresh : ProfileHubUiEvent
+    /** The screen resumed (first shown, or back from a sub-screen); reloads only when it can matter. */
+    data object Resumed : ProfileHubUiEvent
+
+    /** A retry action: always reloads. */
+    data object Retry : ProfileHubUiEvent
 
     data class Open(val destination: ProfileDestination) : ProfileHubUiEvent
 

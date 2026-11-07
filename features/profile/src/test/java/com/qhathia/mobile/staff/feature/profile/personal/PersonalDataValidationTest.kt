@@ -18,15 +18,14 @@ class PersonalDataValidationTest {
 
     @Test
     fun `a phone is 9 digits starting with 9`() {
-        assertTrue(PersonalDataValidation.isValidPhone("987654321", storedPhone = null))
-        assertFalse(PersonalDataValidation.isValidPhone("887654321", storedPhone = null))
-        assertFalse(PersonalDataValidation.isValidPhone("98765432", storedPhone = null))
+        assertTrue(PersonalDataValidation.isValidPhone("987654321"))
+        assertFalse(PersonalDataValidation.isValidPhone("887654321"))
+        assertFalse(PersonalDataValidation.isValidPhone("98765432"))
     }
 
     @Test
-    fun `an empty phone is valid only when there was none`() {
-        assertTrue(PersonalDataValidation.isValidPhone("", storedPhone = null))
-        assertFalse(PersonalDataValidation.isValidPhone("", storedPhone = "999888777"))
+    fun `an empty phone is valid, to keep none or to remove one`() {
+        assertTrue(PersonalDataValidation.isValidPhone(""))
     }
 
     @Test

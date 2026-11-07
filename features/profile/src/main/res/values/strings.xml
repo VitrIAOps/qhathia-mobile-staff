@@ -91,7 +91,8 @@
     <string name="personal_save">Guardar cambios</string>
     <string name="personal_saved">Datos actualizados</string>
     <string name="personal_email_note">Es tu usuario para ingresar, por eso no se puede cambiar</string>
-    <string name="personal_phone_hint">Celular de 9 dígitos</string>
+    <string name="personal_phone_hint">Celular de 9 dígitos (opcional)</string>
+    <string name="personal_phone_will_remove">Se quitará tu celular al guardar</string>
     <string name="personal_phone_placeholder" translatable="false">999 888 777</string>
     <string name="personal_error_name">Escribe entre 2 y 150 caracteres</string>
     <string name="personal_error_phone">Ingresa un celular de 9 dígitos que empiece con 9</string>
@@ -127,7 +128,11 @@
     <string name="notifications_group_business">Tu negocio</string>
     <string name="notifications_new_order">Nuevo pedido</string>
     <string name="notifications_order_expiring">Pedido por expirar</string>
-    <string name="notifications_order_expiring_subtitle">Aviso cuando queden 2 min</string>
+    <!-- %1$d: orderExpiringWarningMinutes from the backend. -->
+    <plurals name="notifications_order_expiring_subtitle">
+        <item quantity="one">Aviso %1$d minuto antes de que venza</item>
+        <item quantity="other">Aviso %1$d minutos antes de que venza</item>
+    </plurals>
     <string name="notifications_tablet_disconnected">Tablet desconectada</string>
     <string name="notifications_out_of_stock">Producto agotado en vitrina</string>
     <string name="notifications_low_battery">Batería baja</string>

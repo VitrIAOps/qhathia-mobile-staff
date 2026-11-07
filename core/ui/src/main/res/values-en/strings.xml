@@ -108,4 +108,10 @@
     <string name="photo_source_gallery">Choose from gallery</string>
     <string name="password_show_cd">Show password</string>
     <string name="password_hide_cd">Hide password</string>
+
+    <!-- Leaving a form with unsaved changes -->
+    <string name="discard_changes_title">Discard changes?</string>
+    <string name="discard_changes_message">If you leave now, all unsaved changes will be lost.</string>
+    <string name="discard_changes_confirm">Discard</string>
+    <string name="discard_changes_dismiss">Keep editing</string>
 </resources>

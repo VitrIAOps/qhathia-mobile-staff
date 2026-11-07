@@ -136,4 +136,10 @@
     <string name="photo_source_gallery">Elegir de la galería</string>
     <string name="password_show_cd">Mostrar contraseña</string>
     <string name="password_hide_cd">Ocultar contraseña</string>
+
+    <!-- Leaving a form with unsaved changes -->
+    <string name="discard_changes_title">¿Descartar cambios?</string>
+    <string name="discard_changes_message">Si sales ahora, se borrarán todos los cambios no guardados.</string>
+    <string name="discard_changes_confirm">Descartar</string>
+    <string name="discard_changes_dismiss">Seguir editando</string>
 </resources>

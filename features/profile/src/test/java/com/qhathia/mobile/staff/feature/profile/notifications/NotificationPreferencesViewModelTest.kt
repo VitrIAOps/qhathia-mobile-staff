@@ -132,4 +132,18 @@ class NotificationPreferencesViewModelTest {
             gates.getValue(preference).complete(Unit)
         }
     }
+
+    @Test
+    fun `supported toggles and the warning minutes survive a toggle`() = runTest {
+        repository.current = TestFixtures.notificationPreferences(orderExpiringWarningMinutes = 15)
+        val viewModel = createViewModel()
+        assertFalse(viewModel.prefs.isSupported(NotificationPreference.LOW_BATTERY))
+        assertEquals(15, viewModel.prefs.orderExpiringWarningMinutes)
+
+        viewModel.onEvent(NotificationPreferencesUiEvent.Toggle(NotificationPreference.NEW_ORDER, false))
+
+        assertEquals(NotificationPreferences.DEFAULT_SUPPORTED, viewModel.prefs.supported)
+        assertEquals(15, viewModel.prefs.orderExpiringWarningMinutes)
+        assertEquals(1, viewModel.prefs.supportedActiveCount)
+    }
 }

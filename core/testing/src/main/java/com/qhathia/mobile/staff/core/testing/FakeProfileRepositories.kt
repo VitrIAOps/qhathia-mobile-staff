@@ -13,6 +13,7 @@ import com.qhathia.mobile.staff.core.domain.repository.NotificationPreferencesRe
 import com.qhathia.mobile.staff.core.domain.repository.StoreSettingsRepository
 import com.qhathia.mobile.staff.core.domain.repository.SubscriptionRepository
 import com.qhathia.mobile.staff.core.domain.repository.UserProfileRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,14 +36,26 @@ class FakeUserProfileRepository : UserProfileRepository {
 
     val updates: MutableList<Update> = mutableListOf()
 
-    /** When null, a successful update applies the arguments to [profileResult] and returns it. */
+    /**
+     * When null, a successful update applies the arguments to [profileResult] and returns it, as the
+     * backend does: a null field is left alone and an empty phone clears it.
+     */
     var updateResult: Result<UserProfile>? = null
+
+    /** When set, an update suspends until it completes, so a test can act while the save is in flight. */
+    var updateGate: CompletableDeferred<Unit>? = null
 
     override suspend fun updateProfile(fullName: String?, phone: String?): Result<UserProfile> {
         updates += Update(fullName, phone)
+        updateGate?.await()
         updateResult?.let { return it }
         val current = profileResult.getOrNull() ?: TestFixtures.userProfile()
-        val updated = current.copy(fullName = fullName ?: current.fullName, phone = phone ?: current.phone)
+        val newPhone = when (phone) {
+            null -> current.phone
+            "" -> null
+            else -> phone
+        }
+        val updated = current.copy(fullName = fullName ?: current.fullName, phone = newPhone)
         profileResult = Result.success(updated)
         return profileResult
     }
@@ -130,8 +143,12 @@ class FakeAccountSecurityRepository : AccountSecurityRepository {
         return revokeOthersResult
     }
 
+    /** When set, a password change suspends until it completes, to act while it is in flight. */
+    var changePasswordGate: CompletableDeferred<Unit>? = null
+
     override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
         passwordChanges += currentPassword to newPassword
+        changePasswordGate?.await()
         return changePasswordResult
     }
 }
