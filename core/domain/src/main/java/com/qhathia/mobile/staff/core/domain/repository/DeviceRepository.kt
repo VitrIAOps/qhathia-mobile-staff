@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.domain.repository
 
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
 import com.qhathia.mobile.staff.core.domain.model.PairingSessionStatus
 import com.qhathia.mobile.staff.core.domain.model.PairedDevice
 import com.qhathia.mobile.staff.core.domain.model.Device
@@ -39,8 +40,8 @@ interface DeviceRepository {
     /** Renames [deviceId]. Failures carry a `DeviceSettingsException` (`NotFound`, `InvalidInput`). */
     suspend fun renameDevice(deviceId: String, name: String): Result<Device>
 
-    /** How many active products the store's catalog exposes. */
-    suspend fun getCatalogCount(): Result<Int>
+    /** How many active products the store's catalog has, and how many a tablet shows. */
+    suspend fun getCatalogCount(): Result<CatalogCount>
 
     /** Queues [type] for [deviceId]. Sending again while one is in flight returns that same command. */
     suspend fun sendCommand(deviceId: String, type: DeviceCommandType): Result<DeviceCommand>

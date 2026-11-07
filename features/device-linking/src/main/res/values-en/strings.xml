@@ -17,6 +17,10 @@
         <item quantity="one">%d product</item>
         <item quantity="other">%d products</item>
     </plurals>
+    <plurals name="device_catalog_hidden">
+        <item quantity="one">%d not shown (out of stock, low stock or on request)</item>
+        <item quantity="other">%d not shown (out of stock, low stock or on request)</item>
+    </plurals>
     <string name="device_catalog_updated">Updated %1$s</string>
     <string name="device_battery">Battery</string>
     <string name="device_connection">Connection</string>

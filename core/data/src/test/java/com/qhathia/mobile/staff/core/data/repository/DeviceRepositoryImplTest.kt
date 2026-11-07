@@ -12,7 +12,10 @@ import com.qhathia.mobile.staff.core.domain.model.DeviceSettingsException
 import com.qhathia.mobile.staff.core.domain.model.DeviceStatus
 import com.qhathia.mobile.staff.core.domain.model.PairDeviceError
 import com.qhathia.mobile.staff.core.domain.model.PairDeviceException
+import com.qhathia.mobile.staff.core.domain.model.CatalogCount
 import com.qhathia.mobile.staff.core.network.NetworkResult
+import com.qhathia.mobile.staff.core.network.dto.CatalogCountDto
+import com.qhathia.mobile.staff.core.network.dto.CatalogHiddenDto
 import com.qhathia.mobile.staff.core.network.dto.DeviceDto
 import com.qhathia.mobile.staff.core.network.dto.DeviceSettingsDto
 import com.qhathia.mobile.staff.core.network.dto.UpdateDeviceSettingsRequestDto
@@ -292,5 +295,36 @@ class DeviceRepositoryImplTest {
             DeviceSettingsError.InvalidInput,
             (repository.renameDevice("d1", "x").exceptionOrNull() as DeviceSettingsException).error,
         )
+    }
+
+    @Test
+    fun `the catalog count carries the visible products`() = runTest {
+        coEvery { catalogApi.getCount() } returns NetworkResult.Success(
+            CatalogCountDto(activeProducts = 50, visibleProducts = 46, hidden = CatalogHiddenDto(outOfStock = 2, lowStock = 1, consult = 1)),
+        )
+
+        val count = repository.getCatalogCount().getOrThrow()
+
+        assertEquals(CatalogCount(active = 50, visible = 46), count)
+        assertEquals(46, count.shown)
+        assertEquals(4, count.hidden)
+    }
+
+    @Test
+    fun `an older catalog count has no visible products and hides nothing`() = runTest {
+        coEvery { catalogApi.getCount() } returns NetworkResult.Success(CatalogCountDto(activeProducts = 50))
+
+        val count = repository.getCatalogCount().getOrThrow()
+
+        assertNull(count.visible)
+        assertEquals(50, count.shown)
+        assertEquals(0, count.hidden)
+    }
+
+    @Test
+    fun `a visible count above the active one is capped`() = runTest {
+        coEvery { catalogApi.getCount() } returns NetworkResult.Success(CatalogCountDto(activeProducts = 10, visibleProducts = 12))
+
+        assertEquals(CatalogCount(active = 10, visible = 10), repository.getCatalogCount().getOrThrow())
     }
 }

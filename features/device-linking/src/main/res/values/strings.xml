@@ -17,6 +17,11 @@
         <item quantity="one">%d producto</item>
         <item quantity="other">%d productos</item>
     </plurals>
+    <!-- Active products the tablet hides (Fase 42: activeProducts − visibleProducts). -->
+    <plurals name="device_catalog_hidden">
+        <item quantity="one">%d no se muestra (agotado, pocas unidades o a consultar)</item>
+        <item quantity="other">%d no se muestran (agotados, pocas unidades o a consultar)</item>
+    </plurals>
     <!-- %1$s is a relative time, e.g. "hace 4 min". -->
     <string name="device_catalog_updated">Actualizado %1$s</string>
     <string name="device_battery">Batería</string>
