@@ -23,7 +23,7 @@
     <string name="device_connection">Conexión</string>
     <string name="device_store">Tienda</string>
     <string name="device_customers_today">Clientes hoy</string>
-    <string name="device_network_wifi">Wi Fi</string>
+    <string name="device_network_wifi">Wi-Fi</string>
     <string name="device_network_mobile">Datos móviles</string>
     <string name="device_network_online">En línea</string>
     <string name="device_network_limited">Limitada</string>
@@ -43,7 +43,7 @@
     <string name="device_command_ready">Listo</string>
     <string name="device_command_failed">Falló</string>
     <string name="device_command_failed_detail">Falló: %1$s</string>
-    <string name="device_command_expired">No se pudo entregar</string>
+    <string name="device_command_expired">No se pudo entregar: la tablet no se conectó en 10 min. Revisa que esté encendida y con internet.</string>
     <string name="device_command_error">No se pudo enviar la orden. Inténtalo de nuevo.</string>
 
     <!-- Unlink -->
@@ -85,7 +85,7 @@
     <string name="tablet_settings_group_info">Información</string>
     <string name="tablet_settings_info_name">Nombre</string>
     <string name="tablet_settings_info_model">Modelo</string>
-    <string name="tablet_settings_info_serial">N.º de serie</string>
+    <string name="tablet_settings_info_serial">Número de serie</string>
     <string name="tablet_settings_info_linked">Vinculada desde</string>
     <string name="tablet_settings_info_app_version">Versión de la app</string>
     <string name="tablet_settings_info_store">Tienda</string>
@@ -132,4 +132,10 @@
     <string name="tablet_settings_rename_invalid">Escribe un nombre de 1 a 40 caracteres</string>
     <string name="tablet_settings_rename_network">Sin conexión. Inténtalo nuevamente.</string>
     <string name="tablet_settings_renamed">Nombre actualizado</string>
+    <string name="device_command_restarting">Reiniciando… esperando a que la tablet vuelva a reportar</string>
+    <string name="device_command_restart_not_back">La tablet no volvió a reportar tras el reinicio. Revísala.</string>
+    <string name="device_network_ethernet">Cable</string>
+    <string name="device_network_offline">Sin conexión</string>
+    <string name="device_network_other">Otra red</string>
+    <string name="device_unlink_error_network">Sin conexión. Inténtalo nuevamente.</string>
 </resources>

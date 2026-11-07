@@ -37,6 +37,7 @@ import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.DiscountType
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
 import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscountToggleRow
+import com.qhathia.mobile.staff.core.ui.component.QhathiaSavingOverlay
 import com.qhathia.mobile.staff.core.ui.component.productpreview.QhathiaProductPreviewDialog
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -74,6 +75,7 @@ fun ProductRegisterContent(
                 onBack = { onEvent(ProductRegisterUiEvent.CancelRequested) },
                 onOpenOrderRequests = { onEvent(ProductRegisterUiEvent.OrderRequestsRequested) },
                 bellEnabled = !uiState.isSubmitting,
+                backEnabled = !uiState.isSubmitting,
             )
 
             Surface(
@@ -98,6 +100,7 @@ fun ProductRegisterContent(
                         onPick = { onEvent(ProductRegisterUiEvent.ImagesPicked(it)) },
                         onRemove = { onEvent(ProductRegisterUiEvent.RemoveImage(it)) },
                         enabled = enabled,
+                        canAdd = uiState.canAddPhotos,
                     )
                     RegisterNameField(
                         value = uiState.name,
@@ -138,6 +141,11 @@ fun ProductRegisterContent(
                         summary = uiState.discount?.summaryText(),
                         finalPrice = uiState.discountedPrice,
                         onSummaryClick = { onEvent(ProductRegisterUiEvent.DiscountSummaryClicked) },
+                        warning = if (uiState.isDiscountOverPrice) {
+                            stringResource(R.string.register_discount_over_price)
+                        } else {
+                            null
+                        },
                     )
                     RegisterQuantityField(
                         value = uiState.quantity,
@@ -169,16 +177,7 @@ fun ProductRegisterContent(
             }
         }
 
-        if (uiState.isSubmitting) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator()
-            }
-        }
+        if (uiState.isSubmitting) QhathiaSavingOverlay()
 
         if (uiState.showDiscardDialog) {
             DiscardChangesDialog(

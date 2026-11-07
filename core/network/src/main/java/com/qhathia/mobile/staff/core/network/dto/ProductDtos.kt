@@ -42,7 +42,9 @@ data class ProductMediaDto(
  * Every optional field is defaulted because legacy products predate `stock` and the media/tag
  * arrays may be absent. [discountedPrice] is the server-computed price with the discount in force
  * (`null` when nothing is in force right now) and [discountEndsAt] (ISO-8601) is when that discount
- * ends. `discounts[]` is present in the payload but not consumed.
+ * ends. [version] is the optimistic-lock version (Fase 40): send it back on the `PUT` so a stale
+ * edit answers `409 PRODUCT_VERSION_CONFLICT`. `discounts[]` is present in the payload but not
+ * consumed.
  */
 @Serializable
 data class ProductDetailDto(
@@ -61,16 +63,37 @@ data class ProductDetailDto(
     val media: List<ProductMediaDto> = emptyList(),
     val discountedPrice: Double? = null,
     val discountEndsAt: String? = null,
+    val version: Long? = null,
+)
+
+/**
+ * Body of `PUT /api/v1/products/{id}`. Since Fase 40 the update is partial: a field left out of the
+ * body is kept by the backend (API_REFERENCE §40).
+ *
+ * - [description] and [tags] are always written: `""` clears the description, `[]` clears the tags.
+ * - [stock] and [version] are omitted when null (the shared Json does not encode defaults): no
+ *   `stock` keeps the stored one, no `version` skips the optimistic check.
+ * - `brand`, `allowDiscountInquiry` and `position` are never sent, so the backend keeps them.
+ * - `availability` is never sent: the backend derives it from the stock.
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class UpdateProductRequestDto(
+    val name: String,
+    val price: Double,
+    @EncodeDefault val description: String = "",
+    val stock: Int? = null,
+    val categoryId: String? = null,
+    @EncodeDefault val tags: List<String> = emptyList(),
+    val version: Long? = null,
 )
 
 /**
  * The `product` JSON part of `POST /api/v1/products/with-images`. `availability` is intentionally
  * omitted so the backend derives it from [stock] (`0 → OUT_OF_STOCK`, `>0 → AVAILABLE`) per the
- * contract's `stock ↔ availability` sync. Reused verbatim as the body of `PUT /api/v1/products/{id}`,
- * which the contract defines as taking the same shape as the create request.
+ * contract's `stock ↔ availability` sync. Create only: updates use [UpdateProductRequestDto].
  *
- * [tags] is always written, even when empty: tags are optional, and on the full-replace `PUT` an
- * explicit `[]` is what clears a product's tags — an omitted field would not say so.
+ * [tags] is always written, even when empty.
  */
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable

@@ -19,4 +19,6 @@ data class OrderProblemDto(
     val productName: String? = null,
     val available: Int? = null,
     val requested: Int? = null,
+    /** Why the product cannot be sold (`PRODUCT_NOT_SELLABLE`): `INACTIVE`, `OUT_OF_STOCK`, `CONSULT`, `LOW_STOCK`. */
+    val reason: String? = null,
 )

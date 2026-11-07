@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.productregister.ui
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountError
@@ -23,7 +24,9 @@ import com.qhathia.mobile.staff.core.testing.MutableClock
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEffect
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEvent
+import com.qhathia.mobile.staff.feature.productregister.R
 import com.qhathia.mobile.staff.feature.productregister.model.toPreviewData
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -53,7 +56,10 @@ class ProductRegisterViewModelTest {
         discountRepository = FakeProductDiscountRepository()
     }
 
-    private fun createViewModel() = ProductRegisterViewModel(
+    private var savedState = SavedStateHandle()
+
+    private fun createViewModel(state: SavedStateHandle = savedState) = ProductRegisterViewModel(
+        savedStateHandle = state,
         getCategoriesUseCase = GetCategoriesUseCase(categoryRepository),
         registerProductUseCase = RegisterProductUseCase(productRepository),
         draftProductFromImageUseCase = DraftProductFromImageUseCase(aiRepository),
@@ -428,28 +434,78 @@ class ProductRegisterViewModelTest {
     }
 
     @Test
-    fun `a price change that no longer fits the discount removes it`() = runTest {
+    fun `a price below a fixed discount keeps it applied and flags it`() = runTest {
         val viewModel = createViewModel()
         viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("189"))
         viewModel.applyDiscount("100", DiscountType.FIXED_AMOUNT)
 
         viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("150"))
-        assertNotNull(viewModel.uiState.value.discount)
+        assertFalse(viewModel.uiState.value.isDiscountOverPrice)
 
         viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("99"))
-        assertNull(viewModel.uiState.value.discount)
+        assertEquals(Discount(DiscountType.FIXED_AMOUNT, 100.0), viewModel.uiState.value.discount)
+        assertTrue(viewModel.uiState.value.isDiscountOverPrice)
     }
 
     @Test
-    fun `clearing the price removes the discount and locks the toggle`() = runTest {
+    fun `clearing the price keeps the discount and locks the toggle`() = runTest {
         val viewModel = createViewModel()
-        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("189"))
-        viewModel.applyDiscount("20")
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("189.90"))
+        viewModel.applyDiscount("35")
 
         viewModel.onEvent(ProductRegisterUiEvent.PriceChanged(""))
-
-        assertNull(viewModel.uiState.value.discount)
+        assertEquals(Discount(DiscountType.PERCENTAGE, 35.0), viewModel.uiState.value.discount)
         assertFalse(viewModel.uiState.value.isDiscountToggleEnabled)
+        assertNull(viewModel.uiState.value.discountedPrice)
+
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("200"))
+        assertEquals(Discount(DiscountType.PERCENTAGE, 35.0), viewModel.uiState.value.discount)
+        assertEquals(130.0, viewModel.uiState.value.discountedPrice)
+    }
+
+    @Test
+    fun `typing a decimal price keeps the discount at every step`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("150"))
+        viewModel.applyDiscount("20")
+
+        listOf("150.", "150.5").forEach { typed ->
+            viewModel.onEvent(ProductRegisterUiEvent.PriceChanged(typed))
+            assertEquals(Discount(DiscountType.PERCENTAGE, 20.0), viewModel.uiState.value.discount, "after \"$typed\"")
+        }
+    }
+
+    @Test
+    fun `correcting the price before submitting still creates the discount`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fillValidForm()
+        viewModel.applyDiscount("35")
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged(""))
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("200"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.Submit)
+            assertEquals(ProductRegisterUiEffect.NavigateBackWithSuccess("new-product-1"), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(Discount(DiscountType.PERCENTAGE, 35.0), discountRepository.lastCreated?.discount)
+    }
+
+    @Test
+    fun `submitting with a fixed discount over the price removes it with a message and sends nothing`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.fillValidForm()
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("1000"))
+        viewModel.applyDiscount("900", DiscountType.FIXED_AMOUNT)
+        viewModel.onEvent(ProductRegisterUiEvent.PriceChanged("100"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.Submit)
+            assertEquals(ProductRegisterUiEffect.ShowError(R.string.register_discount_removed_over_price), awaitItem())
+        }
+        assertEquals(0, productRepository.registerCallCount)
+        assertTrue(discountRepository.calls.isEmpty())
+        assertNull(viewModel.uiState.value.discount)
     }
 
     @Test
@@ -710,5 +766,88 @@ class ProductRegisterViewModelTest {
             assertEquals(ProductRegisterUiEffect.NavigateBackCancelled, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ---- Idempotency, leaving while submitting, photo limit ----
+
+    @Test
+    fun `every submit of the same form carries the same idempotency key`() = runTest {
+        productRepository.registerResult = Result.failure(RegisterProductException(RegisterProductError.Network))
+        val viewModel = createViewModel()
+        viewModel.fillValidForm()
+
+        viewModel.onEvent(ProductRegisterUiEvent.Submit)
+        viewModel.onEvent(ProductRegisterUiEvent.Submit)
+
+        val keys = productRepository.registeredProducts.map { it.idempotencyKey }
+        assertEquals(2, keys.size)
+        assertEquals(keys[0], keys[1])
+        assertTrue(keys[0].isNotBlank())
+    }
+
+    @Test
+    fun `the idempotency key survives a new view model on the same saved state`() = runTest {
+        val first = createViewModel()
+        first.fillValidForm()
+        first.onEvent(ProductRegisterUiEvent.Submit)
+
+        val second = createViewModel()
+        second.fillValidForm()
+        second.onEvent(ProductRegisterUiEvent.Submit)
+
+        val keys = productRepository.registeredProducts.map { it.idempotencyKey }
+        assertEquals(keys[0], keys[1])
+    }
+
+    @Test
+    fun `a new registration form gets a new key`() = runTest {
+        createViewModel().apply { fillValidForm(); onEvent(ProductRegisterUiEvent.Submit) }
+        createViewModel(SavedStateHandle()).apply { fillValidForm(); onEvent(ProductRegisterUiEvent.Submit) }
+
+        val keys = productRepository.registeredProducts.map { it.idempotencyKey }
+        assertTrue(keys[0] != keys[1])
+    }
+
+    @Test
+    fun `cancel and the bell do nothing while submitting`() = runTest {
+        productRepository.registerGate = CompletableDeferred()
+        val viewModel = createViewModel()
+        viewModel.fillValidForm()
+        viewModel.onEvent(ProductRegisterUiEvent.Submit)
+        assertTrue(viewModel.uiState.value.isSubmitting)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.CancelRequested)
+            viewModel.onEvent(ProductRegisterUiEvent.OrderRequestsRequested)
+            expectNoEvents()
+        }
+        assertFalse(viewModel.uiState.value.showDiscardDialog)
+
+        productRepository.registerGate?.complete(Unit)
+    }
+
+    @Test
+    fun `picking more than ten photos keeps ten and explains it`() = runTest {
+        val viewModel = createViewModel()
+        val eleven = (1..11).map { SelectedImage("content://photo/$it", "image/jpeg") }
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.ImagesPicked(eleven))
+            assertEquals(ProductRegisterUiEffect.ShowError(R.string.register_photos_limit_reached), awaitItem())
+        }
+        assertEquals(10, viewModel.uiState.value.images.size)
+        assertFalse(viewModel.uiState.value.canAddPhotos)
+    }
+
+    @Test
+    fun `at the limit a further pick adds nothing`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductRegisterUiEvent.ImagesPicked((1..10).map { SelectedImage("content://p/$it", "image/png") }))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.ImagesPicked(listOf(SelectedImage("content://p/11", "image/png"))))
+            assertEquals(ProductRegisterUiEffect.ShowError(R.string.register_photos_limit_reached), awaitItem())
+        }
+        assertEquals(10, viewModel.uiState.value.images.size)
     }
 }

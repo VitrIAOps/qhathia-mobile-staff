@@ -106,6 +106,10 @@
     <string name="photo_source_title">Add photo</string>
     <string name="photo_source_camera">Take photo</string>
     <string name="photo_source_gallery">Choose from gallery</string>
+    <string name="delete_product_message_unsaved">“%1$s” will no longer show in the inventory or on the tablet. The changes you have not saved will be lost too. This cannot be undone.</string>
+    <string name="delete_product_confirm_force">Delete anyway</string>
+    <string name="delete_product_pending_orders_fallback">This product is in pending orders (%1$s). Confirm or reject them first, or delete it anyway.</string>
+    <string name="saving_product_cd">Saving product…</string>
     <string name="password_show_cd">Show password</string>
     <string name="password_hide_cd">Hide password</string>
 </resources>

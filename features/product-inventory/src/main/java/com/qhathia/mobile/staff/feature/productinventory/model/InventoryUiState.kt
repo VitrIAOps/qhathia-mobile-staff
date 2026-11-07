@@ -5,6 +5,7 @@ import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.Product
+import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
@@ -24,7 +25,8 @@ import kotlinx.collections.immutable.persistentMapOf
  * up, has none") and [discountLookupProductId] is the product being looked up right now.
  *
  * "Eliminar producto" asks first: [deleteCandidate] is non-null while the confirmation is open, and
- * [isDeleting] while its request is in flight.
+ * [isDeleting] while its request is in flight. [pendingOrders] is set when the server said the
+ * product is in pending orders; confirming again then deletes it anyway (`force`).
  */
 data class InventoryUiState(
     val loadedProducts: ImmutableList<Product> = persistentListOf(),
@@ -35,6 +37,8 @@ data class InventoryUiState(
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val isError: Boolean = false,
+    /** A pull-to-refresh is in flight; the rows stay on screen meanwhile. */
+    val isRefreshing: Boolean = false,
     val knownDiscounts: ImmutableMap<String, Discount?> = persistentMapOf(),
     val discountLookupProductId: String? = null,
     val discountProductId: String? = null,
@@ -43,6 +47,7 @@ data class InventoryUiState(
     val isDiscountSaving: Boolean = false,
     val deleteCandidate: Product? = null,
     val isDeleting: Boolean = false,
+    val pendingOrders: UpdateProductError.HasPendingOrders? = null,
 ) {
     /** Number of products currently shown after filters + search. */
     val productCount: Int get() = visibleProducts.size

@@ -5,6 +5,9 @@ sealed interface OrderRequestsUiEvent {
     data object Load : OrderRequestsUiEvent
     data object Retry : OrderRequestsUiEvent
 
+    /** The screen reached `ON_START`: back to the tab, back from the background, after unlocking. */
+    data object ScreenStarted : OrderRequestsUiEvent
+
     /** The header's manual refresh action — re-queries with the active filter and query. */
     data object Refresh : OrderRequestsUiEvent
 

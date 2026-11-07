@@ -230,7 +230,7 @@ class InventoryViewModelTest {
             assertTrue(awaitItem() is InventoryUiEffect.ShowMessage)
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals(listOf("get:p1", "get:p1", "delete:old", "create:p1"), discountRepository.calls)
+        assertEquals(listOf("get:p1", "get:p1", "create:p1", "delete:old"), discountRepository.calls)
         assertEquals(Discount(DiscountType.PERCENTAGE, 50.0), discountRepository.discounts.single().discount)
         assertNull(viewModel.uiState.value.discountDraft)
         assertNull(viewModel.uiState.value.discountProductId)
@@ -720,5 +720,133 @@ class InventoryViewModelTest {
         viewModel.onEvent(InventoryUiEvent.Search(""))
 
         assertEquals(listOf("p2"), viewModel.uiState.value.visibleProducts.map { it.id })
+    }
+
+    @Test
+    fun `a product in pending orders keeps the confirmation with the server text`() = runTest {
+        twoProducts()
+        val warning = UpdateProductError.HasPendingOrders("Está en 1 pedido pendiente (#400776).", listOf("400776"))
+        productRepository.deleteResults += Result.failure(UpdateProductException(warning))
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.DeleteProductClicked("p1"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.DeleteConfirmed)
+            expectNoEvents()
+        }
+        val state = viewModel.uiState.value
+        assertEquals("p1", state.deleteCandidate?.id)
+        assertEquals(warning, state.pendingOrders)
+        assertFalse(state.isDeleting)
+        assertEquals(2, state.productCount)
+    }
+
+    @Test
+    fun `deleting anyway forces the delete and removes the row`() = runTest {
+        twoProducts()
+        productRepository.deleteResults += Result.failure(
+            UpdateProductException(UpdateProductError.HasPendingOrders(null, listOf("400776"))),
+        )
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.DeleteProductClicked("p1"))
+        viewModel.onEvent(InventoryUiEvent.DeleteConfirmed)
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.DeleteConfirmed)
+            assertEquals(InventoryUiEffect.ShowMessage(R.string.inventory_product_deleted), awaitItem())
+        }
+        assertEquals(listOf(false, true), productRepository.deleteForces)
+        assertEquals(1, viewModel.uiState.value.productCount)
+        assertNull(viewModel.uiState.value.pendingOrders)
+    }
+
+    @Test
+    fun `cancelling the pending-orders warning sends nothing more`() = runTest {
+        twoProducts()
+        productRepository.deleteResults += Result.failure(
+            UpdateProductException(UpdateProductError.HasPendingOrders(null, listOf("400776"))),
+        )
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.DeleteProductClicked("p1"))
+        viewModel.onEvent(InventoryUiEvent.DeleteConfirmed)
+
+        viewModel.onEvent(InventoryUiEvent.DeleteDismissed)
+
+        assertNull(viewModel.uiState.value.deleteCandidate)
+        assertNull(viewModel.uiState.value.pendingOrders)
+        assertEquals(1, productRepository.deletedIds.size)
+        assertEquals(2, viewModel.uiState.value.productCount)
+    }
+
+    // ---- Reload on return, pull to refresh ----
+
+    @Test
+    fun `the first screen start is the initial load and later ones reload quietly`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        val afterInit = productRepository.callCount
+
+        viewModel.onEvent(InventoryUiEvent.ScreenStarted)
+        assertEquals(afterInit, productRepository.callCount)
+
+        viewModel.onEvent(InventoryUiEvent.ScreenStarted)
+        assertEquals(afterInit + 1, productRepository.callCount)
+        assertEquals(2, viewModel.uiState.value.productCount)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `a quiet reload on return that fails keeps the rows and says nothing`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.ScreenStarted)
+        productRepository.productsResult = Result.failure(java.io.IOException("offline"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.ScreenStarted)
+            expectNoEvents()
+        }
+        assertEquals(2, viewModel.uiState.value.productCount)
+        assertFalse(viewModel.uiState.value.isError)
+    }
+
+    @Test
+    fun `pulling down reloads and clears the indicator`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        val afterInit = productRepository.callCount
+
+        viewModel.onEvent(InventoryUiEvent.PullToRefresh)
+
+        assertEquals(afterInit + 1, productRepository.callCount)
+        assertFalse(viewModel.uiState.value.isRefreshing)
+    }
+
+    @Test
+    fun `the indicator shows while the pull is in flight`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        productRepository.productsGate = kotlinx.coroutines.CompletableDeferred()
+
+        viewModel.onEvent(InventoryUiEvent.PullToRefresh)
+        assertTrue(viewModel.uiState.value.isRefreshing)
+        assertEquals(2, viewModel.uiState.value.productCount)
+
+        productRepository.productsGate?.complete(Unit)
+        assertFalse(viewModel.uiState.value.isRefreshing)
+    }
+
+    @Test
+    fun `a pull that fails keeps the rows and says so`() = runTest {
+        twoProducts()
+        val viewModel = createViewModel()
+        productRepository.productsResult = Result.failure(java.io.IOException("offline"))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.PullToRefresh)
+            assertEquals(InventoryUiEffect.ShowError(R.string.inventory_error), awaitItem())
+        }
+        assertEquals(2, viewModel.uiState.value.productCount)
+        assertFalse(viewModel.uiState.value.isRefreshing)
     }
 }

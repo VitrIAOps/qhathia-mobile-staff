@@ -9,13 +9,14 @@ import javax.inject.Inject
  * Deletes a product for good: `DELETE /api/v1/products/{id}` is a soft delete with no reactivate
  * endpoint. Failures share the causes of an edit, so any failure that is not already an
  * [UpdateProductException] is normalized to one and the presentation layer can always branch on it.
+ * A product in pending orders fails with `HasPendingOrders` unless [invoke] is called with `force`.
  */
 class DeleteProductUseCase @Inject constructor(
     private val repository: ProductRepository,
 ) {
 
-    suspend operator fun invoke(productId: String): Result<Unit> =
-        repository.deleteProduct(productId)
+    suspend operator fun invoke(productId: String, force: Boolean = false): Result<Unit> =
+        repository.deleteProduct(productId, force)
             .recoverCatching { throw it.asUpdateException() }
 
     private fun Throwable.asUpdateException(): UpdateProductException =

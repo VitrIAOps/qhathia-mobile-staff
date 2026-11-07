@@ -7,6 +7,12 @@ import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 sealed interface InventoryUiEvent {
     data object Load : InventoryUiEvent
     data object Retry : InventoryUiEvent
+
+    /** The screen reached `ON_START`: back to the tab, back from a pushed screen, back from the background. */
+    data object ScreenStarted : InventoryUiEvent
+
+    /** The merchant pulled the list down. */
+    data object PullToRefresh : InventoryUiEvent
     data class SelectCategory(val categoryId: String?) : InventoryUiEvent
     data class SelectAvailability(val availability: Availability) : InventoryUiEvent
     data object ClearAvailability : InventoryUiEvent

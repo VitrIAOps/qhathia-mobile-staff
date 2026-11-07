@@ -17,6 +17,15 @@ interface OrderRepository {
     val pendingOrderCount: Flow<Int>
 
     /**
+     * Fires when orders changed somewhere else (a push, a notification tap). It carries no data:
+     * screens that list orders re-run their own query on it. It is a signal, not a cache.
+     */
+    val ordersChanged: Flow<Unit>
+
+    /** Tells every [ordersChanged] observer to re-query. */
+    fun notifyOrdersChanged()
+
+    /**
      * Re-reads the pending count and publishes it to [pendingOrderCount]. Failing with an auth
      * error resets the cache to zero, so a count cannot outlive the session it was read under.
      */

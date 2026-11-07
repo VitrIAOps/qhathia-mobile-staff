@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
+import com.qhathia.mobile.staff.feature.orderrequests.model.SubmitError
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -88,6 +90,7 @@ internal fun OrderDetailDialog(
     onOtherRejectionReasonChange: (String) -> Unit,
     onCancelRejection: () -> Unit,
     onConfirmRejection: (String) -> Unit,
+    onRetryDetail: () -> Unit = {},
 ) {
     val rejection = state.rejection
     Dialog(onDismissRequest = onDismiss) {
@@ -101,6 +104,7 @@ internal fun OrderDetailDialog(
                 OrderRejectForm(
                     state = rejection,
                     isSubmitting = state.isSubmitting,
+                    submitError = state.submitError,
                     onSelectReason = onSelectRejectionReason,
                     onOtherReasonChange = onOtherRejectionReasonChange,
                     onCancel = onCancelRejection,
@@ -133,10 +137,11 @@ internal fun OrderDetailDialog(
 
                 when {
                     state.isLoading -> DialogLoadingState()
-                    state.isError || state.order == null -> DialogErrorState()
+                    state.isError || state.order == null -> DialogErrorState(onRetry = onRetryDetail)
                     else -> OrderDetailBody(
                         detail = state.order,
                         isSubmitting = state.isSubmitting,
+                        submitError = state.submitError,
                         now = now,
                         onConfirm = onConfirm,
                         onReject = onStartRejection,
@@ -151,6 +156,7 @@ internal fun OrderDetailDialog(
 private fun OrderDetailBody(
     detail: OrderDetail,
     isSubmitting: Boolean,
+    submitError: SubmitError?,
     now: () -> Instant,
     onConfirm: (String) -> Unit,
     onReject: () -> Unit,
@@ -191,9 +197,13 @@ private fun OrderDetailBody(
             }
         }
 
+        submitError?.let { DialogSubmitError(it) }
+
         when (footer) {
             OrderDetailFooter.Actions -> OrderDetailActions(
                 isSubmitting = isSubmitting,
+                // A deleted product cannot be sold; the order can still be rejected.
+                confirmEnabled = detail.items.all { it.productActive },
                 onConfirm = { onConfirm(detail.order.id) },
                 onReject = onReject,
             )
@@ -219,6 +229,7 @@ private fun OrderDetailActions(
     isSubmitting: Boolean,
     onConfirm: () -> Unit,
     onReject: () -> Unit,
+    confirmEnabled: Boolean = true,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -237,7 +248,7 @@ private fun OrderDetailActions(
         }
         Button(
             onClick = onConfirm,
-            enabled = !isSubmitting,
+            enabled = !isSubmitting && confirmEnabled,
             shape = RoundedCornerShape(Dimens.ButtonRadius),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -298,12 +309,35 @@ private fun OrderItemRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // The name the customer ordered stays; a later rename is shown under it.
+                item.currentProductName?.let { current ->
+                    Text(
+                        text = stringResource(R.string.order_item_current_name, current),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd)) {
                     Text(
                         text = stringResource(R.string.order_price, item.unitPrice),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant,
                     )
+                    // Charged below its list price: the discount the customer got.
+                    val listPrice = item.listPrice
+                    if (listPrice != null && listPrice > item.unitPrice) {
+                        Text(
+                            text = stringResource(
+                                R.string.order_item_list_price,
+                                stringResource(R.string.order_price, listPrice),
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant,
+                            textDecoration = TextDecoration.LineThrough,
+                        )
+                    }
                     Text(
                         text = stringResource(R.string.order_item_quantity, item.quantity),
                         style = MaterialTheme.typography.bodySmall,
@@ -324,6 +358,8 @@ private fun OrderItemRow(
         // which is how a merchant once confirmed an order that could not be shipped.
         val stock = item.productStock
         when {
+            // A deleted product's stock no longer matters: it cannot be sold at all.
+            !item.productActive -> DeletedProductWarning()
             stock == null -> Unit
             stock <= 0 -> OutOfStockWarning()
             stock <= LOW_STOCK_THRESHOLD -> LowStockWarning()
@@ -427,6 +463,32 @@ private fun OutOfStockWarning(modifier: Modifier = Modifier) {
     }
 }
 
+/** The product of this item was deleted from the inventory, so the order cannot be confirmed. */
+@Composable
+private fun DeletedProductWarning(modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.errorContainer, RoundedCornerShape(Dimens.SpaceXs))
+            .padding(horizontal = Dimens.SpaceSm, vertical = Dimens.SpaceXs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceXs, Alignment.CenterHorizontally),
+    ) {
+        Icon(
+            painter = painterResource(CoreUiR.drawable.ic_alert),
+            contentDescription = null,
+            tint = colors.onErrorContainer,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = stringResource(R.string.order_item_product_deleted),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.onErrorContainer,
+        )
+    }
+}
+
 @Composable
 private fun DialogLoadingState() {
     Box(
@@ -440,19 +502,23 @@ private fun DialogLoadingState() {
 }
 
 @Composable
-private fun DialogErrorState() {
-    Box(
+private fun DialogErrorState(onRetry: () -> Unit) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(Dimens.SpaceLg),
-        contentAlignment = Alignment.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
     ) {
         Text(
             text = stringResource(R.string.order_error_detail),
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
         )
+        TextButton(onClick = onRetry) {
+            Text(stringResource(R.string.order_retry))
+        }
     }
 }
 

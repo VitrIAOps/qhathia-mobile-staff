@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.navigation
 
+import com.qhathia.mobile.staff.feature.devicelinking.navigation.TABLET_UNLINKED_ALREADY_GONE_KEY
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -150,6 +151,8 @@ fun MainShell(
     LaunchedEffect(pendingDestination) {
         if (pendingDestination != DESTINATION_ORDER_REQUESTS) return@LaunchedEffect
         switchTab(ORDER_REQUESTS_ROUTE)
+        // Solicitudes may already be open, so the switch alone would not show the new order.
+        viewModel.onOrdersDeepLink()
         onPendingDestinationConsumed()
     }
 
@@ -253,8 +256,12 @@ fun MainShell(
             deviceLinkingGraph(
                 onBack = { navController.popBackStack() },
                 onOpenTabletSettings = { id -> navController.navigate(tabletSettingsRoute(id)) },
-                onTabletUnlinked = { id ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set(TABLET_UNLINKED_RESULT_KEY, id)
+                onTabletUnlinked = { id, alreadyGone ->
+                    navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                        // The flag first: Dispositivos reacts to the id, and must already see it.
+                        handle[TABLET_UNLINKED_ALREADY_GONE_KEY] = alreadyGone
+                        handle[TABLET_UNLINKED_RESULT_KEY] = id
+                    }
                     navController.popBackStack()
                 },
             )

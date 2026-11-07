@@ -15,6 +15,12 @@ class FakeProductDiscountRepository : ProductDiscountRepository {
     val discounts = mutableListOf<ProductDiscount>()
 
     var getFailure: Throwable? = null
+
+    /**
+     * One outcome per [getDiscounts] call, ahead of [getFailure]: `null` answers normally, a
+     * throwable fails that call. For flows that read twice (save, then re-read after a failure).
+     */
+    val getOutcomes: ArrayDeque<Throwable?> = ArrayDeque()
     var createFailure: Throwable? = null
     var deleteFailure: Throwable? = null
 
@@ -26,6 +32,10 @@ class FakeProductDiscountRepository : ProductDiscountRepository {
 
     override suspend fun getDiscounts(productId: String): Result<List<ProductDiscount>> {
         calls += "get:$productId"
+        if (getOutcomes.isNotEmpty()) {
+            getOutcomes.removeFirst()?.let { return Result.failure(it) }
+            return Result.success(discounts.toList())
+        }
         getFailure?.let { return Result.failure(it) }
         return Result.success(discounts.toList())
     }

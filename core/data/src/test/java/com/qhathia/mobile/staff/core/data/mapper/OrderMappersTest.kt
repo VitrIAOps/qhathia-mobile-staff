@@ -179,4 +179,23 @@ class OrderMappersTest {
 
         assertNull(item.productImageUrl)
     }
+
+    @Test
+    fun `an item carries its list price, whether the product is active and its current name`() {
+        val item = itemDto().copy(listPriceSnapshot = 30.0, productActive = false, currentProductName = "Foco LED 10W")
+            .toDomain()
+
+        assertEquals(30.0, item.listPrice)
+        assertEquals(false, item.productActive)
+        assertEquals("Foco LED 10W", item.currentProductName)
+    }
+
+    @Test
+    fun `an item from an older backend is active, with no list price or new name`() {
+        val item = itemDto().toDomain()
+
+        assertEquals(null, item.listPrice)
+        assertEquals(true, item.productActive)
+        assertEquals(null, item.currentProductName)
+    }
 }

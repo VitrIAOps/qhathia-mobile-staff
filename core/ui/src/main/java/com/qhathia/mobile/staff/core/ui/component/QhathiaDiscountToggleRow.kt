@@ -21,8 +21,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,7 +42,9 @@ private val ToggleRowMinHeight = 48.dp
  * product at ([finalPrice]) on the opposite edge. The whole label row is a single `Switch`-role
  * node; the summary line is its own tappable node that reopens the discount editor.
  *
- * While [isLoading] a small spinner sits next to the switch and nothing can be tapped.
+ * While [isLoading] a small spinner sits next to the switch and nothing can be tapped. [warning],
+ * when set, is shown below the summary in the error color and announced politely by TalkBack — for
+ * example a fixed discount that no longer fits the price.
  */
 @Composable
 fun QhathiaDiscountToggleRow(
@@ -52,6 +56,7 @@ fun QhathiaDiscountToggleRow(
     summary: String? = null,
     finalPrice: Double? = null,
     onSummaryClick: () -> Unit = {},
+    warning: String? = null,
 ) {
     val interactive = enabled && !isLoading
     Column(modifier = modifier.fillMaxWidth()) {
@@ -125,6 +130,17 @@ fun QhathiaDiscountToggleRow(
                 }
             }
         }
+        if (warning != null) {
+            Text(
+                text = warning,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = Dimens.SpaceSm)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
     }
 }
 
@@ -151,6 +167,13 @@ private fun QhathiaDiscountToggleRowPreview() {
                 onCheckedChange = {},
                 isLoading = true,
                 summary = stringResource(R.string.discount_summary_amount, "15"),
+            )
+            QhathiaDiscountToggleRow(
+                checked = true,
+                onCheckedChange = {},
+                enabled = false,
+                summary = stringResource(R.string.discount_summary_amount, "900"),
+                warning = "El descuento es mayor que el precio. Edítalo o quítalo.",
             )
         }
     }
