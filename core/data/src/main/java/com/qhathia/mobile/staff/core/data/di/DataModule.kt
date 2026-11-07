@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.core.data.di
 
+import com.qhathia.mobile.staff.core.domain.repository.NetworkMonitor
+import com.qhathia.mobile.staff.core.data.local.ConnectivityNetworkMonitor
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -60,6 +62,10 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNetworkMonitor(impl: ConnectivityNetworkMonitor): NetworkMonitor
 
     @Binds
     @Singleton

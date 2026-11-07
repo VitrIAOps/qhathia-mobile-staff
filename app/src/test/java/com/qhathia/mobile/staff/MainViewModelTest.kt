@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff
 
+import com.qhathia.mobile.staff.core.testing.FakeNetworkMonitor
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveBiometricEnabledUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveSessionUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RegisterPushTokenUseCase
@@ -30,6 +31,8 @@ class MainViewModelTest {
     private val clock = MutableClock()
     private val tokens = FakeNotificationTokenRepository()
 
+    private val network = FakeNetworkMonitor(online = true)
+
     private fun TestScope.createViewModel(
         sessions: FakeSessionRepository,
         prefs: FakeAppPreferencesRepository,
@@ -37,7 +40,8 @@ class MainViewModelTest {
         val viewModel = MainViewModel(
             observeSession = ObserveSessionUseCase(sessions),
             observeBiometricEnabled = ObserveBiometricEnabledUseCase(prefs),
-            registerPushToken = RegisterPushTokenUseCase(FakePushTokenProvider(), tokens),
+            registerPushToken = RegisterPushTokenUseCase(sessions, FakePushTokenProvider(), tokens),
+            networkMonitor = network,
             clock = clock,
         )
         // authState is shared WhileSubscribed: keep a subscriber for the whole test.
@@ -97,5 +101,43 @@ class MainViewModelTest {
         clock.advanceBy(MainViewModel.RELOCK_AFTER)
         viewModel.onAppForegrounded()
         assertEquals(AuthState.Locked, viewModel.authState.value)
+    }
+
+    @Test
+    fun `a registration that fails offline is retried when the network comes back`() = runTest {
+        network.online(false)
+        tokens.registerResult = Result.failure(java.io.IOException("offline"))
+        createViewModel(FakeSessionRepository(TestFixtures.session()), FakeAppPreferencesRepository())
+        assertEquals(1, tokens.registerCallCount)
+
+        tokens.registerResult = Result.success(Unit)
+        network.online(true)
+        mainDispatcher.dispatcher.scheduler.advanceTimeBy(MainViewModel.PUSH_RETRY_PAUSE.toMillis() + 1)
+
+        assertEquals(2, tokens.registerCallCount)
+    }
+
+    @Test
+    fun `retries stop after the last attempt`() = runTest {
+        tokens.registerResult = Result.failure(java.io.IOException("boom"))
+        createViewModel(FakeSessionRepository(TestFixtures.session()), FakeAppPreferencesRepository())
+
+        mainDispatcher.dispatcher.scheduler.advanceTimeBy(Duration.ofMinutes(10).toMillis())
+
+        assertEquals(MainViewModel.MAX_PUSH_ATTEMPTS, tokens.registerCallCount)
+    }
+
+    @Test
+    fun `signing out cancels the retries`() = runTest {
+        network.online(false)
+        tokens.registerResult = Result.failure(java.io.IOException("offline"))
+        val sessions = FakeSessionRepository(TestFixtures.session())
+        createViewModel(sessions, FakeAppPreferencesRepository())
+
+        sessions.clearSession()
+        network.online(true)
+        mainDispatcher.dispatcher.scheduler.advanceTimeBy(Duration.ofMinutes(10).toMillis())
+
+        assertEquals(1, tokens.registerCallCount)
     }
 }

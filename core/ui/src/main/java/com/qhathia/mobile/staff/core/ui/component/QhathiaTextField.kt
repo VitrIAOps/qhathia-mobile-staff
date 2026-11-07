@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.core.ui.component
 
+import com.qhathia.mobile.staff.core.ui.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -149,11 +151,9 @@ fun QhathiaTextField(
                                     } else {
                                         Icons.Filled.Visibility
                                     },
-                                    contentDescription = if (passwordVisible) {
-                                        "Hide password"
-                                    } else {
-                                        "Show password"
-                                    },
+                                    contentDescription = stringResource(
+                                        if (passwordVisible) R.string.password_hide_cd else R.string.password_show_cd,
+                                    ),
                                     tint = colors.onSurfaceVariant.copy(alpha = contentAlpha),
                                 )
                             }

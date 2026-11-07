@@ -1,5 +1,10 @@
 package com.qhathia.mobile.staff
 
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import com.qhathia.mobile.staff.core.domain.repository.NetworkMonitor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveBiometricEnabledUseCase
@@ -40,6 +45,7 @@ class MainViewModel @Inject constructor(
     observeSession: ObserveSessionUseCase,
     observeBiometricEnabled: ObserveBiometricEnabledUseCase,
     private val registerPushToken: RegisterPushTokenUseCase,
+    private val networkMonitor: NetworkMonitor,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -88,8 +94,9 @@ class MainViewModel @Inject constructor(
         .distinctUntilChanged()
         .onEach { authenticated ->
             if (authenticated) {
-                viewModelScope.launch { registerPushToken() }
+                ensurePushRegistered()
             } else {
+                pushJob?.cancel()
                 // The next session starts with a password login, which already proves who is there.
                 unlocked.value = true
             }
@@ -110,8 +117,34 @@ class MainViewModel @Inject constructor(
                 initialValue = AuthState.Loading,
             )
 
+    private var pushJob: Job? = null
+
+    /**
+     * Registers the push token for the signed-in session. A failure (typically no network at start)
+     * is retried as soon as the network is back, or after a short wait, a bounded number of times,
+     * so the phone does not miss order pushes until the next login. Cancelled on sign-out.
+     */
+    private fun ensurePushRegistered() {
+        pushJob?.cancel()
+        pushJob = viewModelScope.launch {
+            repeat(MAX_PUSH_ATTEMPTS) {
+                if (registerPushToken().isSuccess) return@launch
+                withTimeoutOrNull(PUSH_RETRY_WAIT.toMillis()) { networkMonitor.isOnline.first { it } }
+                delay(PUSH_RETRY_PAUSE.toMillis())
+            }
+        }
+    }
+
     companion object {
         val RELOCK_AFTER: Duration = Duration.ofMinutes(5)
+
+        const val MAX_PUSH_ATTEMPTS = 10
+
+        /** How long a retry waits for the network to come back before trying anyway. */
+        val PUSH_RETRY_WAIT: Duration = Duration.ofSeconds(15)
+
+        /** A short pause so a network that flaps does not burn the attempts at once. */
+        val PUSH_RETRY_PAUSE: Duration = Duration.ofSeconds(1)
     }
 }
 

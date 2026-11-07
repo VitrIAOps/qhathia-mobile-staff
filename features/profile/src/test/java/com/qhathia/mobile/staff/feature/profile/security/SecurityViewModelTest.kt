@@ -189,4 +189,74 @@ class SecurityViewModelTest {
         }
         assertEquals(loads + 1, profiles.callCount)
     }
+
+    // ---- Sessions grouped by device, closing a group, the silent clear says so ----
+
+    private fun sim(id: String, minutesAgo: Long) =
+        TestFixtures.activeSession(sessionId = id, deviceLabel = "qa-sim-tablet", lastUsedAt = TestFixtures.NOW.minusSeconds(minutesAgo * 60))
+
+    @Test
+    fun `sessions are grouped by device with this phone first and the newest device next`() = runTest {
+        security.sessionsResult = Result.success(
+            listOf(
+                TestFixtures.activeSession(sessionId = "session-1", deviceLabel = "Redmi Note 12", isCurrent = true),
+                TestFixtures.activeSession(sessionId = "tab", deviceLabel = "Tablet vitrina", lastUsedAt = TestFixtures.NOW.minusSeconds(3_600)),
+                sim("s1", 5),
+                sim("s2", 1),
+                sim("s3", 30),
+            ),
+        )
+
+        val state = createViewModel().uiState.value
+
+        assertEquals("session-1", state.currentSession?.sessionId)
+        assertEquals(listOf("qa-sim-tablet", "Tablet vitrina"), state.otherGroups.map { it.label })
+        assertEquals(3, state.otherGroups.first().sessions.size)
+        assertEquals(TestFixtures.NOW.minusSeconds(60), state.otherGroups.first().lastUsedAt)
+        assertEquals(1, state.otherGroups.last().sessions.size)
+    }
+
+    @Test
+    fun `closing a device closes each of its sessions and reads the list again`() = runTest {
+        security.sessionsResult = Result.success(
+            listOf(TestFixtures.activeSession(sessionId = "session-1", isCurrent = true), sim("s1", 5), sim("s2", 1)),
+        )
+        val viewModel = createViewModel()
+        val group = viewModel.uiState.value.otherGroups.single()
+        viewModel.onEvent(SecurityUiEvent.RevokeGroupRequested(group))
+        assertTrue(security.revokedSessionIds.isEmpty())
+        security.sessionsResult = Result.success(listOf(TestFixtures.activeSession(sessionId = "session-1", isCurrent = true)))
+
+        viewModel.onEvent(SecurityUiEvent.RevokeGroupConfirmed)
+
+        assertEquals(setOf("s1", "s2"), security.revokedSessionIds.toSet())
+        assertTrue(viewModel.uiState.value.otherGroups.isEmpty())
+        assertNull(viewModel.uiState.value.pendingRevokeGroup)
+        assertTrue(viewModel.uiState.value.revokingIds.isEmpty())
+    }
+
+    @Test
+    fun `a failed close in a group says so`() = runTest {
+        security.sessionsResult = Result.success(listOf(sim("s1", 5), sim("s2", 1)))
+        security.revokeResult = Result.failure(java.io.IOException("offline"))
+        val viewModel = createViewModel()
+        viewModel.onEvent(SecurityUiEvent.RevokeGroupRequested(viewModel.uiState.value.otherGroups.single()))
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(SecurityUiEvent.RevokeGroupConfirmed)
+            assertEquals(SecurityUiEffect.ShowMessage(R.string.security_revoke_error), awaitItem())
+        }
+    }
+
+    @Test
+    fun `turning fingerprint sign-in off because the fingerprint is gone says why`() = runTest {
+        prefs.setBiometricEnabled(true)
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(SecurityUiEvent.Resumed(DeviceBiometricStatus.NONE_ENROLLED))
+            assertEquals(SecurityUiEffect.ShowMessage(R.string.security_biometric_disabled_gone), awaitItem())
+        }
+        assertFalse(prefs.biometricEnabled)
+    }
 }

@@ -134,4 +134,6 @@
     <string name="photo_source_title">Agregar foto</string>
     <string name="photo_source_camera">Tomar foto</string>
     <string name="photo_source_gallery">Elegir de la galería</string>
+    <string name="password_show_cd">Mostrar contraseña</string>
+    <string name="password_hide_cd">Ocultar contraseña</string>
 </resources>

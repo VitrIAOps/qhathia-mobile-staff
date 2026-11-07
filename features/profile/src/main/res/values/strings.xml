@@ -189,4 +189,9 @@
     <string name="settings_language">Idioma</string>
     <string name="settings_language_spanish" translatable="false">Español</string>
     <string name="settings_language_english" translatable="false">English</string>
+    <string name="security_session_group">%1$s · %2$d sesiones</string>
+    <string name="security_session_close_all">Cerrar todas</string>
+    <string name="security_revoke_group_title">¿Cerrar %1$d sesiones de %2$s?</string>
+    <string name="security_revoke_group_message">Se cerrarán todas las sesiones de ese equipo. Este equipo seguirá conectado.</string>
+    <string name="security_biometric_disabled_gone">Desactivamos «Ingresar con huella» porque este equipo ya no tiene huellas registradas.</string>
 </resources>
