@@ -50,9 +50,9 @@ google-services.json
 .idea/
 
 # ─────────────────────────────────────────────────────────────
-# Claude Code — keep shared skills/commands, ignore local settings
+# Claude Code — agent context lives in qhathia-mobile-workspace
 # ─────────────────────────────────────────────────────────────
-.claude/settings.local.json
+.claude/
 .mcp.json
 
 # ─────────────────────────────────────────────────────────────
@@ -61,3 +61,9 @@ google-services.json
 .DS_Store
 Thumbs.db
 *.log
+
+# ─────────────────────────────────────────────────────────────
+# Images outside Android resources (screenshots, mockups)
+# ─────────────────────────────────────────────────────────────
+*.png
+!**/src/**/res/**/*.png
