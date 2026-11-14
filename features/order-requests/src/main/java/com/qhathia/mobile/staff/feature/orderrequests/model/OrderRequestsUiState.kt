@@ -29,6 +29,11 @@ data class OrderRequestsUiState(
     val isError: Boolean = false,
     val lastUpdatedAt: Instant? = null,
     val detail: OrderDetailUiState? = null,
+    /**
+     * Bumped when the list must show its top (F-80): a new order arrived above the old first one, or
+     * another filter or search was loaded. A settled order or the same page reloaded never bumps it.
+     */
+    val scrollToTopKey: Int = 0,
 )
 
 /**
