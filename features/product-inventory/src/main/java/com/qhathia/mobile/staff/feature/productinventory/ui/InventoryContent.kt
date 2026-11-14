@@ -168,6 +168,7 @@ fun InventoryContent(
             DiscountDialog(
                 draft = draft,
                 isSaving = uiState.isDiscountSaving,
+                saveErrorRes = uiState.discountSaveErrorRes,
                 onDraftChange = { onEvent(InventoryUiEvent.DiscountDraftChanged(it)) },
                 onApply = { onEvent(InventoryUiEvent.DiscountApplied) },
                 onDismiss = { onEvent(InventoryUiEvent.DiscountDismissed) },

@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.productinventory.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
@@ -19,6 +20,7 @@ import kotlinx.collections.immutable.toImmutableList
 internal fun DiscountDialog(
     draft: DiscountDraft,
     isSaving: Boolean,
+    @StringRes saveErrorRes: Int?,
     onDraftChange: (DiscountDraft) -> Unit,
     onApply: () -> Unit,
     onDismiss: () -> Unit,
@@ -46,6 +48,7 @@ internal fun DiscountDialog(
                 stringResource(CoreUiR.string.discount_error_amount_above_price)
             null -> null
         },
+        submitErrorText = saveErrorRes?.let { stringResource(it) },
         isLoading = isSaving,
     )
 }

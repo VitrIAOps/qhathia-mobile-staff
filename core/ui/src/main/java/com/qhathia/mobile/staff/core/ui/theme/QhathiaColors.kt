@@ -141,6 +141,11 @@ object QhathiaColors {
             QhathiaPalette.SegmentTrack
         }
 
+    /** Example text of an empty field: readable (≥ 4.5:1) yet lighter than typed text. */
+    val placeholder: Color
+        @Composable @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) QhathiaPalette.DarkPlaceholder else QhathiaPalette.Placeholder
+
     /** Light blue track behind a segmented control drawn inside a card, e.g. the "Filtros" panel. */
     val filterTrack: Color
         @Composable @ReadOnlyComposable

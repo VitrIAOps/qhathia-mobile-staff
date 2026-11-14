@@ -25,6 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -47,6 +50,10 @@ import kotlinx.collections.immutable.persistentListOf
  * Stateless and rule-free: the caller owns the editing state and tells the dialog what the
  * [resultingPrice] is, whether the value can be applied and which [errorText] to show. While
  * [isLoading] the inputs are locked and the dialog cannot be dismissed.
+ *
+ * @param errorText marks the value input as invalid.
+ * @param submitErrorText why the last Aplicar failed, shown above the buttons. It lives inside the
+ *   dialog because a snackbar would sit under the dialog's own window and scrim.
  */
 @Composable
 fun QhathiaDiscountDialog(
@@ -63,6 +70,7 @@ fun QhathiaDiscountDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     errorText: String? = null,
+    submitErrorText: String? = null,
     isLoading: Boolean = false,
 ) {
     Dialog(onDismissRequest = { if (!isLoading) onDismiss() }) {
@@ -167,7 +175,21 @@ fun QhathiaDiscountDialog(
                     }
                 }
 
-                Spacer(Modifier.height(Dimens.SpaceXl))
+                if (submitErrorText != null) {
+                    Spacer(Modifier.height(Dimens.SpaceMd))
+                    Text(
+                        text = submitErrorText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                    Spacer(Modifier.height(Dimens.SpaceMd))
+                } else {
+                    Spacer(Modifier.height(Dimens.SpaceXl))
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -308,6 +330,28 @@ private fun QhathiaDiscountDialogLoadingPreview() {
             onApply = {},
             onDismiss = {},
             isLoading = true,
+        )
+    }
+}
+
+@Preview(name = "Discount dialog — save failed", showBackground = true)
+@Preview(name = "Discount dialog — save failed dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun QhathiaDiscountDialogSubmitErrorPreview() {
+    QhathiaTheme {
+        QhathiaDiscountDialog(
+            originalPrice = 189.0,
+            resultingPrice = 170.1,
+            isPercentage = true,
+            input = "10",
+            quickPercentages = PreviewQuickPercentages,
+            isApplyEnabled = true,
+            onModeChange = {},
+            onInputChange = {},
+            onQuickPercentage = {},
+            onApply = {},
+            onDismiss = {},
+            submitErrorText = "No se pudo guardar el descuento. Inténtalo de nuevo",
         )
     }
 }

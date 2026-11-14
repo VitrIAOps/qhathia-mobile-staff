@@ -42,6 +42,14 @@ private fun QhathiaComponentsPreview() {
                     leadingIcon = Icons.Filled.Email,
                 )
                 QhathiaTextField(
+                    value = "owner@tienda.com",
+                    onValueChange = {},
+                    placeholder = "nombre@tienda.com",
+                    leadingIcon = Icons.Filled.Email,
+                    label = "Correo electrónico",
+                    showLabel = true,
+                )
+                QhathiaTextField(
                     value = "secret",
                     onValueChange = {},
                     placeholder = "Contraseña",
