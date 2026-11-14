@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -52,6 +53,7 @@ private val BadgeOffset = 10.dp
 @Composable
 fun QhathiaBottomBar(
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
     content: @Composable RowScope.() -> Unit,
 ) {
     Row(
@@ -60,7 +62,14 @@ fun QhathiaBottomBar(
             .shadow(BarElevation)
             .background(MaterialTheme.colorScheme.surface)
             .navigationBarsPadding()
-            .padding(top = Dimens.SpaceSm, bottom = 12.dp),
+            // A short window (landscape) keeps the bar thin so the list keeps the height (F-84 a).
+            .then(
+                if (compact) {
+                    Modifier.padding(vertical = Dimens.SpaceXs)
+                } else {
+                    Modifier.padding(top = Dimens.SpaceSm, bottom = 12.dp)
+                },
+            ),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
     )
@@ -77,6 +86,9 @@ fun QhathiaBottomBar(
  *
  * Every item is a `Tab`-role node with its selected state and click action. The badged one states
  * them again inside its `clearAndSetSemantics`, which would otherwise wipe them.
+ *
+ * With [showLabel] off (a short window, F-84 a) only the glyph is drawn and the label becomes the
+ * item's accessible name, so screen readers still hear the destination.
  */
 @Composable
 fun RowScope.QhathiaBottomBarItem(
@@ -87,6 +99,7 @@ fun RowScope.QhathiaBottomBarItem(
     modifier: Modifier = Modifier,
     badgeCount: Int? = null,
     badgeContentDescription: String? = null,
+    showLabel: Boolean = true,
 ) {
     val tint = if (selected) {
         MaterialTheme.colorScheme.secondary
@@ -111,6 +124,8 @@ fun RowScope.QhathiaBottomBarItem(
                             true
                         }
                     }
+                } else if (!showLabel) {
+                    Modifier.semantics { contentDescription = label }
                 } else {
                     Modifier
                 }
@@ -137,6 +152,7 @@ fun RowScope.QhathiaBottomBarItem(
                 )
             }
         }
+        if (!showLabel) return@Column
         val style = MaterialTheme.typography.bodyMedium
         Text(
             text = label,
@@ -149,6 +165,20 @@ fun RowScope.QhathiaBottomBarItem(
             // At large font scales "Inventario" and "Solicitudes" shrink instead of running together.
             autoSize = TextAutoSize.StepBased(minFontSize = MinLabelSize, maxFontSize = style.fontSize),
         )
+    }
+}
+
+@Preview(name = "Bottom bar — compact, light", showBackground = true)
+@Preview(name = "Bottom bar — compact, dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun QhathiaBottomBarCompactPreview() {
+    QhathiaTheme {
+        QhathiaBottomBar(compact = true) {
+            QhathiaBottomBarItem(false, {}, R.drawable.ic_nav_home, "Inicio", showLabel = false)
+            QhathiaBottomBarItem(true, {}, R.drawable.ic_nav_inventory, "Inventario", showLabel = false)
+            QhathiaBottomBarItem(false, {}, R.drawable.ic_nav_requests, "Solicitudes", showLabel = false)
+            QhathiaBottomBarItem(false, {}, R.drawable.ic_nav_profile, "Perfil", showLabel = false)
+        }
     }
 }
 

@@ -39,6 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.qhathia.mobile.staff.core.ui.component.isCompactHeight
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
@@ -73,13 +74,9 @@ fun InventoryContent(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            InventoryHeader(
-                searchQuery = uiState.searchQuery,
-                onSearch = { onEvent(InventoryUiEvent.Search(it)) },
-                onOpenOrderRequests = onOpenOrderRequests,
-            )
-            Spacer(Modifier.height(Dimens.SpaceMd))
+        // A phone in landscape: header and filters in one row, so the list keeps the height (F-84 a).
+        val compact = isCompactHeight()
+        val filterBar: @Composable (Modifier, Boolean) -> Unit = { barModifier, showCount ->
             ProductCountAndFilterBar(
                 productCount = uiState.productCount,
                 categories = uiState.categories,
@@ -88,14 +85,28 @@ fun InventoryContent(
                 onSelectCategory = { onEvent(InventoryUiEvent.SelectCategory(it)) },
                 onSelectAvailability = { onEvent(InventoryUiEvent.SelectAvailability(it)) },
                 onClearAvailability = { onEvent(InventoryUiEvent.ClearAvailability) },
-                modifier = Modifier.padding(horizontal = Dimens.SpaceMd),
+                modifier = barModifier,
+                showCount = showCount,
             )
+        }
+        Column(modifier = Modifier.fillMaxSize()) {
+            InventoryHeader(
+                searchQuery = uiState.searchQuery,
+                onSearch = { onEvent(InventoryUiEvent.Search(it)) },
+                onOpenOrderRequests = onOpenOrderRequests,
+                compact = compact,
+                filters = { filterBar(Modifier, false) },
+            )
+            if (!compact) {
+                Spacer(Modifier.height(Dimens.SpaceMd))
+                filterBar(Modifier.padding(horizontal = Dimens.SpaceMd), true)
+            }
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(horizontal = Dimens.SpaceMd)
-                    .padding(top = Dimens.SpaceMd, bottom = Dimens.SpaceSm),
+                    .padding(top = if (compact) Dimens.SpaceXs else Dimens.SpaceMd, bottom = Dimens.SpaceSm),
             ) {
                 PullToRefreshBox(
                     isRefreshing = uiState.isRefreshing,

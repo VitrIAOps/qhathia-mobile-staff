@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.qhathia.mobile.staff.core.ui.component.isCompactHeight
 import com.qhathia.mobile.staff.core.ui.component.ResetScrollOn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -105,14 +106,16 @@ fun OrderRequestsContent(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
+        val compact = isCompactHeight()
         OrderRequestsHeader(
             lastUpdatedAt = uiState.lastUpdatedAt,
             searchQuery = uiState.searchQuery,
             onSearch = onSearch,
             onRefresh = onRefresh,
+            compact = compact,
         )
 
-        Spacer(Modifier.height(Dimens.SpaceMd))
+        Spacer(Modifier.height(if (compact) Dimens.SpaceXs else Dimens.SpaceMd))
 
         OrderFilterChips(
             selectedFilter = uiState.selectedFilter,

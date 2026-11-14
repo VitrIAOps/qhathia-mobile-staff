@@ -59,12 +59,14 @@ internal fun ProductCountAndFilterBar(
     onSelectAvailability: (Availability) -> Unit,
     onClearAvailability: () -> Unit,
     modifier: Modifier = Modifier,
+    showCount: Boolean = true,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
     Row(
-        modifier = modifier
-            .fillMaxWidth(),
+        // Without the count (inside the compact header, F-84 a) the bar is just the pill and must not
+        // take the row's width from the search field.
+        modifier = if (showCount) modifier.fillMaxWidth() else modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -118,12 +120,14 @@ internal fun ProductCountAndFilterBar(
             }
         }
 
-        Text(
-            text = pluralStringResource(R.plurals.inventory_product_count, productCount, productCount),
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (showCount) {
+            Text(
+                text = pluralStringResource(R.plurals.inventory_product_count, productCount, productCount),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

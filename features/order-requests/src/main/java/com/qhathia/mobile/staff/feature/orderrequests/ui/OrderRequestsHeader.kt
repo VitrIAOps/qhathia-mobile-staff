@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -53,52 +54,73 @@ internal fun OrderRequestsHeader(
     onSearch: (String) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                brush = QhathiaColors.headerGradient,
-                shape = RoundedCornerShape(
-                    bottomStart = Dimens.SpaceLg,
-                    bottomEnd = Dimens.SpaceLg,
-                ),
+    val background = modifier
+        .fillMaxWidth()
+        .background(
+            brush = QhathiaColors.headerGradient,
+            shape = RoundedCornerShape(
+                bottomStart = Dimens.SpaceLg,
+                bottomEnd = Dimens.SpaceLg,
+            ),
+        )
+        .padding(horizontal = Dimens.SpaceMd)
+    val refresh: @Composable () -> Unit = {
+        IconButton(onClick = onRefresh) {
+            Icon(
+                imageVector = Icons.Filled.Refresh,
+                contentDescription = stringResource(R.string.order_requests_refresh_cd),
+                tint = QhathiaColors.onHeaderGradient,
             )
-            .padding(horizontal = Dimens.SpaceMd)
-            .padding(top = Dimens.SpaceSm, bottom = Dimens.SpaceLg),
-    ) {
+        }
+    }
+    if (compact) {
+        // A phone in landscape: title, search and refresh in one row, so a card fits (F-84 a).
+        Row(
+            modifier = background.padding(vertical = Dimens.SpaceSm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+        ) {
+            HeaderTitle(lastUpdatedAt)
+            OrderSearchField(query = searchQuery, onQueryChange = onSearch, modifier = Modifier.weight(1f))
+            refresh()
+        }
+        return
+    }
+    Column(modifier = background.padding(top = Dimens.SpaceSm, bottom = Dimens.SpaceLg)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.order_requests_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = QhathiaColors.onHeaderGradient,
-                )
-                if (lastUpdatedAt != null) {
-                    val timeFormatter = rememberShortTimeFormatter()
-                    Text(
-                        text = stringResource(
-                            R.string.order_requests_last_updated,
-                            timeFormatter.format(lastUpdatedAt),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = QhathiaColors.onHeaderGradient,
-                    )
-                }
-            }
-            IconButton(onClick = onRefresh) {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = stringResource(R.string.order_requests_refresh_cd),
-                    tint = QhathiaColors.onHeaderGradient,
-                )
-            }
+            HeaderTitle(lastUpdatedAt, modifier = Modifier.weight(1f))
+            refresh()
         }
 
         Spacer(Modifier.height(Dimens.SpaceMd))
 
         OrderSearchField(query = searchQuery, onQueryChange = onSearch)
+    }
+}
+
+/** The screen title with the last-successful-load time beneath it. */
+@Composable
+private fun HeaderTitle(lastUpdatedAt: Instant?, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            text = stringResource(R.string.order_requests_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = QhathiaColors.onHeaderGradient,
+        )
+        if (lastUpdatedAt != null) {
+            val timeFormatter = rememberShortTimeFormatter()
+            Text(
+                text = stringResource(
+                    R.string.order_requests_last_updated,
+                    timeFormatter.format(lastUpdatedAt),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = QhathiaColors.onHeaderGradient,
+            )
+        }
     }
 }
 
@@ -161,5 +183,14 @@ private fun OrderSearchField(
                 }
             },
         )
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(name = "Orders header, compact — light", showBackground = true, widthDp = 800)
+@androidx.compose.ui.tooling.preview.Preview(name = "Orders header, compact — dark", showBackground = true, widthDp = 800, uiMode = 0x20)
+@Composable
+private fun OrderRequestsHeaderCompactPreview() {
+    com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme {
+        OrderRequestsHeader(lastUpdatedAt = Instant.parse("2026-11-14T17:04:00Z"), searchQuery = "", onSearch = {}, onRefresh = {}, compact = true)
     }
 }
