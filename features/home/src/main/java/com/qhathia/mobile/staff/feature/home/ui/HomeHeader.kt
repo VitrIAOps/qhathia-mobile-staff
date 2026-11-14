@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.home.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.qhathia.mobile.staff.core.ui.component.isCompactHeight
 import com.qhathia.mobile.staff.core.ui.component.QhathiaBadge
 import com.qhathia.mobile.staff.core.ui.component.time.rememberShortTimeFormatter
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
@@ -54,6 +56,7 @@ internal fun HomeHeader(
     pendingOrderCount: Int,
     onOpenNotifications: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = isCompactHeight(),
 ) {
     val bellDescription = if (pendingOrderCount > 0) {
         pluralStringResource(
@@ -77,10 +80,13 @@ internal fun HomeHeader(
             )
             .statusBarsPadding()
             .padding(horizontal = Dimens.SpaceMd)
-            .padding(top = Dimens.SpaceMd, bottom = Dimens.SpaceLg),
+            .padding(
+                top = if (compact) Dimens.SpaceXs else Dimens.SpaceMd,
+                bottom = if (compact) Dimens.SpaceXs else Dimens.SpaceLg,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        val greeting: @Composable () -> Unit = {
             Text(
                 text = merchantFirstName
                     ?.let { stringResource(R.string.home_greeting_named, it) }
@@ -90,6 +96,8 @@ internal fun HomeHeader(
                 color = QhathiaColors.onHeaderGradient,
                 maxLines = 1,
             )
+        }
+        val lastUpdate: @Composable () -> Unit = {
             if (lastUpdatedAt != null) {
                 val timeFormatter = rememberShortTimeFormatter()
                 Text(
@@ -100,6 +108,22 @@ internal fun HomeHeader(
                     style = MaterialTheme.typography.bodySmall,
                     color = QhathiaColors.onHeaderGradient,
                 )
+            }
+        }
+        if (compact) {
+            // A phone in landscape: greeting and last update on one line (UX-C-07).
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd),
+            ) {
+                greeting()
+                lastUpdate()
+            }
+        } else {
+            Column(modifier = Modifier.weight(1f)) {
+                greeting()
+                lastUpdate()
             }
         }
 
@@ -146,6 +170,21 @@ private fun HomeHeaderPreview() {
             lastUpdatedAt = HomePreviewData.generatedAt,
             pendingOrderCount = 2,
             onOpenNotifications = {},
+        )
+    }
+}
+
+@Preview(name = "Home header, compact — light", showBackground = true, widthDp = 800)
+@Preview(name = "Home header, compact — dark", showBackground = true, widthDp = 800, uiMode = 0x20)
+@Composable
+private fun HomeHeaderCompactPreview() {
+    QhathiaTheme {
+        HomeHeader(
+            merchantFirstName = "Maria",
+            lastUpdatedAt = HomePreviewData.generatedAt,
+            pendingOrderCount = 2,
+            onOpenNotifications = {},
+            compact = true,
         )
     }
 }

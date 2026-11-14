@@ -1,5 +1,9 @@
 package com.qhathia.mobile.staff.feature.productinventory.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,7 +56,13 @@ internal fun InventoryHeader(
     onSearch: (String) -> Unit,
     onOpenOrderRequests: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    filters: @Composable () -> Unit = {},
 ) {
+    if (compact) {
+        CompactInventoryHeader(searchQuery, onSearch, onOpenOrderRequests, filters, modifier)
+        return
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -88,6 +98,47 @@ internal fun InventoryHeader(
         Spacer(Modifier.height(Dimens.SpaceMd))
 
         InventorySearchField(query = searchQuery, onQueryChange = onSearch)
+    }
+}
+
+/**
+ * The header in a short window (a phone in landscape, F-84 a): search, [filters] and the bell in one
+ * row, so the list keeps the height. The title is not drawn (the selected tab says it) but stays the
+ * screen's heading for screen readers.
+ */
+@Composable
+private fun CompactInventoryHeader(
+    searchQuery: String,
+    onSearch: (String) -> Unit,
+    onOpenOrderRequests: () -> Unit,
+    filters: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val title = stringResource(R.string.inventory_title)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                brush = QhathiaColors.headerGradient,
+                shape = RoundedCornerShape(bottomStart = Dimens.SpaceSm, bottomEnd = Dimens.SpaceSm),
+            )
+            .padding(horizontal = Dimens.SpaceMd, vertical = Dimens.SpaceSm)
+            .semantics {
+                heading()
+                contentDescription = title
+            },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+    ) {
+        InventorySearchField(query = searchQuery, onQueryChange = onSearch, modifier = Modifier.weight(1f))
+        filters()
+        IconButton(onClick = onOpenOrderRequests) {
+            Icon(
+                imageVector = Icons.Outlined.Notifications,
+                contentDescription = stringResource(R.string.inventory_bell_cd),
+                tint = QhathiaColors.onHeaderGradient,
+            )
+        }
     }
 }
 
@@ -152,5 +203,14 @@ internal fun InventorySearchField(
                 }
             },
         )
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(name = "Inventory header, compact — light", showBackground = true, widthDp = 800)
+@androidx.compose.ui.tooling.preview.Preview(name = "Inventory header, compact — dark", showBackground = true, widthDp = 800, uiMode = 0x20)
+@Composable
+private fun InventoryHeaderCompactPreview() {
+    com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme {
+        InventoryHeader(searchQuery = "", onSearch = {}, onOpenOrderRequests = {}, compact = true)
     }
 }

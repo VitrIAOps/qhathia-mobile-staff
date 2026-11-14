@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.core.ui.component.settings
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -201,13 +203,16 @@ fun QhathiaSwitchRow(
 /** The small neutral "Próximamente" pill. */
 @Composable
 fun QhathiaComingSoonTag(modifier: Modifier = Modifier) {
+    val style = MaterialTheme.typography.labelSmall
     Text(
         text = stringResource(R.string.coming_soon),
-        style = MaterialTheme.typography.labelSmall,
+        style = style,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        // A pill must never break into "Próximament / e".
+        // A pill must never break into "Próximament / e"; in a tight tile it shrinks instead of being
+        // cut (F-66).
         maxLines = 1,
         softWrap = false,
+        autoSize = TextAutoSize.StepBased(minFontSize = ComingSoonMinSize, maxFontSize = style.fontSize),
         modifier = modifier
             .background(QhathiaColors.segmentTrack, RoundedCornerShape(Dimens.PillRadius))
             .padding(horizontal = Dimens.SpaceSm, vertical = 2.dp),
@@ -302,3 +307,6 @@ private fun QhathiaSettingsRowsPreview() {
         }
     }
 }
+
+/** The smallest the "Próximamente" tag shrinks to before it would be cut. */
+private val ComingSoonMinSize = 9.sp

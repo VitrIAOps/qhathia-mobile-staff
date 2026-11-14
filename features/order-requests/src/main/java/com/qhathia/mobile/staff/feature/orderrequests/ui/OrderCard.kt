@@ -1,10 +1,12 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -73,18 +75,21 @@ internal fun OrderCard(
             modifier = Modifier.padding(Dimens.SpaceMd),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
         ) {
-            Row(
+            // With large text the countdown moves to the next line instead of eating the name (F-84 e).
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
+                itemVerticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = order.displayTitle(),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 val expiresAt = order.expiresAt
                 if (expiresAt != null && order.status == OrderStatus.PENDING) {
@@ -122,7 +127,7 @@ internal fun OrderCard(
                         shape = RoundedCornerShape(Dimens.ButtonRadius),
                         modifier = Modifier
                             .weight(1f)
-                            .height(Dimens.ButtonHeight),
+                            .heightIn(min = Dimens.ButtonHeight),
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
@@ -132,6 +137,7 @@ internal fun OrderCard(
                         Text(
                             text = stringResource(R.string.order_action_reject),
                             style = MaterialTheme.typography.labelLarge,
+                            textAlign = TextAlign.Center,
                             modifier = Modifier.padding(start = Dimens.SpaceSm),
                         )
                     }
@@ -145,7 +151,7 @@ internal fun OrderCard(
                     ),
                     modifier = Modifier
                         .weight(1f)
-                        .height(Dimens.ButtonHeight),
+                        .heightIn(min = Dimens.ButtonHeight),
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.List,
@@ -155,6 +161,7 @@ internal fun OrderCard(
                     Text(
                         text = stringResource(R.string.order_action_detail),
                         style = MaterialTheme.typography.labelLarge,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.padding(start = Dimens.SpaceSm),
                     )
                 }
@@ -174,6 +181,8 @@ internal fun Order.displayCode(): String =
 
 @Preview(name = "Order card — light", showBackground = true)
 @Preview(name = "Order card — dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Order card — font 1.3, light", showBackground = true, fontScale = 1.3f)
+@Preview(name = "Order card — font 1.3, dark", showBackground = true, fontScale = 1.3f, uiMode = 0x20)
 @Composable
 private fun OrderCardPreview() {
     QhathiaTheme {
