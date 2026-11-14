@@ -122,12 +122,20 @@ class InventoryViewModel @Inject constructor(
             is InventoryUiEvent.EditDiscountClicked -> openDiscountEditor(event.productId)
             is InventoryUiEvent.DiscountDraftChanged ->
                 _uiState.update {
-                    if (it.discountDraft == null || it.isDiscountSaving) it else it.copy(discountDraft = event.draft)
+                    if (it.discountDraft == null || it.isDiscountSaving) {
+                        it
+                    } else {
+                        it.copy(discountDraft = event.draft, discountSaveErrorRes = null)
+                    }
                 }
             InventoryUiEvent.DiscountApplied -> saveDiscount()
             InventoryUiEvent.DiscountDismissed ->
                 _uiState.update {
-                    if (it.isDiscountSaving) it else it.copy(discountDraft = null, discountProductId = null)
+                    if (it.isDiscountSaving) {
+                        it
+                    } else {
+                        it.copy(discountDraft = null, discountProductId = null, discountSaveErrorRes = null)
+                    }
                 }
             is InventoryUiEvent.ViewRegisteredProductClicked -> revealProduct(event.productId)
             is InventoryUiEvent.DeleteProductClicked ->
@@ -264,6 +272,7 @@ class InventoryViewModel @Inject constructor(
                 it.copy(
                     discountProductId = productId,
                     discountDraft = DiscountDraft.from(product.price, it.knownDiscounts[productId]),
+                    discountSaveErrorRes = null,
                 )
             }
             return
@@ -277,6 +286,7 @@ class InventoryViewModel @Inject constructor(
                             isDiscountLoading = false,
                             discountProductId = productId,
                             discountDraft = DiscountDraft.from(product.price, stored?.discount),
+                            discountSaveErrorRes = null,
                         )
                     }
                 }
@@ -293,7 +303,7 @@ class InventoryViewModel @Inject constructor(
         val productId = current.discountProductId ?: return
         val discount = current.discountDraft?.toDiscount() ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(isDiscountSaving = true) }
+            _uiState.update { it.copy(isDiscountSaving = true, discountSaveErrorRes = null) }
             saveProductDiscountUseCase(productId, discount)
                 .onSuccess {
                     _uiState.update {
@@ -306,15 +316,16 @@ class InventoryViewModel @Inject constructor(
                     fetchProducts(quiet = true)
                 }
                 .onFailure {
-                    // The dialog stays open with what was typed so the merchant can try again. A
-                    // failed replace may have removed the old discount, so what is known is dropped.
+                    // The dialog stays open with what was typed so the merchant can try again, and
+                    // says why inside it: a snackbar would sit behind the dialog's scrim. A failed
+                    // replace may have removed the old discount, so what is known is dropped.
                     _uiState.update {
                         it.copy(
                             isDiscountSaving = false,
+                            discountSaveErrorRes = R.string.inventory_discount_save_error,
                             knownDiscounts = it.knownDiscounts.toPersistentMap().remove(productId),
                         )
                     }
-                    _uiEffect.emit(InventoryUiEffect.ShowError(R.string.inventory_discount_save_error))
                 }
         }
     }

@@ -237,7 +237,7 @@ class InventoryViewModelTest {
     }
 
     @Test
-    fun `a failed save keeps the dialog open with what was typed`() = runTest {
+    fun `a failed save keeps the dialog open with an inline error and no snackbar`() = runTest {
         productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
         val viewModel = createViewModel()
         viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
@@ -247,11 +247,61 @@ class InventoryViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(InventoryUiEvent.DiscountApplied)
-            assertTrue(awaitItem() is InventoryUiEffect.ShowError)
+            expectNoEvents()
+        }
+        val state = viewModel.uiState.value
+        assertEquals("35", state.discountDraft?.input)
+        assertFalse(state.isDiscountSaving)
+        assertEquals(R.string.inventory_discount_save_error, state.discountSaveErrorRes)
+    }
+
+    @Test
+    fun `editing the value after a failed save clears the inline error`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+        val viewModel = createViewModel()
+        viewModel.withDiscountTyped()
+        viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+        assertNotNull(viewModel.uiState.value.discountSaveErrorRes)
+
+        val draft = checkNotNull(viewModel.uiState.value.discountDraft)
+        viewModel.onEvent(InventoryUiEvent.DiscountDraftChanged(draft.withInput("15")))
+
+        assertNull(viewModel.uiState.value.discountSaveErrorRes)
+    }
+
+    @Test
+    fun `retrying after a failed save clears the inline error and succeeds`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+        val viewModel = createViewModel()
+        viewModel.withDiscountTyped()
+        viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+        discountRepository.createFailure = null
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+            assertTrue(awaitItem() is InventoryUiEffect.ShowMessage)
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals("35", viewModel.uiState.value.discountDraft?.input)
-        assertFalse(viewModel.uiState.value.isDiscountSaving)
+        assertNull(viewModel.uiState.value.discountSaveErrorRes)
+        assertNull(viewModel.uiState.value.discountDraft)
+    }
+
+    @Test
+    fun `closing and reopening the dialog after a failed save shows no error`() = runTest {
+        productRepository.productsResult = Result.success(listOf(TestFixtures.product(id = "p1")))
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+        val viewModel = createViewModel()
+        viewModel.withDiscountTyped()
+        viewModel.onEvent(InventoryUiEvent.DiscountApplied)
+
+        viewModel.onEvent(InventoryUiEvent.DiscountDismissed)
+        assertNull(viewModel.uiState.value.discountSaveErrorRes)
+        viewModel.onEvent(InventoryUiEvent.EditDiscountClicked("p1"))
+
+        assertNotNull(viewModel.uiState.value.discountDraft)
+        assertNull(viewModel.uiState.value.discountSaveErrorRes)
     }
 
     @Test
