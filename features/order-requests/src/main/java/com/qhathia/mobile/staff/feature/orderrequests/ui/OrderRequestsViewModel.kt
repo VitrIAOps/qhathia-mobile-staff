@@ -101,6 +101,9 @@ class OrderRequestsViewModel @Inject constructor(
     /** Orders this screen saw leave PENDING; a stale page must never offer actions on them again. */
     private val settledOrderIds = mutableSetOf<String>()
 
+    /** The last request whose page reached the screen; another one shows the list from the top. */
+    private var lastAppliedRequest: LoadRequest? = null
+
     /** Set by a quiet reload so its failure keeps the list without a snackbar. */
     private var suppressNextLoadError = false
 
@@ -200,8 +203,8 @@ class OrderRequestsViewModel @Inject constructor(
             reloadTrigger,
         ) { query, filter, _ -> LoadRequest(query = query, filter = filter) }
             .onEach { _uiState.update { state -> state.copy(isLoading = true, isError = false) } }
-            .flatMapLatest { request -> flow { emit(load(request)) } }
-            .onEach { outcome -> applyOutcome(outcome) }
+            .flatMapLatest { request -> flow { emit(request to load(request)) } }
+            .onEach { (request, outcome) -> applyOutcome(request, outcome) }
             .launchIn(viewModelScope)
     }
 
@@ -214,26 +217,33 @@ class OrderRequestsViewModel @Inject constructor(
             size = PAGE_SIZE,
         )
 
-    private fun applyOutcome(outcome: Result<OrderPage>) {
+    private fun applyOutcome(request: LoadRequest, outcome: Result<OrderPage>) {
         val page: OrderPage? = outcome.getOrNull()
         if (page != null) {
             // Forget settled ids the server no longer returns, so the set does not grow.
             settledOrderIds.retainAll(page.orders.map { it.id }.toSet())
         }
+        val otherQuery = page != null && request != lastAppliedRequest
         _uiState.update { state ->
+            // A failed load keeps the previously loaded orders and timestamp on screen: stale data
+            // plus an error beats a blank list. A page read before a mutation landed may still list a
+            // settled order as pending; it stays out.
+            val orders = page?.orders
+                ?.filterNot { it.id in settledOrderIds && it.status == OrderStatus.PENDING }
+                ?.toImmutableList()
+                ?: state.orders
+            // Newest orders are listed first: a new one on top must be seen, wherever the list was (F-80).
+            val previousIds = state.orders.mapTo(HashSet()) { it.id }
+            val arrivedOnTop = page != null && orders.firstOrNull()?.id?.let { it !in previousIds } == true
             state.copy(
-                // A failed load keeps the previously loaded orders and timestamp on screen: stale
-                // data plus an error beats a blank list. A page read before a mutation landed may
-                // still list a settled order as pending; it stays out.
-                orders = page?.orders
-                    ?.filterNot { it.id in settledOrderIds && it.status == OrderStatus.PENDING }
-                    ?.toImmutableList()
-                    ?: state.orders,
+                orders = orders,
                 lastUpdatedAt = if (page != null) Instant.now() else state.lastUpdatedAt,
                 isLoading = false,
                 isError = page == null,
+                scrollToTopKey = if (arrivedOnTop || otherQuery) state.scrollToTopKey + 1 else state.scrollToTopKey,
             )
         }
+        if (page != null) lastAppliedRequest = request
         val quiet = suppressNextLoadError
         suppressNextLoadError = false
         if (outcome.isFailure && !quiet) {

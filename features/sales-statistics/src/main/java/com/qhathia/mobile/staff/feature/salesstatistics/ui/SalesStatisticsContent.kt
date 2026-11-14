@@ -88,24 +88,26 @@ internal fun SalesStatisticsContent(
             ),
             verticalArrangement = Arrangement.spacedBy(Dimens.SpaceLg),
         ) {
-            if (rangeLabel != null) {
-                item(key = "range") {
-                    Text(
-                        text = rangeLabel,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                }
-            }
-            if (asOf != null) {
-                item(key = "as-of") {
-                    Text(
-                        text = stringResource(R.string.statistics_updated_at, asOfFormatter.format(asOf)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            // Always present, empty while loading, so a load never inserts items above the list's
+            // anchor and pushes the range out of view (F-84 g).
+            item(key = "range") {
+                Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs)) {
+                    if (rangeLabel != null) {
+                        Text(
+                            text = rangeLabel,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.semantics { heading() },
+                        )
+                    }
+                    if (asOf != null) {
+                        Text(
+                            text = stringResource(R.string.statistics_updated_at, asOfFormatter.format(asOf)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 

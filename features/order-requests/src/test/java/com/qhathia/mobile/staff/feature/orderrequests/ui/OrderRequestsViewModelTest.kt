@@ -23,6 +23,7 @@ import com.qhathia.mobile.staff.feature.orderrequests.R
 import com.qhathia.mobile.staff.feature.orderrequests.model.RejectionReason
 import com.qhathia.mobile.staff.feature.orderrequests.model.SubmitError
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -695,5 +696,75 @@ class OrderRequestsViewModelTest {
 
         assertEquals(listOf("order-1", "order-1"), repository.requestedDetailIds)
         assertNotNull(viewModel.uiState.value.detail?.order)
+    }
+
+    // --- fix-list-scroll-to-new-items (F-80) ---
+
+    private fun pageOf(vararg ids: String) =
+        Result.success(OrderPage(orders = ids.map { TestFixtures.order(id = it) }, totalElements = ids.size))
+
+    private fun TestScope.loadedViewModel(vararg ids: String): OrderRequestsViewModel {
+        repository.ordersResult = pageOf(*ids)
+        return createViewModel().also { runCurrent() }
+    }
+
+    @Test
+    fun `a new order on top bumps scrollToTopKey`() = runTest {
+        val viewModel = loadedViewModel("o1", "o2", "o3", "o4")
+        val before = viewModel.uiState.value.scrollToTopKey
+
+        repository.ordersResult = pageOf("n3", "n2", "n1", "o1", "o2", "o3", "o4")
+        viewModel.onEvent(OrderRequestsUiEvent.Refresh)
+        runCurrent()
+
+        assertEquals(before + 1, viewModel.uiState.value.scrollToTopKey)
+        assertEquals("n3", viewModel.uiState.value.orders.first().id)
+    }
+
+    @Test
+    fun `the same page reloaded keeps scrollToTopKey`() = runTest {
+        val viewModel = loadedViewModel("o1", "o2")
+        val before = viewModel.uiState.value.scrollToTopKey
+
+        viewModel.onEvent(OrderRequestsUiEvent.Refresh)
+        runCurrent()
+
+        assertEquals(before, viewModel.uiState.value.scrollToTopKey)
+    }
+
+    @Test
+    fun `an order leaving the list keeps scrollToTopKey`() = runTest {
+        val viewModel = loadedViewModel("o1", "o2", "o3")
+        val before = viewModel.uiState.value.scrollToTopKey
+
+        repository.ordersResult = pageOf("o1", "o3")
+        viewModel.onEvent(OrderRequestsUiEvent.Refresh)
+        runCurrent()
+
+        assertEquals(before, viewModel.uiState.value.scrollToTopKey)
+    }
+
+    @Test
+    fun `another filter bumps scrollToTopKey`() = runTest {
+        val viewModel = loadedViewModel("o1", "o2")
+        val before = viewModel.uiState.value.scrollToTopKey
+
+        // Same first order in the other filter: still a new list, shown from the top.
+        viewModel.onEvent(OrderRequestsUiEvent.SelectFilter(OrderRequestsFilter.CONFIRMED))
+        runCurrent()
+
+        assertEquals(before + 1, viewModel.uiState.value.scrollToTopKey)
+    }
+
+    @Test
+    fun `a failed load keeps scrollToTopKey`() = runTest {
+        val viewModel = loadedViewModel("o1", "o2")
+        val before = viewModel.uiState.value.scrollToTopKey
+
+        repository.ordersResult = Result.failure(IllegalStateException("offline"))
+        viewModel.onEvent(OrderRequestsUiEvent.SelectFilter(OrderRequestsFilter.CONFIRMED))
+        runCurrent()
+
+        assertEquals(before, viewModel.uiState.value.scrollToTopKey)
     }
 }

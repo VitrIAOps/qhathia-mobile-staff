@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.qhathia.mobile.staff.core.ui.component.ResetScrollOn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -94,6 +96,10 @@ fun OrderRequestsContent(
         { reason: String -> onEvent(OrderRequestsUiEvent.ConfirmRejection(reason)) }
     }
 
+    // Hoisted above the loading/empty/list switch, so it survives "empty → orders" (F-80).
+    val listState = rememberLazyListState()
+    listState.ResetScrollOn(uiState.scrollToTopKey)
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -122,6 +128,7 @@ fun OrderRequestsContent(
                     ErrorState(onRetry = { onEvent(OrderRequestsUiEvent.Retry) })
                 uiState.orders.isEmpty() -> OrderEmptyState(filter = uiState.selectedFilter)
                 else -> LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(Dimens.SpaceMd),
                     verticalArrangement = Arrangement.spacedBy(Dimens.SpaceMd),

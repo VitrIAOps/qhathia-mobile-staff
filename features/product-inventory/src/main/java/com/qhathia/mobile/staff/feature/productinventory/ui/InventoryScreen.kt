@@ -1,8 +1,5 @@
 package com.qhathia.mobile.staff.feature.productinventory.ui
 
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
 import androidx.annotation.StringRes
@@ -26,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.qhathia.mobile.staff.core.ui.component.ResetScrollOn
 import com.qhathia.mobile.staff.feature.productinventory.R
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEffect
 import com.qhathia.mobile.staff.feature.productinventory.model.InventoryUiEvent
@@ -63,16 +61,10 @@ fun InventoryScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
 
-    // A new category or availability is a new list: show it from the top. Saved, so coming back to
-    // the tab (same filters) keeps the position.
+    // A new category or availability is a new list: show it from the top, before the frame is
+    // measured (F-80 piece). The handled filters are saved, so coming back to the tab keeps the position.
     val filtersKey = "${uiState.selectedCategoryId}|${uiState.selectedAvailability?.name}"
-    var listedFilters by rememberSaveable { mutableStateOf(filtersKey) }
-    LaunchedEffect(filtersKey) {
-        if (filtersKey != listedFilters) {
-            listedFilters = filtersKey
-            listState.scrollToItem(0)
-        }
-    }
+    listState.ResetScrollOn(filtersKey.hashCode())
     val resources = LocalResources.current
 
     // The tab's state is restored on return, so the list would otherwise stay as it was left.
