@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">QhathiaStaff</string>
+    <string name="app_name" translatable="false">Qhathia Staff</string>
 
     <!-- Bottom navigation -->
     <string name="nav_home">Inicio</string>

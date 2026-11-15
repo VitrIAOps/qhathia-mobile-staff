@@ -19,6 +19,12 @@ sealed interface InventoryUiEvent {
     data class Search(val query: String) : InventoryUiEvent
     data object RegisterProductClicked : InventoryUiEvent
 
+    /** "Registrar «q»" on an empty search: opens the form with [name] in Nombre. */
+    data class RegisterWithNameClicked(val name: String) : InventoryUiEvent
+
+    /** "Quitar filtros" on an empty filtered list: no category, no availability. */
+    data object ClearFiltersClicked : InventoryUiEvent
+
     /** A product row was tapped; opens its detail/edit screen. */
     data class ProductClicked(val productId: String) : InventoryUiEvent
 
@@ -26,7 +32,7 @@ sealed interface InventoryUiEvent {
     data class RowActionsOpened(val productId: String) : InventoryUiEvent
 
     /**
-     * "Registrar descuento" / "Editar descuento" in a row's actions menu; opens the discount
+     * "Agregar descuento" / "Editar descuento" in a row's actions menu; opens the discount
      * dialog for that product.
      */
     data class EditDiscountClicked(val productId: String) : InventoryUiEvent

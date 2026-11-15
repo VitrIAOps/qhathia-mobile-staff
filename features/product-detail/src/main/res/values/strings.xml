@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="detail_title">Detalle de producto</string>
     <string name="detail_back_cd">Volver</string>
     <string name="detail_bell_cd">Ver solicitudes</string>
@@ -7,25 +7,23 @@
     <string name="detail_photos_label">Fotos</string>
     <string name="detail_photos_empty">Este producto todavía no tiene fotos</string>
     <string name="detail_photos_max_hint">Máximo 10 fotos</string>
-    <string name="detail_photos_min_hint">El producto necesita al menos una foto</string>
-    <string name="detail_photos_limit_reached">Solo se pueden tener 10 fotos; algunas no se agregaron</string>
-    <string name="detail_photos_unsupported">Solo se aceptan fotos JPG o PNG</string>
+    <string name="detail_photos_min_hint">Es la única foto, por eso no se puede quitar. Agrega otra para cambiarla.</string>
     <string name="detail_error_photos_save">Se guardaron los datos del producto, pero no las fotos. Toca Guardar para reintentar</string>
 
     <string name="detail_name_label">Nombre</string>
-    <string name="detail_name_placeholder">Ej: Taladro inalámbrico</string>
+    <string name="detail_name_placeholder">Ej.: Taladro inalámbrico</string>
     <string name="detail_price_label">Precio</string>
     <string name="detail_price_placeholder">S/ 0.00</string>
     <string name="detail_price_prefix">S/</string>
     <string name="detail_quantity_label">Stock</string>
     <string name="detail_quantity_placeholder">0</string>
     <string name="detail_description_label">Descripción</string>
-    <string name="detail_description_placeholder">Ej: Describe materiales, usos y características</string>
+    <string name="detail_description_placeholder">Materiales, usos y características. Ej.: Taladro de 650 W con maletín</string>
     <string name="detail_description_ai">Optimizar con IA</string>
 
     <string name="detail_category_label">Categoría</string>
-    <string name="detail_tags_label">Tags</string>
-    <string name="detail_tags_placeholder">Ej: Importado, Reacondicionado, Premium …</string>
+    <string name="detail_tags_label">Etiquetas</string>
+    <string name="detail_tags_placeholder">Ej.: Importado, Reacondicionado, Premium…</string>
 
     <string name="detail_preview">Vista previa</string>
     <string name="detail_preview_hint">La vista previa necesita un nombre, un precio y al menos una foto.</string>
@@ -37,7 +35,8 @@
     <string name="detail_retry">Reintentar</string>
     <string name="detail_load_error">No se pudo cargar el producto</string>
 
-    <string name="detail_error_name">El nombre es muy largo</string>
+    <!-- The number is a fixed limit, always plural. -->
+    <string name="detail_error_name" tools:ignore="PluralsCandidate">Usa máximo %1$d caracteres</string>
     <string name="detail_error_price">Ingresa un precio válido mayor a cero</string>
     <string name="detail_error_quantity">Ingresa una cantidad válida (0 o más)</string>
     <string name="detail_error_not_found">Este producto ya no existe</string>
@@ -59,11 +58,6 @@
         <item quantity="other">%d horas</item>
     </plurals>
     <string name="detail_error_ai">No se pudo optimizar con IA. Inténtalo de nuevo</string>
-
-    <string name="detail_discard_title">¿Descartar cambios?</string>
-    <string name="detail_discard_message">Si sales ahora, se borrarán todos los cambios no guardados.</string>
-    <string name="detail_discard_confirm">Descartar</string>
-    <string name="detail_discard_dismiss">Seguir editando</string>
     <string name="detail_conflict_title">Otro usuario cambió este producto</string>
     <string name="detail_conflict_message">Mientras lo editabas, otra persona (u otra venta) lo modificó.</string>
     <string name="detail_conflict_reload">Ver lo nuevo</string>

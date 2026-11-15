@@ -22,6 +22,10 @@ sealed interface OrderRequestsUiEffect {
         override val severity = SnackbarSeverity.ERROR
     }
 
+    data object ShowRecoveredSnackbar : OrderRequestsUiEffect {
+        override val severity = SnackbarSeverity.SUCCESS
+    }
+
     /**
      * [productName] is only set by the out-of-stock conflict, whose message names the product that
      * ran out; every other message is a plain string resource.

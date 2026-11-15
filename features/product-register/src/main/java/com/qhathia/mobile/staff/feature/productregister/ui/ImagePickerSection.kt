@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.qhathia.mobile.staff.core.common.validation.MAX_PRODUCT_PHOTOS
+import com.qhathia.mobile.staff.core.ui.R as CoreUiR
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -40,7 +42,8 @@ fun ImagePickerSection(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = stringResource(R.string.register_photos_subtitle),
+            text = stringResource(R.string.register_photos_subtitle) + " " +
+                stringResource(CoreUiR.string.photo_count, images.size, MAX_PRODUCT_PHOTOS),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -50,6 +53,7 @@ fun ImagePickerSection(
             onRemove = onRemove,
             enabled = enabled,
             canAdd = canAdd,
+            remainingSlots = MAX_PRODUCT_PHOTOS - images.size,
             modifier = Modifier.padding(top = Dimens.SpaceSm),
         )
     }

@@ -54,6 +54,13 @@ private val BrightnessOptions = persistentListOf(
     BrightnessMode.HIGH,
 )
 
+
+/**
+ * "Vitrina en reposo" is stored but the tablet does not apply it yet (UX-T-24), so the row stays
+ * hidden until it does (decision of 2026-11-14). The stored value and its save path are untouched.
+ */
+private const val SHOW_IDLE_SHOWCASE = false
+
 /**
  * Ajustes de la tablet: the three groups of settings the owner controls remotely, then the tablet's
  * Información (hidden when the device list could not be read), a note that changes travel with
@@ -135,12 +142,14 @@ private fun SettingsList(
         verticalArrangement = Arrangement.spacedBy(Dimens.SpaceLg),
     ) {
         QhathiaSettingsSection(title = stringResource(R.string.tablet_settings_group_display)) {
-            QhathiaSwitchRow(
-                title = stringResource(R.string.tablet_settings_idle_showcase),
-                checked = settings.idleShowcaseEnabled,
-                onCheckedChange = { changed(DeviceSettingsChange.IdleShowcase(it)) },
-                enabled = !uiState.isSaving(SettingKey.IDLE_SHOWCASE),
-            )
+            if (SHOW_IDLE_SHOWCASE) {
+                QhathiaSwitchRow(
+                    title = stringResource(R.string.tablet_settings_idle_showcase),
+                    checked = settings.idleShowcaseEnabled,
+                    onCheckedChange = { changed(DeviceSettingsChange.IdleShowcase(it)) },
+                    enabled = !uiState.isSaving(SettingKey.IDLE_SHOWCASE),
+                )
+            }
             QhathiaSwitchRow(
                 title = stringResource(R.string.tablet_settings_voice),
                 checked = settings.voiceAssistantEnabled,

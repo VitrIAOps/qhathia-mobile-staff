@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.feature.productregister.model
 
 import androidx.annotation.StringRes
+import com.qhathia.mobile.staff.core.ui.component.PhotoPickResult
 
 /** One-shot side effects delivered via SharedFlow (never replayed). */
 sealed interface ProductRegisterUiEffect {
@@ -24,6 +25,9 @@ sealed interface ProductRegisterUiEffect {
 
     /** Leave the form and switch to the Solicitudes tab (header bell). */
     data object NavigateToOrderRequests : ProductRegisterUiEffect
+
+    /** One message for a photo pick: what was added and what was left out. */
+    data class ShowPhotoPickResult(val result: PhotoPickResult) : ProductRegisterUiEffect
 
     /** Show an error snackbar on the registration screen. */
     data class ShowError(@param:StringRes val messageRes: Int) : ProductRegisterUiEffect

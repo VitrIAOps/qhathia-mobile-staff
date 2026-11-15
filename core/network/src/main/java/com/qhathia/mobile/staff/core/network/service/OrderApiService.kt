@@ -70,6 +70,13 @@ class OrderApiService(
             body = reason?.let { RejectOrderRequestDto(it) },
         )
 
+    /**
+     * Brings an `EXPIRED` order back to `PENDING` with a fresh deadline. A manual rejection cannot be
+     * recovered: the backend answers `422 INVALID_STATE_TRANSITION`.
+     */
+    suspend fun recoverOrder(orderId: String): OrderMutationResult =
+        mutate("api/v1/orders/$orderId/recover")
+
     private suspend fun mutate(
         path: String,
         body: RejectOrderRequestDto? = null,

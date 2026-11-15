@@ -47,7 +47,7 @@ private val BellBadgeOffset = 6.dp
  *
  * The freshness line only appears once a load has succeeded — before that there is nothing truthful
  * to say about how current the figures are. The bell and its badge are announced as one node, so a
- * screen reader says "Notificaciones, 2 pendientes" rather than reading a loose number.
+ * screen reader says "Ver solicitudes, 2 pendientes" rather than reading a loose number.
  */
 @Composable
 internal fun HomeHeader(

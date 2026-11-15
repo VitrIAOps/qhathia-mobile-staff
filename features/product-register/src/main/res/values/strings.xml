@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="register_title">Registro de producto</string>
     <string name="register_back_cd">Volver</string>
     <string name="register_bell_cd">Ver solicitudes</string>
 
     <string name="register_photos_title">Fotos del producto</string>
-    <string name="register_photos_subtitle">La primera foto será la principal. Máximo 10 fotos.</string>
+    <string name="register_photos_subtitle">La primera foto será la principal.</string>
 
     <string name="register_name_label">Nombre</string>
-    <string name="register_name_placeholder">Ej: Taladro inalámbrico</string>
+    <string name="register_name_placeholder">Ej.: Taladro inalámbrico</string>
     <string name="register_price_label">Precio</string>
     <string name="register_price_placeholder">S/ 0.00</string>
     <string name="register_price_prefix">S/</string>
     <string name="register_quantity_label">Stock</string>
     <string name="register_quantity_placeholder">0</string>
     <string name="register_description_label">Descripción</string>
-    <string name="register_description_placeholder">Ej: Describe materiales, usos y características</string>
+    <string name="register_description_placeholder">Materiales, usos y características. Ej.: Taladro de 650 W con maletín</string>
     <string name="register_description_ai">Generar con IA</string>
     <string name="register_description_ai_optimize">Optimizar con IA</string>
 
     <string name="register_category_label">Categoría</string>
-    <string name="register_tags_label">Tags</string>
-    <string name="register_tags_placeholder">Ej: Importado, Reacondicionado, Premium …</string>
+    <string name="register_tags_label">Etiquetas</string>
+    <string name="register_tags_placeholder">Ej.: Importado, Reacondicionado, Premium…</string>
 
     <string name="register_preview">Vista previa</string>
     <string name="register_preview_hint">Ingresa un nombre, un precio y al menos una foto para ver la vista previa.</string>
@@ -33,26 +33,31 @@
     <string name="register_retry">Reintentar</string>
     <string name="register_catalog_error">No se pudieron cargar las categorías</string>
 
-    <string name="register_error_name">El nombre es muy largo</string>
+    <!-- The number is a fixed limit, always plural. -->
+    <string name="register_error_name" tools:ignore="PluralsCandidate">Usa máximo %1$d caracteres</string>
     <string name="register_error_price">Ingresa un precio válido mayor a cero</string>
     <string name="register_error_quantity">Ingresa una cantidad válida (0 o más)</string>
-    <string name="register_error_image_format">Solo se permiten imágenes JPG o PNG</string>
     <string name="register_error_image">No se pudo procesar la imagen</string>
     <string name="register_error_network">Sin conexión. Inténtalo de nuevo</string>
     <string name="register_error_validation">Revisa los datos ingresados</string>
     <string name="register_error_unknown">Algo salió mal. Inténtalo de nuevo</string>
     <string name="register_error_ai">No se pudo generar con IA. Inténtalo de nuevo</string>
 
-    <string name="register_discard_title">¿Descartar cambios?</string>
-    <string name="register_discard_message">Si sales ahora, se borrarán todos los cambios no guardados.</string>
-    <string name="register_discard_confirm">Descartar</string>
-    <string name="register_discard_dismiss">Seguir editando</string>
-
     <string name="register_ai_replace_title">¿Reemplazar campos?</string>
-    <string name="register_ai_replace_message">La generación con IA reemplazará la descripción, la categoría y los tags que ya ingresaste.</string>
+    <string name="register_ai_replace_message">La generación con IA reemplazará la descripción, la categoría y las etiquetas que ya ingresaste.</string>
     <string name="register_ai_replace_confirm">Reemplazar</string>
     <string name="register_ai_replace_dismiss">Cancelar</string>
     <string name="register_discount_over_price">El descuento es mayor que el precio. Edítalo o quítalo.</string>
     <string name="register_discount_removed_over_price">Quitamos el descuento porque es mayor que el nuevo precio. Revisa y vuelve a agregar.</string>
-    <string name="register_photos_limit_reached">Solo se pueden agregar 10 fotos; algunas no se agregaron</string>
+
+    <!-- Under the fixed "Agregar" while it is off (UX-C-12) -->
+    <string name="register_missing_line">Para agregar, completa %1$s.</string>
+    <!-- %1$s the first items, comma-separated; %2$s the last one -->
+    <string name="register_missing_join_last">%1$s y %2$s</string>
+    <string name="register_missing_name">nombre</string>
+    <string name="register_missing_price">precio</string>
+    <string name="register_missing_stock">stock</string>
+    <string name="register_missing_category">categoría</string>
+    <string name="register_missing_photo">al menos una foto</string>
+    <string name="register_ai_needs_photo">Agrega una foto para generar la descripción con IA.</string>
 </resources>

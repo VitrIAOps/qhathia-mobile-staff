@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Header -->
-    <string name="home_greeting_named">Hi %1$s</string>
+    <string name="home_greeting_named">Hi, %1$s</string>
     <string name="home_greeting_anonymous">Hi</string>
     <string name="home_last_updated">Last updated at %1$s</string>
-    <string name="home_notifications_cd">Notifications</string>
+    <string name="home_notifications_cd">View requests</string>
     <plurals name="home_notifications_pending_cd">
-        <item quantity="one">Notifications, %1$d pending</item>
-        <item quantity="other">Notifications, %1$d pending</item>
+        <item quantity="one">View requests, %1$d pending</item>
+        <item quantity="other">View requests, %1$d pending</item>
     </plurals>
 
     <!-- Resumen section -->
@@ -39,7 +39,7 @@
         <item quantity="one">Only %1$d left</item>
         <item quantity="other">Only %1$d left</item>
     </plurals>
-    <string name="home_out_of_stock">Out of stock</string>
+    <string name="home_out_of_stock">Sold out</string>
 
     <!-- Loading / error -->
     <string name="home_loading_cd">Loading the summary</string>

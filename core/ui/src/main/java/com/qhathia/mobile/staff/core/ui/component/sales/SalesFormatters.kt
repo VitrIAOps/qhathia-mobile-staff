@@ -1,6 +1,6 @@
 package com.qhathia.mobile.staff.core.ui.component.sales
 
-import com.qhathia.mobile.staff.core.ui.format.toPenAmount
+import com.qhathia.mobile.staff.core.common.format.toPenAmount
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.abs

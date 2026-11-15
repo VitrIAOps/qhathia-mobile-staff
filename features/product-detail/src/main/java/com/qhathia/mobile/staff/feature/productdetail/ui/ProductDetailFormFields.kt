@@ -17,7 +17,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import com.qhathia.mobile.staff.core.common.validation.MAX_PRODUCT_NAME_LENGTH
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
@@ -83,6 +88,7 @@ internal fun DetailNameField(
     enabled: Boolean,
     @StringRes errorRes: Int?,
     modifier: Modifier = Modifier,
+    onNext: () -> Unit = {},
 ) {
     LabeledField(label = stringResource(R.string.detail_name_label), modifier = modifier) {
         QhathiaTextField(
@@ -92,7 +98,13 @@ internal fun DetailNameField(
             placeholder = stringResource(R.string.detail_name_placeholder),
             enabled = enabled,
             isError = errorRes != null,
-            errorText = errorRes?.let { stringResource(it) },
+            // The only name error is the length one, which names the limit.
+            errorText = errorRes?.let { stringResource(it, MAX_PRODUCT_NAME_LENGTH) },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = ImeAction.Next,
+            ),
+            keyboardActions = KeyboardActions(onNext = { onNext() }),
         )
     }
 }
@@ -181,6 +193,7 @@ internal fun DetailPriceField(
     enabled: Boolean,
     @StringRes errorRes: Int?,
     modifier: Modifier = Modifier,
+    onNext: () -> Unit = {},
 ) {
     LabeledField(label = stringResource(R.string.detail_price_label), modifier = modifier) {
         QhathiaTextField(
@@ -191,7 +204,8 @@ internal fun DetailPriceField(
             enabled = enabled,
             isError = errorRes != null,
             errorText = errorRes?.let { stringResource(it) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { onNext() }),
             visualTransformation = PrefixTransformation("${stringResource(R.string.detail_price_prefix)} "),
         )
     }
@@ -204,6 +218,7 @@ internal fun DetailQuantityField(
     enabled: Boolean,
     @StringRes errorRes: Int?,
     modifier: Modifier = Modifier,
+    onNext: () -> Unit = {},
     isConsult: Boolean = false,
 ) {
     LabeledField(label = stringResource(R.string.detail_quantity_label), modifier = modifier) {
@@ -218,7 +233,8 @@ internal fun DetailQuantityField(
             enabled = enabled,
             isError = errorRes != null,
             errorText = errorRes?.let { stringResource(it) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { onNext() }),
         )
     }
 }
@@ -230,13 +246,19 @@ internal fun DetailTagsField(
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val focusManager = LocalFocusManager.current
     LabeledField(label = stringResource(R.string.detail_tags_label), modifier = modifier) {
         QhathiaTextField(
             label = stringResource(R.string.detail_tags_label),
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { onValueChange(it.replace('\n', ' ')) },
             placeholder = stringResource(R.string.detail_tags_placeholder),
             enabled = enabled,
+            // Up to three lines, so long tags are read whole; a newline is never a tag.
+            singleLine = false,
+            maxLines = TAGS_MAX_LINES,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
         )
     }
 }
@@ -326,3 +348,5 @@ private class PrefixTransformation(private val prefix: String) : VisualTransform
         return TransformedText(transformed, mapping)
     }
 }
+
+private const val TAGS_MAX_LINES = 3

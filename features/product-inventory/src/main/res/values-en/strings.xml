@@ -21,10 +21,10 @@
     <string name="inventory_availability_all">All</string>
     <string name="inventory_availability_available">Available</string>
     <string name="inventory_availability_low_stock">Low stock</string>
-    <string name="inventory_availability_consult">Check availability</string>
+    <string name="inventory_availability_consult">On request</string>
 
     <string name="inventory_stock_format">%1$d in stock</string>
-    <string name="inventory_out_of_stock">Out of stock</string>
+    <string name="inventory_out_of_stock">Sold out</string>
     <string name="inventory_price_discounted_cd">Original price %1$s, discounted price %2$s</string>
 
     <string name="inventory_register_cd">Register product</string>
@@ -32,12 +32,12 @@
     <string name="inventory_product_no_photo_cd">No photo</string>
     <string name="inventory_open_detail_cd">View details</string>
 
-    <string name="inventory_empty">No products to show</string>
+    <string name="inventory_empty">You have no products yet. Tap + to register the first one.</string>
     <string name="inventory_error">Couldn\'t load the products</string>
     <string name="inventory_retry">Retry</string>
 
     <string name="inventory_register_success">Product registered successfully</string>
-    <string name="inventory_register_plan_limit">You reached your plan\'s product limit</string>
+    <string name="inventory_register_plan_limit">You reached your plan\'s product limit. Delete one or upgrade in My subscription.</string>
     <string name="inventory_product_updated">Product updated successfully</string>
     <string name="inventory_register_discount_failed">Product registered, but the discount couldn\'t be applied</string>
     <string name="inventory_register_view_product">View product</string>
@@ -58,4 +58,11 @@
     <string name="inventory_discount_updated">Discount updated successfully</string>
     <string name="inventory_discount_load_error">Couldn\'t load the discount</string>
     <string name="inventory_discount_save_error">Couldn\'t save the discount. Try again</string>
+
+    <string name="inventory_low_stock_chip">Low stock · %1$d</string>
+    <string name="inventory_empty_search">We couldn\'t find “%1$s”.</string>
+    <string name="inventory_empty_clear_search">Clear search</string>
+    <string name="inventory_empty_register_named">Register “%1$s”</string>
+    <string name="inventory_empty_filters">No product matches the filters.</string>
+    <string name="inventory_empty_clear_filters">Remove filters</string>
 </resources>

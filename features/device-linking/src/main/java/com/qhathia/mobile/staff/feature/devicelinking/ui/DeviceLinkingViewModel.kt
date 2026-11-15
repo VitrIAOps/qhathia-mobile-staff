@@ -151,14 +151,12 @@ class DeviceLinkingViewModel @Inject constructor(
                         pairingPhase = PairingPhase.EnteringCode,
                     )
                 }
-            // Once approved, the dialog only leaves through the tablet's answer, undo or a wait. Back while
-            // waiting stops the wait and shows the options, never a stuck screen (F-60).
-            DeviceLinkingUiEvent.DismissPairDialog -> when (val phase = _uiState.value.pairingPhase) {
+            // While waiting, ✕ and Back only hide the dialog: the wait goes on, the tablet's answer
+            // still shows "Tablet «X» vinculada", and a wait that runs out brings the dialog back with
+            // its options. Hiding never undoes the pairing (UX-C-06, decision of 2026-11-14).
+            DeviceLinkingUiEvent.DismissPairDialog -> when (_uiState.value.pairingPhase) {
                 PairingPhase.EnteringCode -> closePairDialog()
-                is PairingPhase.WaitingForTablet -> {
-                    pairWaitJob?.cancel()
-                    _uiState.update { it.copy(pairingPhase = PairingPhase.TabletDidNotRespond(phase.paired)) }
-                }
+                is PairingPhase.WaitingForTablet -> _uiState.update { it.copy(isPairDialogVisible = false) }
                 is PairingPhase.TabletDidNotRespond -> Unit
             }
             is DeviceLinkingUiEvent.PairCodeChanged ->
@@ -330,7 +328,10 @@ class DeviceLinkingViewModel @Inject constructor(
                 }
             } != null
             if (!exchanged) {
-                _uiState.update { it.copy(pairingPhase = PairingPhase.TabletDidNotRespond(paired)) }
+                // Shown again if it was hidden while waiting: the owner has to decide.
+                _uiState.update {
+                    it.copy(pairingPhase = PairingPhase.TabletDidNotRespond(paired), isPairDialogVisible = true)
+                }
                 return@launch
             }
             // This very job runs the follow-up reads, so it must not cancel itself.

@@ -13,6 +13,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.remember
+import com.qhathia.mobile.staff.core.ui.component.ResetScrollOn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -56,10 +62,7 @@ internal fun MissingProductsSection(
         icon = painterResource(CoreUiR.drawable.ic_search),
         modifier = modifier,
     ) {
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(CardSpacing),
-            contentPadding = PaddingValues(horizontal = Dimens.SpaceMd),
-        ) {
+        SuggestionRow(ids = suggestions.map { it.id }) {
             items(suggestions, key = { it.id }) { suggestion ->
                 MissingProductCard(suggestion = suggestion, onAdd = { onAdd(suggestion) })
             }
@@ -83,10 +86,7 @@ internal fun OtherRequestsSection(
         icon = rememberVectorPainter(Icons.Outlined.ChatBubbleOutline),
         modifier = modifier,
     ) {
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(CardSpacing),
-            contentPadding = PaddingValues(horizontal = Dimens.SpaceMd),
-        ) {
+        SuggestionRow(ids = requests.map { it.id }) {
             items(requests, key = { it.id }) { request ->
                 MissingProductCard(suggestion = request, onAdd = null)
             }
@@ -107,15 +107,30 @@ internal fun RestockProductsSection(
         icon = painterResource(CoreUiR.drawable.ic_alert),
         modifier = modifier,
     ) {
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(CardSpacing),
-            contentPadding = PaddingValues(horizontal = Dimens.SpaceMd),
-        ) {
+        SuggestionRow(ids = suggestions.map { it.id }) {
             items(suggestions, key = { it.id }) { suggestion ->
                 RestockProductCard(suggestion = suggestion, onRestock = { onRestock(suggestion) })
             }
         }
     }
+}
+
+/**
+ * One horizontal row of cards that always starts at its first card, whole (UX-C-04): its state is
+ * not saveable, so coming back to Inicio starts it over, new data ([ids]) brings it back to the
+ * start, and a fling settles on a card edge instead of leaving one cut at the left.
+ */
+@Composable
+private fun SuggestionRow(ids: List<String>, content: LazyListScope.() -> Unit) {
+    val state = remember { LazyListState() }
+    state.ResetScrollOn(ids.hashCode())
+    LazyRow(
+        state = state,
+        flingBehavior = rememberSnapFlingBehavior(lazyListState = state, snapPosition = SnapPosition.Start),
+        horizontalArrangement = Arrangement.spacedBy(CardSpacing),
+        contentPadding = PaddingValues(horizontal = Dimens.SpaceMd),
+        content = content,
+    )
 }
 
 /**

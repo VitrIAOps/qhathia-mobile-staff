@@ -4,7 +4,7 @@
     <string name="login_email_label">Correo electrónico</string>
     <string name="login_password_label">Contraseña</string>
     <string name="login_email_placeholder">nombre@tienda.com</string>
-    <string name="login_submit">Iniciar sesión</string>
+    <string name="login_submit">Ingresar</string>
 
     <string name="login_email_icon_cd">Ícono de correo</string>
     <string name="login_password_icon_cd">Ícono de contraseña</string>

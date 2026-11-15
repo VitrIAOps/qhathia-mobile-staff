@@ -22,6 +22,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.qhathia.mobile.staff.core.domain.model.PairedDevice
+import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -45,8 +50,9 @@ import com.qhathia.mobile.staff.feature.devicelinking.model.PairingPhase
 /**
  * Near-full-screen dialog to pair a tablet, in three steps ([phase]):
  * - entering the code and the tablet's name, with Vincular and Rechazar;
- * - waiting for the tablet to exchange the approved code (it cannot be dismissed);
- * - the tablet did not answer: undo the approval or keep waiting.
+ * - waiting for the tablet to exchange the approved code (✕ and Back hide the dialog while the
+ *   wait goes on, UX-C-06);
+ * - the tablet did not answer: keep waiting (the main action) or undo the approval.
  *
  * [errorText] is shown inline in any step, and the dialog stays open so the merchant can act on it.
  */
@@ -69,13 +75,14 @@ internal fun PairDeviceDialog(
     onDismiss: () -> Unit,
 ) {
     val dismissable = phase == PairingPhase.EnteringCode
+    // While typing and while waiting the ✕ is there (waiting, it only hides the dialog); on the
+    // notice the owner picks one of its options.
+    val closable = phase !is PairingPhase.TabletDidNotRespond
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            // Back works while typing and while waiting (it stops the wait and shows the options, F-60);
-            // on the notice the owner picks one of them.
-            dismissOnBackPress = phase !is PairingPhase.TabletDidNotRespond,
+            dismissOnBackPress = closable,
             dismissOnClickOutside = dismissable,
         ),
     ) {
@@ -99,7 +106,7 @@ internal fun PairDeviceDialog(
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
-                    if (dismissable) {
+                    if (closable) {
                         IconButton(onClick = onDismiss) {
                             Icon(
                                 imageVector = Icons.Filled.Close,
@@ -170,10 +177,15 @@ private fun EnteringCodeBody(
             keyboardActions = KeyboardActions(onDone = { if (canSubmit) onSubmit() }),
             modifier = Modifier.fillMaxWidth(),
         )
+        // The ViewModel pre-fills "Tablet N", so a placeholder alone was never seen: the field names
+        // itself and says what the name is for (UX-C-06).
         QhathiaTextField(
             value = name,
             onValueChange = onNameChange,
             placeholder = stringResource(R.string.device_pair_name_placeholder),
+            label = stringResource(R.string.device_pair_name_label),
+            showLabel = true,
+            helperText = stringResource(R.string.device_pair_name_helper),
             enabled = !busy,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Sentences,
@@ -187,6 +199,13 @@ private fun EnteringCodeBody(
             onClick = onSubmit,
             enabled = canSubmit,
             loading = isPairing,
+        )
+        Text(
+            text = stringResource(R.string.device_pair_reject_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
         TextButton(
             onClick = onReject,
@@ -239,17 +258,72 @@ private fun NotRespondingBody(
                 color = MaterialTheme.colorScheme.error,
             )
         }
+        // The safe action is the main one; undoing unlinks the tablet, so it is red text (UX-C-06).
         QhathiaButton(
-            text = stringResource(R.string.device_pair_undo),
-            onClick = onUndo,
-            loading = isUndoing,
+            text = stringResource(R.string.device_pair_keep_waiting),
+            onClick = onKeepWaiting,
+            enabled = !isUndoing,
         )
         TextButton(
-            onClick = onKeepWaiting,
+            onClick = onUndo,
             enabled = !isUndoing,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(stringResource(R.string.device_pair_keep_waiting))
+            if (isUndoing) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                Text(stringResource(R.string.device_pair_undo), color = MaterialTheme.colorScheme.error)
+            }
         }
+    }
+}
+
+@Preview(name = "Pair dialog — code, light", showBackground = true)
+@Preview(name = "Pair dialog — code, dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun PairDeviceDialogCodePreview() {
+    QhathiaTheme {
+        PairDeviceDialog(
+            phase = PairingPhase.EnteringCode,
+            code = "RWN2A",
+            name = "Tablet 2",
+            canSubmit = true,
+            isPairing = false,
+            isRejecting = false,
+            isUndoing = false,
+            errorText = null,
+            onCodeChange = {},
+            onNameChange = {},
+            onSubmit = {},
+            onReject = {},
+            onUndo = {},
+            onKeepWaiting = {},
+            onDismiss = {},
+        )
+    }
+}
+
+@Preview(name = "Pair dialog — not responding, light", showBackground = true)
+@Preview(name = "Pair dialog — not responding, dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun PairDeviceDialogNotRespondingPreview() {
+    QhathiaTheme {
+        PairDeviceDialog(
+            phase = PairingPhase.TabletDidNotRespond(PairedDevice(deviceId = "d1", sessionId = "s1", name = "Mostrador")),
+            code = "RWN2A",
+            name = "Mostrador",
+            canSubmit = false,
+            isPairing = false,
+            isRejecting = false,
+            isUndoing = false,
+            errorText = null,
+            onCodeChange = {},
+            onNameChange = {},
+            onSubmit = {},
+            onReject = {},
+            onUndo = {},
+            onKeepWaiting = {},
+            onDismiss = {},
+        )
     }
 }

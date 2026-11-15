@@ -209,6 +209,7 @@ private fun TopSellerRow(position: Int, product: TopSellingProduct) {
     RankingProductRow(
         name = product.name,
         nameSuffix = deleted,
+        isDeleted = !product.active,
         imageUrl = product.imageUrl,
         detail = units,
         amount = amount,

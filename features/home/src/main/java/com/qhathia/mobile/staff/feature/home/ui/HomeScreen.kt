@@ -16,7 +16,7 @@ import com.qhathia.mobile.staff.feature.home.model.HomeUiEvent
 /**
  * Stateful Inicio entry point: binds [HomeViewModel], renders [HomeContent] and raises navigation to
  * the shell — the bell as a tab switch to Solicitudes, `Ver más` as a push of the sales statistics,
- * `Agregar` and `Reabastecer` as Registro and Detalle (which the shell opens over Inventario).
+ * `Agregar` and `Reponer` as Registro and Detalle (which the shell opens over Inventario).
  * Tells the ViewModel each time the tab comes back on screen, so it can reload.
  */
 @Composable

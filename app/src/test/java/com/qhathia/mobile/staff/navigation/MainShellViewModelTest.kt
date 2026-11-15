@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.usecase.ObservePendingOrderCountUseCase
 import com.qhathia.mobile.staff.core.domain.model.OrderPage
 import com.qhathia.mobile.staff.core.domain.usecase.NotifyOrdersChangedUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.RequestShowPendingOrdersUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ReconcileOrderNotificationsUseCase
 import com.qhathia.mobile.staff.core.testing.FakeOrderNotificationTray
 import com.qhathia.mobile.staff.core.testing.FakeOrderRepository
@@ -36,6 +37,7 @@ class MainShellViewModelTest {
         observePendingOrderCount = ObservePendingOrderCountUseCase(repository),
         reconcileOrderNotifications = ReconcileOrderNotificationsUseCase(repository, tray),
         notifyOrdersChanged = NotifyOrdersChangedUseCase(repository),
+        requestShowPendingOrders = RequestShowPendingOrdersUseCase(repository),
     )
 
     @Test

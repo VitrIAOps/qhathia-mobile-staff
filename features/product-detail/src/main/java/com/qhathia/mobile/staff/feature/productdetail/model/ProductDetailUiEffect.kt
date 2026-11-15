@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.feature.productdetail.model
 
 import androidx.annotation.StringRes
+import com.qhathia.mobile.staff.core.ui.component.PhotoPickResult
 
 /** One-shot signals the product detail/edit screen turns into navigation or a snackbar. */
 sealed interface ProductDetailUiEffect {
@@ -18,6 +19,9 @@ sealed interface ProductDetailUiEffect {
 
     /** Leave the form and switch to the Solicitudes tab (header bell). */
     data object NavigateToOrderRequests : ProductDetailUiEffect
+
+    /** One message for a photo pick: what was added and what was left out. */
+    data class ShowPhotoPickResult(val result: PhotoPickResult) : ProductDetailUiEffect
 
     /** [long] keeps the message up longer, for a partial save the merchant has to act on. */
     data class ShowError(@param:StringRes val messageRes: Int, val long: Boolean = false) : ProductDetailUiEffect

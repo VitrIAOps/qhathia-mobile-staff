@@ -15,8 +15,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.qhathia.mobile.staff.core.common.navigation.DESTINATION_ORDER_REQUESTS
 import com.qhathia.mobile.staff.core.common.navigation.EXTRA_DESTINATION
+import com.qhathia.mobile.staff.core.domain.model.OrderDetail
 import com.qhathia.mobile.staff.core.domain.repository.OrderNotificationTray
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,13 +27,14 @@ import javax.inject.Singleton
  *
  * Each order has at most one notification: it is posted with the order id as its tag and a fixed
  * id, so a later event for the same order replaces it. `ORDER_TAKEN` cancels it instead of posting,
- * because an order someone already handled needs nothing. Content is derived solely from the
- * `event` (see [orderPushAction]); the order id only keys the notification and is never shown.
+ * because an order someone already handled needs nothing. The first text is derived solely from the
+ * `event` (see [orderPushAction]); a new order is then rewritten by [updateNewOrder] with what the
+ * app fetched under its own session, since the push itself carries no personal data.
  *
  * Tapping opens the app on the Solicitudes section via its launch intent plus a destination extra
  * (no direct dependency on `:app`).
  *
- * Order notifications share one group with an app-owned summary ("N órdenes por atender") that
+ * Order notifications share one group with an app-owned summary ("N solicitudes por atender") that
  * opens Solicitudes too; without it Android builds its own summary, which opens nothing. The
  * summary is recomputed from the tray after every post and cancel, and goes with the last order.
  */
@@ -54,14 +57,9 @@ class OrderNotificationPresenter @Inject constructor(
         if (!notificationsAllowed()) return
 
         val (title, body) = contentFor(kind)
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification_order)
+        val notification = orderNotification(orderId)
             .setContentTitle(title)
             .setContentText(body)
-            .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setGroup(GROUP_KEY)
-            .setContentIntent(openAppIntent(orderId))
             .build()
 
         // Permission is checked above, but it can be revoked between the check and the post.
@@ -79,6 +77,54 @@ class OrderNotificationPresenter @Inject constructor(
             // Notification permission revoked mid-flight — drop the notification silently.
         }
     }
+
+    /**
+     * Rewrites [orderId]'s new-order notification with what the app fetched (customer, total, products,
+     * minutes left). It is silent ([NotificationCompat.Builder.setOnlyAlertOnce]) and only happens while
+     * that notification is still in the tray: an `ORDER_TAKEN` that arrived meanwhile wins.
+     */
+    fun updateNewOrder(orderId: String, detail: OrderDetail, now: Instant = Instant.now()) {
+        if (!notificationsAllowed() || orderId !in activeOrderIds()) return
+        val content = NewOrderContent.from(detail, now)
+        val res = context.resources
+        val title = content.customerName
+            ?.let { context.getString(R.string.notif_new_order_named_title, it) }
+            ?: context.getString(R.string.notif_new_order_title)
+        val products = res.getQuantityString(R.plurals.notif_new_order_products, content.productCount, content.productCount)
+        val body = content.minutesLeft
+            ?.let { context.getString(R.string.notif_new_order_detail_body, content.total, products, it.toInt()) }
+            ?: context.getString(R.string.notif_new_order_detail_body_no_deadline, content.total, products)
+        val expanded = buildList {
+            add(body)
+            addAll(content.lines)
+            if (content.moreLines > 0) {
+                add(res.getQuantityString(R.plurals.notif_new_order_more_products, content.moreLines, content.moreLines))
+            }
+        }.joinToString("\n")
+        val notification = orderNotification(orderId)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
+            .build()
+        try {
+            NotificationManagerCompat.from(context).notify(orderId, ORDER_NOTIFICATION_ID, notification)
+        } catch (_: SecurityException) {
+            // Permission revoked mid-flight; the generic notification stays.
+        }
+    }
+
+    /**
+     * The common shape of an order notification. `onlyAlertOnce` keeps a rewrite of a notification
+     * already in the tray silent, so only the first post sounds.
+     */
+    private fun orderNotification(orderId: String?): NotificationCompat.Builder =
+        NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification_order)
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setGroup(GROUP_KEY)
+            .setContentIntent(openAppIntent(orderId))
 
     private fun contentFor(kind: OrderPushAction.Kind): Pair<String, String> = when (kind) {
         OrderPushAction.Kind.NEW_ORDER -> context.getString(R.string.notif_new_order_title) to
@@ -184,8 +230,9 @@ class OrderNotificationPresenter @Inject constructor(
     }
 
     private fun ensureChannel() {
+        // Always (re)created: Android updates the name and description of an existing channel and
+        // keeps the importance the user chose, so a renamed channel reaches phones already installed.
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
-        if (manager.getNotificationChannel(CHANNEL_ID) != null) return
         val channel = NotificationChannel(
             CHANNEL_ID,
             context.getString(R.string.notif_channel_orders_name),

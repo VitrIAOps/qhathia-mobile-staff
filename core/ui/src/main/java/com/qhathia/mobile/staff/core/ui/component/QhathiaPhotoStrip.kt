@@ -33,7 +33,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -62,6 +64,9 @@ import java.io.File
 
 private val TileSize = 92.dp
 
+/** The backend's per-product photo limit, the most a single pick can bring. */
+private const val MAX_PICK = 10
+
 /**
  * One photo in a [QhathiaPhotoStrip]. [key] identifies it for removal; [model] is anything Coil can
  * load — a remote URL for a saved photo, a content uri for one just picked.
@@ -80,10 +85,14 @@ data class PickedPhoto(
 )
 
 /**
- * The product photo strip shared by registration and editing: an "Agregar" tile followed by the
- * photos, each with a remove control. "Agregar" offers taking a photo with the camera or choosing
- * several from the gallery. The strip only reports picks and removals; which ones are accepted is
- * the caller's decision.
+ * The product photo strip shared by registration and editing: the photos, each with a remove
+ * control, followed by an "Agregar" tile. "Agregar" offers taking a photo with the camera or choosing
+ * from the gallery. The strip only reports picks and removals; which ones are accepted is the
+ * caller's decision.
+ *
+ * The gallery never lets the merchant pick more than [remainingSlots] (a single picker for one slot,
+ * since the multiple picker needs at least two). "Agregar" stays last and the strip scrolls to it when
+ * photos are added, so it is never left out of view (UX-C-03).
  *
  * [canAdd] disables the tile (e.g. at the photo limit) and [canRemove] hides the remove controls
  * (e.g. on the last photo); [enabled] locks the whole strip while the form is busy.
@@ -98,14 +107,13 @@ fun QhathiaPhotoStrip(
     enabled: Boolean = true,
     canAdd: Boolean = true,
     canRemove: Boolean = true,
+    remainingSlots: Int = MAX_PICK,
 ) {
     val context = LocalContext.current
     var showSourceChooser by remember { mutableStateOf(false) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
-    val galleryLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickMultipleVisualMedia(),
-    ) { uris ->
+    val report: (List<Uri>) -> Unit = { uris ->
         if (uris.isNotEmpty()) {
             onPick(
                 uris.map { uri ->
@@ -114,6 +122,14 @@ fun QhathiaPhotoStrip(
             )
         }
     }
+    // The contract carries the limit, so it is rebuilt when the remaining slots change.
+    val multipleContract = remember(remainingSlots) {
+        ActivityResultContracts.PickMultipleVisualMedia(maxItems = remainingSlots.coerceAtLeast(2))
+    }
+    val galleryLauncher = rememberLauncherForActivityResult(multipleContract) { uris -> report(uris) }
+    val singleGalleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri -> report(listOfNotNull(uri)) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture(),
@@ -125,11 +141,17 @@ fun QhathiaPhotoStrip(
         pendingCameraUri = null
     }
 
+    val scrollState = rememberScrollState()
+    // Photos just added push "Agregar" right: follow it so it stays in view.
+    var shownCount by remember { mutableIntStateOf(photos.size) }
+    LaunchedEffect(photos.size) {
+        if (photos.size > shownCount) scrollState.animateScrollTo(scrollState.maxValue)
+        shownCount = photos.size
+    }
     Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()),
+        modifier = modifier.horizontalScroll(scrollState),
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
     ) {
-        AddPhotoTile(enabled = enabled && canAdd, onClick = { showSourceChooser = true })
         photos.forEachIndexed { index, photo ->
             PhotoThumbnail(
                 photo = photo,
@@ -140,6 +162,7 @@ fun QhathiaPhotoStrip(
                 onRemove = { onRemove(photo.key) },
             )
         }
+        AddPhotoTile(enabled = enabled && canAdd, onClick = { showSourceChooser = true })
     }
 
     if (showSourceChooser) {
@@ -170,9 +193,8 @@ fun QhathiaPhotoStrip(
                     label = stringResource(R.string.photo_source_gallery),
                     onClick = {
                         showSourceChooser = false
-                        galleryLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                        )
+                        val request = PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        if (remainingSlots <= 1) singleGalleryLauncher.launch(request) else galleryLauncher.launch(request)
                     },
                 )
             }

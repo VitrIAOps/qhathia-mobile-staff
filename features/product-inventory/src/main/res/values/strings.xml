@@ -20,12 +20,12 @@
     <!-- Availability sub-filter options -->
     <string name="inventory_availability_all">Todas</string>
     <string name="inventory_availability_available">Disponibles</string>
-    <string name="inventory_availability_low_stock">Stock bajo</string>
+    <string name="inventory_availability_low_stock">Pocas unidades</string>
     <string name="inventory_availability_consult">Consultar disponibilidad</string>
 
     <!-- Stock indicator: the API's stock as is; nothing when it is unknown -->
-    <string name="inventory_stock_format">%1$d stock</string>
-    <string name="inventory_out_of_stock">Sin existencias</string>
+    <string name="inventory_stock_format">%1$d en stock</string>
+    <string name="inventory_out_of_stock">Agotado</string>
     <string name="inventory_price_discounted_cd">Precio original %1$s, precio con descuento %2$s</string>
 
     <string name="inventory_register_cd">Registrar producto</string>
@@ -33,12 +33,12 @@
     <string name="inventory_product_no_photo_cd">Sin foto</string>
     <string name="inventory_open_detail_cd">Ver detalle</string>
 
-    <string name="inventory_empty">No hay productos para mostrar</string>
+    <string name="inventory_empty">Aún no tienes productos. Toca + para registrar el primero.</string>
     <string name="inventory_error">No se pudieron cargar los productos</string>
     <string name="inventory_retry">Reintentar</string>
 
     <string name="inventory_register_success">Producto registrado correctamente</string>
-    <string name="inventory_register_plan_limit">Alcanzaste el límite de productos de tu plan</string>
+    <string name="inventory_register_plan_limit">Alcanzaste el límite de productos de tu plan. Elimina alguno o mejora tu plan en Mi suscripción.</string>
     <string name="inventory_product_updated">Producto actualizado correctamente</string>
     <string name="inventory_register_discount_failed">Producto registrado, pero no se pudo aplicar el descuento</string>
     <string name="inventory_register_view_product">Ver producto</string>
@@ -50,7 +50,7 @@
     <string name="inventory_row_actions_cd">Más acciones</string>
     <string name="inventory_action_edit_product">Editar producto</string>
     <string name="inventory_action_edit_discount">Editar descuento</string>
-    <string name="inventory_action_register_discount">Registrar descuento</string>
+    <string name="inventory_action_register_discount">Agregar descuento</string>
     <!-- Delete product: menu option and results (the confirmation lives in core:ui). -->
     <string name="inventory_action_delete_product">Eliminar producto</string>
     <string name="inventory_product_deleted">Producto eliminado</string>
@@ -59,4 +59,12 @@
     <string name="inventory_discount_updated">Descuento actualizado correctamente</string>
     <string name="inventory_discount_load_error">No se pudo cargar el descuento</string>
     <string name="inventory_discount_save_error">No se pudo guardar el descuento. Inténtalo de nuevo</string>
+
+    <!-- Stock chip and empty states with a way out (UX-C-11) -->
+    <string name="inventory_low_stock_chip">Pocas unidades · %1$d</string>
+    <string name="inventory_empty_search">No encontramos «%1$s».</string>
+    <string name="inventory_empty_clear_search">Limpiar búsqueda</string>
+    <string name="inventory_empty_register_named">Registrar «%1$s»</string>
+    <string name="inventory_empty_filters">Ningún producto coincide con los filtros.</string>
+    <string name="inventory_empty_clear_filters">Quitar filtros</string>
 </resources>

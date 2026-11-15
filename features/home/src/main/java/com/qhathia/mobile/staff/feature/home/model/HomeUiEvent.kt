@@ -27,6 +27,6 @@ sealed interface HomeUiEvent {
     /** `Agregar` on a "Productos no encontrados" card — registers a product named after the search. */
     data class AddMissingProduct(val name: String) : HomeUiEvent
 
-    /** `Reabastecer` on a "Productos para reponer" card — opens that product to restock it. */
+    /** `Reponer` on a "Productos para reponer" card — opens that product to restock it. */
     data class RestockProduct(val productId: String) : HomeUiEvent
 }

@@ -41,7 +41,7 @@ import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaGradientTopBar
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaNavigationRow
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaPlanProgressBar
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaSettingsSection
-import com.qhathia.mobile.staff.core.ui.format.toPenPrice
+import com.qhathia.mobile.staff.core.common.format.toPenPrice
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme

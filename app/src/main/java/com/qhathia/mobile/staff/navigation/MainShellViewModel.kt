@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.qhathia.mobile.staff.core.domain.usecase.ObservePendingOrderCountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.NotifyOrdersChangedUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ReconcileOrderNotificationsUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.RequestShowPendingOrdersUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,7 @@ class MainShellViewModel @Inject constructor(
     observePendingOrderCount: ObservePendingOrderCountUseCase,
     private val reconcileOrderNotifications: ReconcileOrderNotificationsUseCase,
     private val notifyOrdersChanged: NotifyOrdersChangedUseCase,
+    private val requestShowPendingOrders: RequestShowPendingOrdersUseCase,
 ) : ViewModel() {
 
     val pendingOrderCount: StateFlow<Int> = observePendingOrderCount()
@@ -43,8 +45,9 @@ class MainShellViewModel @Inject constructor(
         viewModelScope.launch { reconcileOrderNotifications() }
     }
 
-    /** A notification tap landed on Solicitudes: tell its list to re-query. */
+    /** A notification tap landed on Solicitudes: show Pendientes from the top and re-query. */
     fun onOrdersDeepLink() {
+        requestShowPendingOrders()
         notifyOrdersChanged()
     }
 }

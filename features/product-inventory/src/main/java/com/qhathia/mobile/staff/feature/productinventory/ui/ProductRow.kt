@@ -29,6 +29,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.qhathia.mobile.staff.core.domain.model.Availability
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,7 +52,7 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.qhathia.mobile.staff.core.domain.model.Product
-import com.qhathia.mobile.staff.core.ui.format.toPenPrice
+import com.qhathia.mobile.staff.core.common.format.toPenPrice
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.feature.productinventory.R
@@ -61,7 +63,7 @@ import com.qhathia.mobile.staff.feature.productinventory.R
  * product's detail/edit screen, the same destination as the menu's "Editar producto".
  *
  * [hasDiscount] is only known once the menu has been opened ([onActionsOpened] triggers the
- * lookup): it picks between "Registrar descuento" and "Editar descuento".
+ * lookup): it picks between "Agregar descuento" and "Editar descuento".
  *
  * Stock and discounted price are shown exactly as the products API sends them: an unknown stock
  * shows nothing, and the discounted price is never computed here.
@@ -144,13 +146,7 @@ internal fun ProductRow(
                     discountedPrice = product.discountedPrice,
                     modifier = Modifier.weight(1f),
                 )
-                stockLabel(product.stock)?.let { label ->
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+                StockIndicator(stock = product.stock, availability = product.availability)
             }
         }
 
@@ -169,7 +165,7 @@ internal fun ProductRow(
  * The row's "⋮" button and the menu it anchors, so the options are drawn from the icon itself.
  * Whether the menu is open is plain UI state and stays here.
  *
- * The discount option reads "Registrar descuento" when the product is known to have none and
+ * The discount option reads "Agregar descuento" when the product is known to have none and
  * "Editar descuento" otherwise; while that is being looked up it shows a spinner and waits.
  * "Eliminar producto" comes last, past a divider and in the error colour: it cannot be undone.
  */
@@ -303,14 +299,42 @@ private fun ProductPrice(price: Double, discountedPrice: Double?, modifier: Modi
 }
 
 /**
- * "N stock", or "Sin existencias" at zero so a stock-out does not read as a small number, or
- * nothing at all when the API does not know the stock.
+ * The row's stock as the API sends it (UX-C-11): a red "Agotado" chip at zero, an amber
+ * "Pocas unidades · N" chip for LOW_STOCK, plain "N en stock" otherwise, and nothing when the API
+ * does not know the stock. The chips keep their text, so colour is never the only signal.
  */
 @Composable
-private fun stockLabel(stock: Int?): String? = when (stock) {
-    null -> null
-    0 -> stringResource(R.string.inventory_out_of_stock)
-    else -> stringResource(R.string.inventory_stock_format, stock)
+private fun StockIndicator(stock: Int?, availability: Availability) {
+    when {
+        stock == 0 -> StockChip(
+            text = stringResource(R.string.inventory_out_of_stock),
+            container = MaterialTheme.colorScheme.errorContainer,
+            content = MaterialTheme.colorScheme.onErrorContainer,
+        )
+        availability == Availability.LOW_STOCK -> StockChip(
+            text = stock?.let { stringResource(R.string.inventory_low_stock_chip, it) }
+                ?: stringResource(R.string.inventory_availability_low_stock),
+            container = QhathiaColors.warningContainer,
+            content = QhathiaColors.onWarningContainer,
+        )
+        stock != null -> Text(
+            text = stringResource(R.string.inventory_stock_format, stock),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun StockChip(text: String, container: Color, content: Color) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = content,
+        modifier = Modifier
+            .background(container, RoundedCornerShape(percent = 50))
+            .padding(horizontal = Dimens.SpaceSm, vertical = 2.dp),
+    )
 }
 
 /** A centered, tinted icon used as the thumbnail's loading / error / no-image state. */

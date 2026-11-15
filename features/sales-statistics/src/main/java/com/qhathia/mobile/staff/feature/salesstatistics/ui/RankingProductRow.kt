@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +60,7 @@ internal fun RankingProductRow(
     leading: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     nameSuffix: String? = null,
+    isDeleted: Boolean = false,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
@@ -72,7 +74,7 @@ internal fun RankingProductRow(
         Box(modifier = Modifier.size(LeadingSize), contentAlignment = Alignment.Center) {
             leading()
         }
-        ProductThumbnail(imageUrl = imageUrl)
+        ProductThumbnail(imageUrl = imageUrl, isDeleted = isDeleted)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -141,14 +143,25 @@ internal fun AttentionGlyph(critical: Boolean) {
  * missing or failed image falls back to the neutral placeholder rather than a blank hole.
  */
 @Composable
-private fun ProductThumbnail(imageUrl: String?) {
+private fun ProductThumbnail(imageUrl: String?, isDeleted: Boolean) {
     Box(
         modifier = Modifier
             .size(ThumbnailSize)
             .clip(RoundedCornerShape(Dimens.SpaceSm))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(if (isDeleted) QhathiaColors.segmentTrack else MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
+        // A deleted product has no photo to show: a trash glyph says why, so the empty box does not
+        // look like an image that failed to load (UX-C-18). "Eliminado" beside it is what is read.
+        if (isDeleted) {
+            Icon(
+                imageVector = Icons.Outlined.DeleteOutline,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
+            return@Box
+        }
         if (imageUrl.isNullOrBlank()) return@Box
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
@@ -179,6 +192,27 @@ private fun RankingProductRowPreview() {
             amount = "S/ 1,870",
             contentDescription = "",
             leading = { RankBadge(position = 1) },
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = Dimens.SpaceMd),
+        )
+    }
+}
+
+@Preview(name = "Ranking row — deleted, light", showBackground = true)
+@Preview(name = "Ranking row — deleted, dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun RankingProductRowDeletedPreview() {
+    QhathiaTheme {
+        RankingProductRow(
+            name = "QA X OK",
+            nameSuffix = "Eliminado",
+            isDeleted = true,
+            imageUrl = null,
+            detail = "3 vendidos",
+            amount = "S/ 120",
+            contentDescription = "",
+            leading = { RankBadge(position = 4) },
             modifier = Modifier
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(horizontal = Dimens.SpaceMd),

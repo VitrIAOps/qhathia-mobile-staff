@@ -1,6 +1,6 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
-import com.qhathia.mobile.staff.core.ui.format.toPenPrice
+import com.qhathia.mobile.staff.core.common.format.toPenPrice
 import com.qhathia.mobile.staff.feature.orderrequests.model.SubmitError
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.foundation.background
@@ -92,6 +92,8 @@ internal fun OrderDetailDialog(
     onCancelRejection: () -> Unit,
     onConfirmRejection: (String) -> Unit,
     onRetryDetail: () -> Unit = {},
+    onRecover: (String) -> Unit = {},
+    minuteClock: Instant = now(),
 ) {
     val rejection = state.rejection
     Dialog(onDismissRequest = onDismiss) {
@@ -139,14 +141,25 @@ internal fun OrderDetailDialog(
                 when {
                     state.isLoading -> DialogLoadingState()
                     state.isError || state.order == null -> DialogErrorState(onRetry = onRetryDetail)
-                    else -> OrderDetailBody(
-                        detail = state.order,
-                        isSubmitting = state.isSubmitting,
-                        submitError = state.submitError,
-                        now = now,
-                        onConfirm = onConfirm,
-                        onReject = onStartRejection,
-                    )
+                    else -> {
+                        val order = state.order.order
+                        CustomerContactRow(
+                            customerName = order.customerName,
+                            customerPhone = order.customerPhone,
+                            createdAt = order.createdAt,
+                            minuteClock = minuteClock,
+                            modifier = Modifier.padding(bottom = Dimens.SpaceSm),
+                        )
+                        OrderDetailBody(
+                            detail = state.order,
+                            isSubmitting = state.isSubmitting,
+                            submitError = state.submitError,
+                            now = now,
+                            onConfirm = onConfirm,
+                            onReject = onStartRejection,
+                            onRecover = onRecover,
+                        )
+                    }
                 }
             }
         }
@@ -161,6 +174,7 @@ private fun OrderDetailBody(
     now: () -> Instant,
     onConfirm: (String) -> Unit,
     onReject: () -> Unit,
+    onRecover: (String) -> Unit,
 ) {
     val footer = orderDetailFooter(detail.order.status, detail.order.expiresAt, now())
 
@@ -208,15 +222,42 @@ private fun OrderDetailBody(
                 onConfirm = { onConfirm(detail.order.id) },
                 onReject = onReject,
             )
-            is OrderDetailFooter.Resolved -> Text(
-                text = stringResource(footer.messageRes),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = Dimens.SpaceSm),
-            )
+            is OrderDetailFooter.Resolved -> {
+                Text(
+                    text = stringResource(footer.messageRes),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = Dimens.SpaceSm),
+                )
+                // Only the server's EXPIRED can come back; a manual rejection is final.
+                if (detail.order.status == OrderStatus.EXPIRED) {
+                    Button(
+                        onClick = { onRecover(detail.order.id) },
+                        enabled = !isSubmitting,
+                        shape = RoundedCornerShape(Dimens.ButtonRadius),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = Dimens.ButtonHeight),
+                    ) {
+                        if (isSubmitting) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.order_action_recover),
+                                style = MaterialTheme.typography.labelLarge,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -307,7 +348,7 @@ private fun OrderItemRow(
                     text = item.productName,
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 // The name the customer ordered stays; a later rename is shown under it.
