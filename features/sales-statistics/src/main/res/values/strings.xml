@@ -6,7 +6,7 @@
     <string name="statistics_share_cd">Compartir</string>
     <!-- Compartir: the share sheet and the plain text sent. No customer data. -->
     <string name="statistics_share_title">Compartir resumen</string>
-    <string name="statistics_share_summary">Resumen de ventas · %1$s\nVentas: %2$s (%3$d ventas, ticket promedio %4$s, %5$d unidades)</string>
+    <string name="statistics_share_summary">Resumen de ventas · %1$s\nVentas: %2$s · Cantidad de ventas: %3$d · Ticket promedio: %4$s · Unidades: %5$d</string>
     <string name="statistics_share_ranking_header">Lo que más vende · %1$s</string>
     <string name="statistics_share_ranking_row">%1$d. %2$s — %3$s</string>
     <string name="statistics_share_activity">Actividad · %1$s\nClientes que usaron la tablet: %2$d · Productos consultados: %3$d · Pedidos confirmados: %4$d</string>
@@ -25,7 +25,7 @@
     <string name="statistics_category_all">Todos</string>
 
     <!-- Resumen tab -->
-    <string name="statistics_kpi_sales">Num Ventas</string>
+    <string name="statistics_kpi_sales">Cantidad de ventas</string>
     <string name="statistics_kpi_ticket">Ticket prom.</string>
     <string name="statistics_kpi_units">Unidades</string>
 
@@ -76,8 +76,8 @@
     <string name="statistics_activity_customers_caption">usaron la tablet</string>
     <string name="statistics_activity_products">Productos</string>
     <string name="statistics_activity_products_caption">consultados</string>
-    <string name="statistics_activity_orders">Pedidos</string>
-    <string name="statistics_activity_orders_caption">confirmados</string>
+    <string name="statistics_activity_orders">Solicitudes</string>
+    <string name="statistics_activity_orders_caption">confirmadas</string>
     <!-- %1$s is a spaced signed percentage, e.g. "+ 12%". -->
     <string name="statistics_activity_delta_monthly">%1$s vs mes pasado</string>
     <string name="statistics_activity_delta_weekly">%1$s vs semana pasada</string>

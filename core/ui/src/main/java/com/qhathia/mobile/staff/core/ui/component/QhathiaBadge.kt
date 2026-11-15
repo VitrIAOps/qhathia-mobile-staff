@@ -25,7 +25,7 @@ private const val BADGE_MAX_COUNT = 99
  * The classic count bubble: a brand-accent circle with the count in white DS Caption digits.
  *
  * Counts above 99 render as `99+`. The badge carries no semantics of its own — callers merge it
- * into the control it decorates, so a screen reader announces "Notificaciones, 2 pendientes" as one
+ * into the control it decorates, so a screen reader announces "Ver solicitudes, 2 pendientes" as one
  * node instead of reading a bare number.
  */
 @Composable

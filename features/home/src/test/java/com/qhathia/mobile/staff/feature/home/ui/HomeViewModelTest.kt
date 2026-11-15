@@ -329,7 +329,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `Reabastecer asks the shell for that product's detail`() = runTest {
+    fun `Reponer asks the shell for that product's detail`() = runTest {
         val viewModel = createViewModel()
         runCurrent()
 

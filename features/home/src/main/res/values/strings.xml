@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Header -->
-    <string name="home_greeting_named">Hola %1$s</string>
+    <string name="home_greeting_named">Hola, %1$s</string>
     <!-- Shown when no session name is available; the greeting degrades rather than inventing one. -->
     <string name="home_greeting_anonymous">Hola</string>
     <string name="home_last_updated">Última actualización a las %1$s</string>
-    <string name="home_notifications_cd">Notificaciones</string>
+    <string name="home_notifications_cd">Ver solicitudes</string>
     <plurals name="home_notifications_pending_cd">
-        <item quantity="one">Notificaciones, %1$d pendiente</item>
-        <item quantity="other">Notificaciones, %1$d pendientes</item>
+        <item quantity="one">Ver solicitudes, %1$d pendiente</item>
+        <item quantity="other">Ver solicitudes, %1$d pendientes</item>
     </plurals>
 
     <!-- Resumen section. The card's own strings (periods, delta, insight) live in :core:ui. -->
@@ -40,13 +40,13 @@
     </plurals>
     <!-- Row of what shoppers asked for outside the store's line of business. -->
     <string name="home_other_requests_title">También te piden</string>
-    <string name="home_restock_product">Reabastecer</string>
+    <string name="home_restock_product">Reponer</string>
     <plurals name="home_remaining_stock">
         <item quantity="one">Solo queda %1$d</item>
         <item quantity="other">Solo quedan %1$d</item>
     </plurals>
     <!-- Replaces home_remaining_stock when nothing is left: "Solo quedan 0" undersells a stock-out. -->
-    <string name="home_out_of_stock">Sin existencias</string>
+    <string name="home_out_of_stock">Agotado</string>
 
     <!-- Loading / error -->
     <string name="home_loading_cd">Cargando el resumen</string>

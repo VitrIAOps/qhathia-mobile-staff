@@ -5,7 +5,7 @@
     <string name="statistics_back_cd">Back</string>
     <string name="statistics_share_cd">Share</string>
     <string name="statistics_share_title">Share summary</string>
-    <string name="statistics_share_summary">Sales summary · %1$s\nSales: %2$s (%3$d sales, average ticket %4$s, %5$d units)</string>
+    <string name="statistics_share_summary">Sales summary · %1$s\nSales: %2$s · No. of sales: %3$d · Average ticket: %4$s · Units: %5$d</string>
     <string name="statistics_share_ranking_header">Best sellers · %1$s</string>
     <string name="statistics_share_ranking_row">%1$d. %2$s — %3$s</string>
     <string name="statistics_share_activity">Activity · %1$s\nShoppers who used the tablet: %2$d · Products viewed: %3$d · Confirmed orders: %4$d</string>
@@ -70,7 +70,7 @@
     <string name="statistics_activity_customers_caption">used the tablet</string>
     <string name="statistics_activity_products">Products</string>
     <string name="statistics_activity_products_caption">viewed</string>
-    <string name="statistics_activity_orders">Orders</string>
+    <string name="statistics_activity_orders">Requests</string>
     <string name="statistics_activity_orders_caption">confirmed</string>
     <string name="statistics_activity_delta_monthly">%1$s vs last month</string>
     <string name="statistics_activity_delta_weekly">%1$s vs last week</string>
