@@ -42,4 +42,6 @@ internal fun arrivedAgoLabel(createdAt: Instant, now: Instant): String =
             DateUtils.MINUTE_IN_MILLIS,
             DateUtils.FORMAT_ABBREV_RELATIVE,
         ).toString()
+            // Android capitalizes it ("Hace 2 h"); it goes mid-line, after the code.
+            .replaceFirstChar { it.lowercase() }
     }
