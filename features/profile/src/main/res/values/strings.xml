@@ -106,7 +106,7 @@
     <string name="help_faq_expanded">Expandida</string>
     <string name="help_faq_collapsed">Contraída</string>
     <string name="help_faq_link_tablet_q">¿Cómo vinculo una tablet nueva?</string>
-    <string name="help_faq_link_tablet_a">En Perfil → Dispositivos toca «Vincular otro dispositivo» e ingresa el código de 5 caracteres que muestra la tablet. El código vence a los 5 minutos.</string>
+    <string name="help_faq_link_tablet_a">En Perfil → Dispositivos toca «Vincular tablet» e ingresa el código de 5 caracteres que muestra la tablet. El código vence a los 5 minutos.</string>
     <string name="help_faq_ai_suggestions_q">¿De dónde salen las sugerencias de IA?</string>
     <string name="help_faq_ai_suggestions_a">Salen de lo que tus clientes buscan en la tablet y de tus ventas recientes: productos que no encontraron y productos que se están agotando.</string>
     <string name="help_faq_offline_q">¿Puedo usar la app sin internet?</string>
@@ -150,11 +150,11 @@
     <string name="security_password_never">Nunca actualizada</string>
     <string name="security_password_changed">Contraseña actualizada</string>
     <string name="security_biometric">Ingresar con huella</string>
-    <string name="security_biometric_subtitle">Entra sin escribir tu contraseña</string>
+    <string name="security_biometric_subtitle">Ingresa sin escribir tu contraseña</string>
     <string name="security_sessions_title">Sesiones activas</string>
     <string name="security_session_current">%1$s · este equipo</string>
-    <string name="security_session_unknown_device">Dispositivo desconocido</string>
-    <string name="security_session_last_used">Activa %1$s</string>
+    <string name="security_session_unknown_device">Equipo desconocido</string>
+    <string name="security_session_last_used">Último uso: %1$s</string>
     <string name="security_session_close">Cerrar</string>
     <string name="security_session_close_cd">Cerrar sesión en %1$s</string>
     <string name="security_sessions_error">No pudimos cargar tus sesiones</string>

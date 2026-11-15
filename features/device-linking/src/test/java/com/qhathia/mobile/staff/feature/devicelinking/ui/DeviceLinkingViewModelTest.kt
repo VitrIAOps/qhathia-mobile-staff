@@ -422,25 +422,40 @@ class DeviceLinkingViewModelTest {
     }
 
     @Test
-    fun `back while waiting shows the options and stops polling`() = screenTest {
+    fun `closing while waiting hides the dialog and the confirmation still arrives`() = screenTest {
         val viewModel = createViewModel()
         viewModel.readyToPair()
-
         viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+
+        // UX-C-06: ✕ / Back hide the dialog; the wait goes on and nothing is undone.
+        viewModel.onEvent(DeviceLinkingUiEvent.DismissPairDialog)
+        assertFalse(viewModel.uiState.value.isPairDialogVisible)
         assertInstanceOf(PairingPhase.WaitingForTablet::class.java, viewModel.uiState.value.pairingPhase)
 
-        // F-60: Back stops the wait and offers "Deshacer" / "Seguir esperando"; the dialog stays.
+        viewModel.uiEffect.test {
+            repository.pairingStatusResult = Result.success(PairingSessionStatus("APPROVED", tokenExchanged = true))
+            advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL)
+            assertInstanceOf(DeviceLinkingUiEffect.ShowPaired::class.java, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertFalse(viewModel.uiState.value.isPairDialogVisible)
+        assertTrue(repository.unlinkedDevices.isEmpty())
+    }
+
+    @Test
+    fun `a wait that runs out while hidden brings the dialog back with its options`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
         viewModel.onEvent(DeviceLinkingUiEvent.DismissPairDialog)
+
+        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT)
+
         assertTrue(viewModel.uiState.value.isPairDialogVisible)
         assertInstanceOf(PairingPhase.TabletDidNotRespond::class.java, viewModel.uiState.value.pairingPhase)
-
-        val reads = repository.statusCallCount
-        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT)
-        assertEquals(reads, repository.statusCallCount)
-
         // On the notice, Back does nothing: the owner picks an option.
         viewModel.onEvent(DeviceLinkingUiEvent.DismissPairDialog)
-        assertInstanceOf(PairingPhase.TabletDidNotRespond::class.java, viewModel.uiState.value.pairingPhase)
+        assertTrue(viewModel.uiState.value.isPairDialogVisible)
     }
 
     @Test

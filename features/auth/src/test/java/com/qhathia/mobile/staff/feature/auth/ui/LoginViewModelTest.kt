@@ -69,20 +69,27 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `given invalid credentials when submit then ShowError with credentials message`() = runTest {
+    fun `invalid credentials stay under the password, without a snackbar`() = runTest {
         authRepository.loginResult = Result.failure(LoginException(LoginError.InvalidCredentials))
         enterValidCredentials()
 
         viewModel.uiEffect.test {
             viewModel.onEvent(LoginUiEvent.Submit)
-            val effect = awaitItem()
-            assertTrue(effect is LoginUiEffect.ShowError)
-            assertEquals(
-                R.string.login_error_invalid_credentials,
-                (effect as LoginUiEffect.ShowError).messageRes,
-            )
-            cancelAndIgnoreRemainingEvents()
+            expectNoEvents()
         }
+        assertEquals(R.string.login_error_invalid_credentials, viewModel.uiState.value.passwordError)
+        assertFalse(viewModel.uiState.value.isSubmitting)
+    }
+
+    @Test
+    fun `editing the email clears the credentials error`() = runTest {
+        authRepository.loginResult = Result.failure(LoginException(LoginError.InvalidCredentials))
+        enterValidCredentials()
+        viewModel.onEvent(LoginUiEvent.Submit)
+
+        viewModel.onEvent(LoginUiEvent.EmailChanged("otra@tienda.pe"))
+
+        assertEquals(null, viewModel.uiState.value.passwordError)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

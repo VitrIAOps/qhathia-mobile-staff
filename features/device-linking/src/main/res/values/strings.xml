@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="device_linking_title">Dispositivos</string>
-    <string name="device_linking_add">Vincular otro dispositivo</string>
-    <string name="device_linking_empty">Aún no tienes tablets vinculadas. Toca «Vincular otro dispositivo» para agregar una.</string>
+    <string name="device_linking_add">Vincular tablet</string>
+    <string name="device_linking_empty">Aún no tienes tablets vinculadas. Toca «Vincular tablet» para agregar la primera.</string>
     <string name="device_linking_error">No se pudieron cargar tus dispositivos</string>
     <string name="device_linking_retry">Reintentar</string>
     <string name="device_cancel">Cancelar</string>
@@ -10,8 +10,8 @@
     <!-- Device card -->
     <string name="device_unnamed">Tablet</string>
     <string name="device_missing">—</string>
-    <string name="device_connected">Activo</string>
-    <string name="device_disconnected">Inactivo</string>
+    <string name="device_connected">Conectada</string>
+    <string name="device_disconnected">Desconectada</string>
     <string name="device_catalog_label">Catálogo visible</string>
     <plurals name="device_catalog_products">
         <item quantity="one">%d producto</item>
@@ -19,8 +19,8 @@
     </plurals>
     <!-- Active products the tablet hides (Fase 42: activeProducts − visibleProducts). -->
     <plurals name="device_catalog_hidden">
-        <item quantity="one">%d no se muestra (agotado, pocas unidades o a consultar)</item>
-        <item quantity="other">%d no se muestran (agotados, pocas unidades o a consultar)</item>
+        <item quantity="one">%d oculto en la tablet (agotado, pocas unidades o a consultar)</item>
+        <item quantity="other">%d ocultos en la tablet (agotados, pocas unidades o a consultar)</item>
     </plurals>
     <!-- %1$s is a relative time, e.g. "hace 4 min". -->
     <string name="device_catalog_updated">Actualizado %1$s</string>
@@ -37,7 +37,7 @@
     <string name="device_refresh_catalog">Actualizar catálogo</string>
     <string name="device_restart">Reiniciar</string>
     <string name="device_restart_title">Reiniciar la tablet</string>
-    <string name="device_restart_message">Se reiniciará la app de la vitrina en %1$s. La tablet puede tardar unos minutos en recibir la orden.</string>
+    <string name="device_restart_message">Se reiniciará la app de la vitrina en %1$s. La tablet puede tardar unos minutos en recibir la instrucción.</string>
     <string name="device_command_refresh_label">Catálogo</string>
     <string name="device_command_restart_label">Reinicio</string>
     <!-- %1$s is the command label, %2$s its status. -->
@@ -49,7 +49,7 @@
     <string name="device_command_failed">Falló</string>
     <string name="device_command_failed_detail">Falló: %1$s</string>
     <string name="device_command_expired">No se pudo entregar: la tablet no se conectó en 10 min. Revisa que esté encendida y con internet.</string>
-    <string name="device_command_error">No se pudo enviar la orden. Inténtalo de nuevo.</string>
+    <string name="device_command_error">No se pudo enviar la instrucción. Inténtalo de nuevo.</string>
 
     <!-- Unlink -->
     <string name="device_unlink">Desvincular tablet</string>
@@ -72,7 +72,7 @@
     <string name="tablet_settings_entry">Ajustes de la tablet</string>
     <string name="tablet_settings_title">Ajustes de la tablet</string>
     <string name="tablet_settings_group_display">Pantalla del cliente</string>
-    <string name="tablet_settings_idle_showcase">Modo Vitrina en reposo</string>
+    <string name="tablet_settings_idle_showcase">Vitrina en reposo</string>
     <string name="tablet_settings_voice">Asistente por voz</string>
     <string name="tablet_settings_brightness">Brillo</string>
     <string name="tablet_settings_brightness_auto">Automático</string>
@@ -86,7 +86,7 @@
     <string name="tablet_settings_pin_set">Configurado</string>
     <string name="tablet_settings_pin_not_set">Sin PIN</string>
     <string name="tablet_settings_group_catalog">Catálogo</string>
-    <string name="tablet_settings_auto_sync">Sincronizar automáticamente</string>
+    <string name="tablet_settings_auto_sync">Actualizar catálogo automáticamente</string>
     <string name="tablet_settings_group_info">Información</string>
     <string name="tablet_settings_info_name">Nombre</string>
     <string name="tablet_settings_info_model">Modelo</string>
@@ -113,9 +113,9 @@
     <string name="tablet_pin_saved">PIN actualizado</string>
     <string name="tablet_pin_removed">PIN quitado</string>
     <string name="tablet_pin_error">No se pudo guardar el PIN. Inténtalo de nuevo</string>
-    <string name="device_pair_name_placeholder">Nombre de la tablet (ej. Mostrador)</string>
+    <string name="device_pair_name_placeholder">Ej.: Mostrador</string>
     <string name="device_pair_code_helper">5 caracteres, sin O, 0, I, L ni 1 · %1$d/%2$d</string>
-    <string name="device_pair_reject">Rechazar</string>
+    <string name="device_pair_reject">Rechazar esta tablet</string>
     <string name="device_pair_waiting">Esperando a que la tablet confirme…</string>
     <string name="device_pair_not_responding">La tablet no recibió la aprobación. Revisa que siga mostrando el código y que tenga internet.</string>
     <string name="device_pair_undo">Deshacer vinculación</string>
@@ -126,21 +126,26 @@
     <string name="device_pair_error_expired">El código venció. En la tablet toca «Generar nuevo código».</string>
     <string name="device_pair_error_used">Ese código ya se usó. Pide uno nuevo en la tablet.</string>
     <string name="device_pair_error_cancelled">La tablet descartó ese código. Ingresa el que muestra ahora.</string>
-    <string name="device_pair_error_catalog">Tu catálogo aún no tiene suficientes productos con nombre, precio y foto para vincular una tablet.</string>
+    <string name="device_pair_error_catalog">Para vincular una tablet necesitas productos con nombre, precio y foto. Complétalos en Inventario.</string>
     <string name="device_pair_error_catalog_unavailable">No pudimos verificar tu catálogo. Inténtalo en unos minutos.</string>
     <string name="device_pair_error_network">Sin conexión. Inténtalo nuevamente.</string>
     <string name="device_never_reported">Aún no se conecta</string>
-    <string name="device_status_with_model">%1$s · %2$s</string>
+    <string name="device_status_with_time">%1$s · %2$s</string>
     <string name="tablet_settings_rename_title">Nombre de la tablet</string>
     <string name="tablet_settings_rename_save">Guardar</string>
     <string name="tablet_settings_rename_cancel">Cancelar</string>
     <string name="tablet_settings_rename_invalid">Escribe un nombre de 1 a 40 caracteres</string>
     <string name="tablet_settings_rename_network">Sin conexión. Inténtalo nuevamente.</string>
     <string name="tablet_settings_renamed">Nombre actualizado</string>
-    <string name="device_command_restarting">Reiniciando… esperando a que la tablet vuelva a reportar</string>
-    <string name="device_command_restart_not_back">La tablet no volvió a reportar tras el reinicio. Revísala.</string>
-    <string name="device_network_ethernet">Cable</string>
+    <string name="device_command_restarting">Reiniciando… esperando que la tablet vuelva a conectarse</string>
+    <string name="device_command_restart_not_back">La tablet no volvió a conectarse después de reiniciar. Revisa que esté encendida y con internet.</string>
+    <string name="device_network_ethernet">Por cable</string>
     <string name="device_network_offline">Sin conexión</string>
     <string name="device_network_other">Otra red</string>
     <string name="device_unlink_error_network">Sin conexión. Inténtalo nuevamente.</string>
+
+    <!-- Pairing dialog: the name field and the reject explanation (UX-C-06) -->
+    <string name="device_pair_name_label">Nombre de la tablet</string>
+    <string name="device_pair_name_helper">Así la verás en Dispositivos. Puedes cambiarlo.</string>
+    <string name="device_pair_reject_help">Si no reconoces la tablet que muestra este código, recházala.</string>
 </resources>

@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.qhathia.mobile.staff.core.ui.component.QhathiaButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -42,7 +43,7 @@ import java.time.Instant
 
 /**
  * Stateless Dispositivos — a pure function of [uiState]: the gradient top bar, one status card per
- * tablet (loading / empty / error handled), the "Vincular otro dispositivo" action, and the pairing
+ * tablet (loading / empty / error handled), the "Vincular tablet" action, and the pairing
  * and restart dialogs on demand.
  */
 @Composable
@@ -144,6 +145,14 @@ private fun DeviceList(
             )
         }
         item(key = "link") {
+            // With no tablets it is the screen's only action, so it is a filled button (UX-C-16).
+            if (!uiState.hasDevices) {
+                QhathiaButton(
+                    text = stringResource(R.string.device_linking_add),
+                    onClick = { onEvent(DeviceLinkingUiEvent.OpenPairDialog) },
+                )
+                return@item
+            }
             TextButton(
                 onClick = { onEvent(DeviceLinkingUiEvent.OpenPairDialog) },
                 modifier = Modifier.fillMaxWidth(),
