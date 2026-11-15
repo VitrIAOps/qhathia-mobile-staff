@@ -39,6 +39,14 @@ data class SalesSummaryCardModel(
     val highlightedBucketIndex: Int,
     val highlightedDeltaPercent: Double?,
 ) {
+    /**
+     * The bucket of the period in progress, always the last one: the chart emphasises it so the bar
+     * and the headline revenue talk about the same week (UX-C-10, decision of 2026-11-08). The best
+     * bucket is named by the insight strip only. `-1` without buckets.
+     */
+    val currentBucketIndex: Int
+        get() = buckets.lastIndex
+
     /** The best bucket of the window, or null when there is nothing to highlight. */
     val highlightedBucket: SalesBucketModel?
         get() = buckets.getOrNull(highlightedBucketIndex)

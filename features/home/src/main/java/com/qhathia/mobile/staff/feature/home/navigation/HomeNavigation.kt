@@ -19,7 +19,7 @@ const val HOME_ROUTE = "home"
  * push, so back returns to Inicio. This feature cannot see the statistics route; the shell builds it.
  *
  * [onNavigateToProductRegister] (`Agregar`, with the searched name) and [onNavigateToProductDetail]
- * (`Reabastecer`, with the product id) should open over Inventario, so saving lands on its list and
+ * (`Reponer`, with the product id) should open over Inventario, so saving lands on its list and
  * snackbar rather than back on Inicio.
  */
 fun NavGraphBuilder.homeGraph(

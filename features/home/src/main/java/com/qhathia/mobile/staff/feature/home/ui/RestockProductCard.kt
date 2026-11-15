@@ -44,7 +44,7 @@ private val ChipIconSize = 12.dp
 
 /**
  * A product that is about to run out: its thumbnail, its name, how little is left, and a
- * `Reabastecer` action.
+ * `Reponer` action.
  *
  * [onRestock] opens the product's Detalle, where its stock is edited.
  */
@@ -119,7 +119,7 @@ private fun ProductThumbnail(
 
 /**
  * "Solo queda 1" / "Solo quedan 3" — the plural is part of the warning, not an afterthought. An
- * exhausted product reads "Sin existencias": "Solo quedan 0" would soften a stock-out into a
+ * exhausted product reads "Agotado": "Solo quedan 0" would soften a stock-out into a
  * low-stock warning.
  */
 @Composable

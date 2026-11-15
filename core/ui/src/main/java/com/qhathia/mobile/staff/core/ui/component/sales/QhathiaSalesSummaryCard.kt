@@ -89,6 +89,7 @@ fun QhathiaSalesSummaryCard(
             buckets = model.buckets,
             highlightedIndex = model.highlightedBucketIndex,
             totalLabel = model.total.toSolesLabel(),
+            emphasizedIndex = model.currentBucketIndex,
         )
         QhathiaSalesInsightStrip(model = model)
     }

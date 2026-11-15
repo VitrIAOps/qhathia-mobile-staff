@@ -28,7 +28,7 @@ private val TileRadius = 8.dp
 private val TileIconSize = 24.dp
 
 /**
- * A small white tile with a glyph, a caption and one figure — "Num Ventas 74". The tile is read as
+ * A small white tile with a glyph, a caption and one figure — "Cantidad de ventas 74". The tile is read as
  * a single node, so a screen reader says the caption and the figure together.
  */
 @Composable
@@ -79,7 +79,7 @@ private fun QhathiaKpiTilePreview() {
     QhathiaTheme {
         QhathiaKpiTile(
             icon = Icons.Outlined.ShoppingBag,
-            label = "Num Ventas",
+            label = "Cantidad de ventas",
             value = "74",
             modifier = Modifier.padding(Dimens.SpaceMd),
         )

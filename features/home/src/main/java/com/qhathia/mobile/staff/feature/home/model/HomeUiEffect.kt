@@ -20,6 +20,6 @@ sealed interface HomeUiEffect {
     /** Raised by `Agregar`: Registro with `Nombre` set to [prefillName]. The shell opens it over Inventario. */
     data class NavigateToProductRegister(val prefillName: String) : HomeUiEffect
 
-    /** Raised by `Reabastecer`: that product's Detalle. The shell opens it over Inventario. */
+    /** Raised by `Reponer`: that product's Detalle. The shell opens it over Inventario. */
     data class NavigateToProductDetail(val productId: String) : HomeUiEffect
 }

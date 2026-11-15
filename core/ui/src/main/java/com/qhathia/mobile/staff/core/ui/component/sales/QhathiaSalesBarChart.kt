@@ -38,7 +38,9 @@ private val MinBarHeight = 6.dp
 private val BarTopRadius = 8.dp
 
 /**
- * A window's buckets as a row of bars, each labelled with its amount above and its name below.
+ * A window's buckets as a row of bars, each labelled with its amount above and its name below. The
+ * bar at [emphasizedIndex] (the period in progress) is drawn in the accent; [highlightedIndex], the
+ * best bucket, is only named in the description, as the insight strip does on screen.
  *
  * It is a Compose layout rather than a `Canvas`: the labels stay real `Text` nodes, so they scale
  * with the system font size and stay reachable by tests. The whole chart is announced as one node —
@@ -50,6 +52,7 @@ fun QhathiaSalesBarChart(
     highlightedIndex: Int,
     totalLabel: String,
     modifier: Modifier = Modifier,
+    emphasizedIndex: Int = buckets.lastIndex,
 ) {
     if (buckets.isEmpty()) return
     val maxAmount = buckets.maxOf { it.amount }
@@ -72,7 +75,7 @@ fun QhathiaSalesBarChart(
             SalesBar(
                 bucket = bucket,
                 maxAmount = maxAmount,
-                highlighted = index == highlightedIndex,
+                highlighted = index == emphasizedIndex,
             )
         }
     }
