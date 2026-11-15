@@ -60,14 +60,14 @@
     <!-- Product preview dialog -->
     <string name="preview_title">Preview</string>
     <string name="preview_close_cd">Close preview</string>
-    <string name="preview_tab_item">Item</string>
+    <string name="preview_tab_item">Card</string>
     <string name="preview_tab_detail">Detail</string>
     <string name="preview_orientation_vertical">Vertical</string>
     <string name="preview_orientation_horizontal">Horizontal</string>
     <string name="preview_zoom_hint">Pinch to zoom and drag to move around</string>
     <string name="preview_rotate_hint">Rotate your phone for a better view of the detail</string>
-    <string name="preview_cd_item_vertical">Vertical item preview: %1$s, %2$s</string>
-    <string name="preview_cd_item_horizontal">Horizontal item preview: %1$s, %2$s</string>
+    <string name="preview_cd_item_vertical">Vertical card preview: %1$s, %2$s</string>
+    <string name="preview_cd_item_horizontal">Horizontal card preview: %1$s, %2$s</string>
     <string name="preview_cd_detail">Product detail preview: %1$s, %2$s</string>
 
     <!-- Relative time -->
@@ -106,7 +106,7 @@
     <string name="photo_source_gallery">Choose from gallery</string>
     <string name="delete_product_message_unsaved">“%1$s” will no longer show in the inventory or on the tablet. The changes you have not saved will be lost too. This cannot be undone.</string>
     <string name="delete_product_confirm_force">Delete anyway</string>
-    <string name="delete_product_pending_orders_fallback">This product is in pending orders (%1$s). Confirm or reject them first, or delete it anyway.</string>
+    <string name="delete_product_pending_orders_fallback">This product is in pending requests (%1$s). Confirm or reject them first, or delete it anyway.</string>
     <string name="saving_product_cd">Saving product…</string>
     <string name="password_show_cd">Show password</string>
     <string name="password_hide_cd">Hide password</string>

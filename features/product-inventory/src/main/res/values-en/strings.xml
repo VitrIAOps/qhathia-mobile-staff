@@ -21,7 +21,7 @@
     <string name="inventory_availability_all">All</string>
     <string name="inventory_availability_available">Available</string>
     <string name="inventory_availability_low_stock">Low stock</string>
-    <string name="inventory_availability_consult">Check availability</string>
+    <string name="inventory_availability_consult">On request</string>
 
     <string name="inventory_stock_format">%1$d in stock</string>
     <string name="inventory_out_of_stock">Sold out</string>
