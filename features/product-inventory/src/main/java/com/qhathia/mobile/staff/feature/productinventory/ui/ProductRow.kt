@@ -86,11 +86,18 @@ internal fun ProductRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
     ) {
+        // One node for the whole thumbnail, loading and error states included: "Foto de Taladro".
+        val thumbnailDescription = if (product.primaryImageUrl == null) {
+            stringResource(R.string.inventory_product_no_photo_cd)
+        } else {
+            stringResource(R.string.inventory_product_photo_cd, product.name)
+        }
         Box(
             modifier = Modifier
                 .size(59.dp)
                 .clip(RoundedCornerShape(Dimens.FieldRadius))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clearAndSetSemantics { contentDescription = thumbnailDescription },
         ) {
             if (product.primaryImageUrl == null) {
                 // No photo registered yet — a neutral placeholder, not the broken-image error state.
@@ -104,7 +111,7 @@ internal fun ProductRow(
                         .data(product.primaryImageUrl)
                         .crossfade(true)
                         .build(),
-                    contentDescription = stringResource(R.string.inventory_product_image_cd),
+                    contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                     loading = { ThumbnailStateIcon(Icons.Filled.Image) },

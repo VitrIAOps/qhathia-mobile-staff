@@ -6,10 +6,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -80,10 +81,15 @@ private fun QhathiaRoot(viewModel: MainViewModel = hiltViewModel()) {
     }
 
     when (authState) {
-        AuthState.Loading -> Surface(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+        // The app background, not a fixed surface: a start-up or a recreation never flashes white
+        // (UX-C-07). No splash screen until there is a logo (F-55).
+        AuthState.Loading -> Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator()
         }
         AuthState.Locked -> BiometricUnlockScreen(onUnlocked = viewModel::onUnlocked)
         AuthState.Authenticated -> QhathiaNavHost(

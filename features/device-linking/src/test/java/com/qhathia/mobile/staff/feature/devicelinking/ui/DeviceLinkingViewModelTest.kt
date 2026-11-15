@@ -422,15 +422,25 @@ class DeviceLinkingViewModelTest {
     }
 
     @Test
-    fun `after approving the dialog waits and cannot be dismissed`() = screenTest {
+    fun `back while waiting shows the options and stops polling`() = screenTest {
         val viewModel = createViewModel()
         viewModel.readyToPair()
 
         viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
         assertInstanceOf(PairingPhase.WaitingForTablet::class.java, viewModel.uiState.value.pairingPhase)
 
+        // F-60: Back stops the wait and offers "Deshacer" / "Seguir esperando"; the dialog stays.
         viewModel.onEvent(DeviceLinkingUiEvent.DismissPairDialog)
         assertTrue(viewModel.uiState.value.isPairDialogVisible)
+        assertInstanceOf(PairingPhase.TabletDidNotRespond::class.java, viewModel.uiState.value.pairingPhase)
+
+        val reads = repository.statusCallCount
+        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT)
+        assertEquals(reads, repository.statusCallCount)
+
+        // On the notice, Back does nothing: the owner picks an option.
+        viewModel.onEvent(DeviceLinkingUiEvent.DismissPairDialog)
+        assertInstanceOf(PairingPhase.TabletDidNotRespond::class.java, viewModel.uiState.value.pairingPhase)
     }
 
     @Test
@@ -439,10 +449,9 @@ class DeviceLinkingViewModelTest {
         viewModel.readyToPair()
         viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
 
-        advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL.multipliedBy(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS.toLong()))
+        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT)
 
         assertInstanceOf(PairingPhase.TabletDidNotRespond::class.java, viewModel.uiState.value.pairingPhase)
-        assertEquals(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS, repository.statusCallCount)
         assertTrue(viewModel.uiState.value.isPairDialogVisible)
     }
 
@@ -451,7 +460,7 @@ class DeviceLinkingViewModelTest {
         val viewModel = createViewModel()
         viewModel.readyToPair()
         viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
-        advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL.multipliedBy(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS.toLong()))
+        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT)
         repository.pairingStatusResult = Result.success(PairingSessionStatus("APPROVED", tokenExchanged = true))
 
         viewModel.onEvent(DeviceLinkingUiEvent.KeepWaiting)
@@ -465,7 +474,7 @@ class DeviceLinkingViewModelTest {
         val viewModel = createViewModel()
         viewModel.readyToPair()
         viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
-        advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL.multipliedBy(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS.toLong()))
+        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT)
 
         viewModel.uiEffect.test {
             viewModel.onEvent(DeviceLinkingUiEvent.UndoPair)
@@ -481,7 +490,7 @@ class DeviceLinkingViewModelTest {
         val viewModel = createViewModel()
         viewModel.readyToPair()
         viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
-        advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL.multipliedBy(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS.toLong()))
+        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT)
 
         viewModel.onEvent(DeviceLinkingUiEvent.UndoPair)
 
@@ -494,7 +503,7 @@ class DeviceLinkingViewModelTest {
         val viewModel = createViewModel()
         viewModel.readyToPair()
         viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
-        advanceBy(DeviceLinkingViewModel.PAIR_STATUS_POLL.multipliedBy(DeviceLinkingViewModel.PAIR_STATUS_MAX_POLLS.toLong()))
+        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT)
 
         viewModel.onEvent(DeviceLinkingUiEvent.UndoPair)
 
@@ -761,5 +770,45 @@ class DeviceLinkingViewModelTest {
         assertFalse(state.isCommandBusy("device-1", DeviceCommandType.REFRESH_CATALOG))
         assertFalse(state.hasCommandsInFlight)
         assertFalse(state.needsFastPolling)
+    }
+
+
+    // --- fix-pairing-wait-timeout (F-60) ---
+
+    @Test
+    fun `a slow status endpoint still reports within the timeout`() = screenTest {
+        repository.statusDelay = Duration.ofSeconds(1)
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+
+        // 15 reads would now take 45 s; the bound is time, not reads.
+        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT)
+
+        assertInstanceOf(PairingPhase.TabletDidNotRespond::class.java, viewModel.uiState.value.pairingPhase)
+    }
+
+    @Test
+    fun `the notice does not come before the timeout`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+
+        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT.minusSeconds(1))
+
+        assertInstanceOf(PairingPhase.WaitingForTablet::class.java, viewModel.uiState.value.pairingPhase)
+    }
+
+    @Test
+    fun `an exchange just before the timeout still pairs`() = screenTest {
+        val viewModel = createViewModel()
+        viewModel.readyToPair()
+        viewModel.onEvent(DeviceLinkingUiEvent.SubmitPair)
+        advanceBy(DeviceLinkingViewModel.PAIR_EXCHANGE_TIMEOUT.minusSeconds(3))
+        repository.pairingStatusResult = Result.success(PairingSessionStatus("APPROVED", tokenExchanged = true))
+
+        advanceBy(Duration.ofSeconds(2))
+
+        assertFalse(viewModel.uiState.value.isPairDialogVisible)
     }
 }

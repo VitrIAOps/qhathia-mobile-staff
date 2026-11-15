@@ -73,7 +73,9 @@ internal fun PairDeviceDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            dismissOnBackPress = dismissable,
+            // Back works while typing and while waiting (it stops the wait and shows the options, F-60);
+            // on the notice the owner picks one of them.
+            dismissOnBackPress = phase !is PairingPhase.TabletDidNotRespond,
             dismissOnClickOutside = dismissable,
         ),
     ) {

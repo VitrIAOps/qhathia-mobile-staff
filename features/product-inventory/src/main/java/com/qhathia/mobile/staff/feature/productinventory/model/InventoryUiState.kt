@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.productinventory.model
 
+import androidx.annotation.StringRes
 import com.qhathia.mobile.staff.core.domain.model.Availability
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.Discount
@@ -18,7 +19,9 @@ import kotlinx.collections.immutable.persistentMapOf
  * availability sub-filter.
  *
  * "Editar descuento" on a row first loads that product's discount ([isDiscountLoading]) and then
- * opens the dialog: [discountDraft] is non-null while it is open, for [discountProductId].
+ * opens the dialog: [discountDraft] is non-null while it is open, for [discountProductId]. When an
+ * "Aplicar" fails, [discountSaveErrorRes] says so inside the dialog until the merchant edits,
+ * retries or closes it.
  *
  * The list endpoint carries no discount data, so whether a product has one is only learned when
  * its actions menu is opened. [knownDiscounts] remembers the answers (a null value means "looked
@@ -45,6 +48,7 @@ data class InventoryUiState(
     val discountDraft: DiscountDraft? = null,
     val isDiscountLoading: Boolean = false,
     val isDiscountSaving: Boolean = false,
+    @param:StringRes val discountSaveErrorRes: Int? = null,
     val deleteCandidate: Product? = null,
     val isDeleting: Boolean = false,
     val pendingOrders: UpdateProductError.HasPendingOrders? = null,

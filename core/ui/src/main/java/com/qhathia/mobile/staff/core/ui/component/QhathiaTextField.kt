@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.core.ui.component
 
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.qhathia.mobile.staff.core.ui.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardActions
@@ -40,16 +43,21 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
-
-/** Placeholders are a hint, not content: faded so an empty field never reads as a filled one. */
-private const val PlaceholderAlpha = 0.5f
+import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 
 /**
- * Design-system text field: placeholder-only (no label), optional leading icon, 8dp radius,
+ * Design-system text field: placeholder, optional label, optional leading icon, 8dp radius,
  * with `Empty / Filled / Focused / Error / Disabled` border states from the Qhathia DS.
  * When [isPassword] is true the value is masked and a visibility toggle is shown.
  *
  * @param errorText shown (in the error color) when [isError]; otherwise [helperText] is shown.
+ * @param placeholder example text shown while the field is empty, in [QhathiaColors.placeholder] so
+ *   it stays readable yet never reads as typed text. Empty draws nothing.
+ * @param label the field's name for screen readers ("Precio"), so the edit box is announced by name
+ *   and not only by its placeholder or value.
+ * @param showLabel draws [label] above the field. Leave it off when the screen already draws the name
+ *   (Registro and Detalle use their own `FieldLabel`). The drawn text is hidden from screen readers,
+ *   because the edit box already carries the label.
  * @param keyboardActions what the keyboard's action key does (e.g. submit on Done).
  */
 @Composable
@@ -70,6 +78,8 @@ fun QhathiaTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    label: String? = null,
+    showLabel: Boolean = false,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
@@ -86,6 +96,14 @@ fun QhathiaTextField(
     val contentAlpha = if (enabled) 1f else 0.4f
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs)) {
+        if (showLabel && label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant.copy(alpha = contentAlpha),
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,7 +137,9 @@ fun QhathiaTextField(
                 } else {
                     visualTransformation
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (label != null) Modifier.semantics { contentDescription = label } else Modifier),
                 decorationBox = { innerTextField ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (leadingIcon != null) {
@@ -131,11 +151,11 @@ fun QhathiaTextField(
                             )
                         }
                         Box(modifier = Modifier.weight(1f)) {
-                            if (value.isEmpty()) {
+                            if (value.isEmpty() && placeholder.isNotEmpty()) {
                                 Text(
                                     text = placeholder,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = colors.onSurfaceVariant.copy(alpha = PlaceholderAlpha * contentAlpha),
+                                    color = QhathiaColors.placeholder.copy(alpha = contentAlpha),
                                 )
                             }
                             innerTextField()

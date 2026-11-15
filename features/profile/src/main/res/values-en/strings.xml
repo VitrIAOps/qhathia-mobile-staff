@@ -47,7 +47,7 @@
     <string name="menu_devices_summary">%1$s (%2$s)</string>
     <string name="menu_devices_fallback">Your showcase tablets</string>
     <string name="menu_help_title">Help</string>
-    <string name="menu_help_subtitle">WhatsApp support and guides</string>
+    <string name="menu_help_subtitle">FAQ and guides</string>
 
     <!-- Subscription -->
     <string name="subscription_title">My subscription</string>

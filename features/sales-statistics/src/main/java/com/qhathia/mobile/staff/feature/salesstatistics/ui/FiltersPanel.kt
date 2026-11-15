@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.Category
 import com.qhathia.mobile.staff.core.domain.model.SalesPeriod
 import com.qhathia.mobile.staff.core.ui.component.QhathiaSegmentedControl
-import com.qhathia.mobile.staff.core.ui.component.sales.labelRes
+import com.qhathia.mobile.staff.core.ui.component.sales.selectorLabel
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -111,7 +111,7 @@ internal fun FiltersPanel(
                 options = PERIODS,
                 selected = period,
                 onSelect = onSelectPeriod,
-                label = { stringResource(it.toUi().labelRes) },
+                label = { it.toUi().selectorLabel() },
                 trackColor = QhathiaColors.filterTrack,
             )
             if (isCategoryVisible) {

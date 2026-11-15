@@ -70,6 +70,8 @@ fun LoginContent(
                 value = uiState.email,
                 onValueChange = { onEvent(LoginUiEvent.EmailChanged(it)) },
                 placeholder = stringResource(R.string.login_email_placeholder),
+                label = stringResource(R.string.login_email_label),
+                showLabel = true,
                 leadingIcon = Icons.Filled.Email,
                 leadingIconDescription = stringResource(R.string.login_email_icon_cd),
                 enabled = inputsEnabled,
@@ -86,7 +88,10 @@ fun LoginContent(
             QhathiaTextField(
                 value = uiState.password,
                 onValueChange = { onEvent(LoginUiEvent.PasswordChanged(it)) },
-                placeholder = stringResource(R.string.login_password_placeholder),
+                // The label names the field; a placeholder would only repeat it.
+                placeholder = "",
+                label = stringResource(R.string.login_password_label),
+                showLabel = true,
                 leadingIcon = Icons.Filled.Lock,
                 leadingIconDescription = stringResource(R.string.login_password_icon_cd),
                 enabled = inputsEnabled,

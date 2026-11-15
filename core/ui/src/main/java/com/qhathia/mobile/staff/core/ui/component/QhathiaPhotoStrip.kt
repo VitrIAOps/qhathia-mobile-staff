@@ -130,9 +130,11 @@ fun QhathiaPhotoStrip(
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
     ) {
         AddPhotoTile(enabled = enabled && canAdd, onClick = { showSourceChooser = true })
-        photos.forEach { photo ->
+        photos.forEachIndexed { index, photo ->
             PhotoThumbnail(
                 photo = photo,
+                position = index + 1,
+                total = photos.size,
                 showRemove = canRemove,
                 enabled = enabled,
                 onRemove = { onRemove(photo.key) },
@@ -251,15 +253,20 @@ private fun AddPhotoTile(
 @Composable
 private fun PhotoThumbnail(
     photo: PhotoTile,
+    position: Int,
+    total: Int,
     showRemove: Boolean,
     enabled: Boolean,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // "Foto 1 de 3, principal": the first photo is the one the inventory and the tablet show.
+    val description = stringResource(R.string.photo_position_cd, position, total) +
+        if (position == 1) stringResource(R.string.photo_main_suffix_cd) else ""
     Box(modifier = modifier.size(TileSize)) {
         SubcomposeAsyncImage(
             model = photo.model,
-            contentDescription = null,
+            contentDescription = description,
             contentScale = ContentScale.Crop,
             loading = { TileStateIcon(Icons.Filled.Image) },
             error = { TileStateIcon(Icons.Filled.BrokenImage) },

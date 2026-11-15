@@ -72,6 +72,7 @@ internal fun RegisterNameField(
 ) {
     LabeledField(label = stringResource(R.string.register_name_label), modifier = modifier) {
         QhathiaTextField(
+            label = stringResource(R.string.register_name_label),
             value = value,
             onValueChange = onValueChange,
             placeholder = stringResource(R.string.register_name_placeholder),
@@ -114,6 +115,7 @@ internal fun RegisterDescriptionField(
             )
         }
         QhathiaTextField(
+            label = stringResource(R.string.register_description_label),
             value = value,
             onValueChange = onValueChange,
             placeholder = stringResource(R.string.register_description_placeholder),
@@ -178,6 +180,7 @@ internal fun RegisterPriceField(
 ) {
     LabeledField(label = stringResource(R.string.register_price_label), modifier = modifier) {
         QhathiaTextField(
+            label = stringResource(R.string.register_price_label),
             value = value,
             onValueChange = onValueChange,
             placeholder = stringResource(R.string.register_price_placeholder),
@@ -200,6 +203,7 @@ internal fun RegisterQuantityField(
 ) {
     LabeledField(label = stringResource(R.string.register_quantity_label), modifier = modifier) {
         QhathiaTextField(
+            label = stringResource(R.string.register_quantity_label),
             value = value,
             onValueChange = onValueChange,
             placeholder = stringResource(R.string.register_quantity_placeholder),
@@ -220,6 +224,7 @@ internal fun RegisterTagsField(
 ) {
     LabeledField(label = stringResource(R.string.register_tags_label), modifier = modifier) {
         QhathiaTextField(
+            label = stringResource(R.string.register_tags_label),
             value = value,
             onValueChange = onValueChange,
             placeholder = stringResource(R.string.register_tags_placeholder),

@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.feature.devicelinking.ui
 
 import com.qhathia.mobile.staff.core.domain.model.DeviceCommandStatus
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import com.qhathia.mobile.staff.feature.devicelinking.model.suggestTabletName
@@ -150,9 +151,16 @@ class DeviceLinkingViewModel @Inject constructor(
                         pairingPhase = PairingPhase.EnteringCode,
                     )
                 }
-            // Once approved, the dialog only leaves through the tablet's answer, undo or a wait.
-            DeviceLinkingUiEvent.DismissPairDialog ->
-                if (_uiState.value.pairingPhase == PairingPhase.EnteringCode) closePairDialog()
+            // Once approved, the dialog only leaves through the tablet's answer, undo or a wait. Back while
+            // waiting stops the wait and shows the options, never a stuck screen (F-60).
+            DeviceLinkingUiEvent.DismissPairDialog -> when (val phase = _uiState.value.pairingPhase) {
+                PairingPhase.EnteringCode -> closePairDialog()
+                is PairingPhase.WaitingForTablet -> {
+                    pairWaitJob?.cancel()
+                    _uiState.update { it.copy(pairingPhase = PairingPhase.TabletDidNotRespond(phase.paired)) }
+                }
+                is PairingPhase.TabletDidNotRespond -> Unit
+            }
             is DeviceLinkingUiEvent.PairCodeChanged ->
                 _uiState.update { it.copy(pairCode = normalizePairingCode(event.code), pairErrorRes = null) }
             is DeviceLinkingUiEvent.PairNameChanged ->
@@ -312,21 +320,27 @@ class DeviceLinkingViewModel @Inject constructor(
             it.copy(isPairing = false, pairErrorRes = null, pairingPhase = PairingPhase.WaitingForTablet(paired))
         }
         pairWaitJob = viewModelScope.launch {
-            repeat(PAIR_STATUS_MAX_POLLS) {
-                if (getPairingStatusUseCase(paired.sessionId).getOrNull()?.tokenExchanged == true) {
-                    // This very job runs the follow-up reads, so it must not cancel itself.
-                    closePairDialog(cancelWait = false)
-                    _uiEffect.tryEmit(DeviceLinkingUiEffect.ShowPaired(paired.name))
-                    loadDevices()
-                    // The tablet's first heartbeat goes out with the exchange; read again so the
-                    // new card already shows it.
-                    delay(FIRST_HEARTBEAT_GRACE.toMillis())
-                    loadDevices()
-                    return@launch
+            // A wall-clock bound (F-60): each read takes time too (~0.5 s on prod, up to the HTTP timeout
+            // on a bad network), so counting reads overshoots the wait the backend suggests. The timeout
+            // also cancels a read in flight; runCatching in the service swallows that, but the next delay
+            // rethrows it, so nothing between the read and the delay may assume the coroutine is alive.
+            val exchanged = withTimeoutOrNull(PAIR_EXCHANGE_TIMEOUT.toMillis()) {
+                while (getPairingStatusUseCase(paired.sessionId).getOrNull()?.tokenExchanged != true) {
+                    delay(PAIR_STATUS_POLL.toMillis())
                 }
-                delay(PAIR_STATUS_POLL.toMillis())
+            } != null
+            if (!exchanged) {
+                _uiState.update { it.copy(pairingPhase = PairingPhase.TabletDidNotRespond(paired)) }
+                return@launch
             }
-            _uiState.update { it.copy(pairingPhase = PairingPhase.TabletDidNotRespond(paired)) }
+            // This very job runs the follow-up reads, so it must not cancel itself.
+            closePairDialog(cancelWait = false)
+            _uiEffect.tryEmit(DeviceLinkingUiEffect.ShowPaired(paired.name))
+            loadDevices()
+            // The tablet's first heartbeat goes out with the exchange; read again so the new card
+            // already shows it.
+            delay(FIRST_HEARTBEAT_GRACE.toMillis())
+            loadDevices()
         }
     }
 
@@ -408,8 +422,11 @@ class DeviceLinkingViewModel @Inject constructor(
         /** How often the pairing session is read while waiting for the tablet. */
         val PAIR_STATUS_POLL: Duration = Duration.ofSeconds(2)
 
-        /** 15 reads 2 s apart: the 30 s the backend suggests waiting for the exchange. */
-        const val PAIR_STATUS_MAX_POLLS = 15
+        /**
+         * Total wait for the exchange, reads included. Leaves room for the POST /pair before it, so the
+         * "did not respond" notice lands at most 30 s after "Vincular" (api-contract §37, F-60).
+         */
+        val PAIR_EXCHANGE_TIMEOUT: Duration = Duration.ofSeconds(25)
 
         /** The tablet's first heartbeat goes out with the exchange; it is read again after this. */
         val FIRST_HEARTBEAT_GRACE: Duration = Duration.ofSeconds(3)

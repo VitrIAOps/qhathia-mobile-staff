@@ -49,7 +49,7 @@
     <string name="menu_devices_summary">%1$s (%2$s)</string>
     <string name="menu_devices_fallback">Tus tablets vitrina</string>
     <string name="menu_help_title">Ayuda</string>
-    <string name="menu_help_subtitle">Soporte por WhatsApp y guías</string>
+    <string name="menu_help_subtitle">Preguntas frecuentes y guías</string>
 
     <!-- Subscription -->
     <string name="subscription_title">Mi suscripción</string>

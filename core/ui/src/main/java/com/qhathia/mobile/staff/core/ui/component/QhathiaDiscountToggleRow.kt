@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -60,11 +61,14 @@ fun QhathiaDiscountToggleRow(
     warning: String? = null,
 ) {
     val interactive = enabled && !isLoading
+    // The role alone shows as a role description, which some tools do not read; say the state too.
+    val toggleState = stringResource(if (checked) R.string.discount_toggle_on else R.string.discount_toggle_off)
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = ToggleRowMinHeight)
+                .semantics { stateDescription = toggleState }
                 .toggleable(
                     value = checked,
                     enabled = interactive,

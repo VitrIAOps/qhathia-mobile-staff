@@ -4,6 +4,9 @@ import com.qhathia.mobile.staff.core.domain.model.CatalogCount
 import com.qhathia.mobile.staff.core.ui.component.time.rememberShortTimeFormatter
 import java.util.Locale
 import com.qhathia.mobile.staff.feature.devicelinking.model.RestartPhase
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.rounded.WifiOff
@@ -269,7 +272,8 @@ private fun TileRow(start: Tile, end: Tile) {
 private fun TileCell(tile: Tile, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .padding(horizontal = Dimens.SpaceMd)
+            // A "Próximamente" tile needs the room for its tag (F-66).
+            .padding(horizontal = if (tile.comingSoon) Dimens.SpaceSm else Dimens.SpaceMd)
             .semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -333,16 +337,30 @@ private fun CommandActions(
             Text(text = stringResource(R.string.device_restart), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
-    // With a large font two buttons side by side cut their labels, so they stack.
-    if (LocalDensity.current.fontScale > STACKED_ACTIONS_FONT_SCALE) {
-        Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm), modifier = Modifier.fillMaxWidth()) {
-            refresh(Modifier.fillMaxWidth())
-            restart(Modifier.fillMaxWidth())
-        }
-    } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm), modifier = Modifier.fillMaxWidth()) {
-            refresh(Modifier.weight(1.4f))
-            restart(Modifier.weight(1f))
+    // Side by side only when both labels fit their share at this text size, width and language; the
+    // font scale alone cut "Actualizar catálogo" on normal text (F-66).
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge // the M3 Button label style
+    val density = LocalDensity.current
+    val refreshLabel = stringResource(R.string.device_refresh_catalog)
+    val restartLabel = stringResource(R.string.device_restart)
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        fun needed(label: String): Dp = with(density) {
+            measurer.measure(label, style, maxLines = 1).size.width.toDp()
+        } + Dimens.IconSm + Dimens.SpaceXs + BUTTON_HORIZONTAL_PADDING * 2
+        val row = maxWidth - Dimens.SpaceSm
+        val sideBySide = needed(refreshLabel) <= row * (REFRESH_WEIGHT / TOTAL_WEIGHT) &&
+            needed(restartLabel) <= row * (RESTART_WEIGHT / TOTAL_WEIGHT)
+        if (sideBySide) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm), modifier = Modifier.fillMaxWidth()) {
+                refresh(Modifier.weight(REFRESH_WEIGHT))
+                restart(Modifier.weight(RESTART_WEIGHT))
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm), modifier = Modifier.fillMaxWidth()) {
+                refresh(Modifier.fillMaxWidth())
+                restart(Modifier.fillMaxWidth())
+            }
         }
     }
 }
@@ -434,11 +452,18 @@ private fun networkPresentation(networkStatus: String?, connected: Boolean): Pai
         else -> Icons.Rounded.Public to stringResource(R.string.device_network_other)
     }
 
-/** Above this font scale the two command buttons stack. */
-private const val STACKED_ACTIONS_FONT_SCALE = 1.15f
+/** The share of the action row each button gets when side by side. */
+private const val REFRESH_WEIGHT = 1.4f
+private const val RESTART_WEIGHT = 1f
+private const val TOTAL_WEIGHT = REFRESH_WEIGHT + RESTART_WEIGHT
+
+/** ButtonDefaults.ContentPadding, each side. */
+private val BUTTON_HORIZONTAL_PADDING = 24.dp
 
 @Preview(name = "Device card — light", showBackground = true)
 @Preview(name = "Device card — dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Device card — narrow, light", showBackground = true, widthDp = 340)
+@Preview(name = "Device card — font 1.3, dark", showBackground = true, fontScale = 1.3f, uiMode = 0x20)
 @Composable
 private fun DeviceCardPreview() {
     QhathiaTheme {

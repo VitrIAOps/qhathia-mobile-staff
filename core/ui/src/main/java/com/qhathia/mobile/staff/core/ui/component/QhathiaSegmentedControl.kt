@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -71,9 +73,10 @@ fun <T> QhathiaSegmentedControl(
                     .padding(vertical = Dimens.SpaceSm),
                 contentAlignment = Alignment.Center,
             ) {
+                val style = MaterialTheme.typography.bodyMedium
                 Text(
                     text = label(option),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = style,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (isSelected) {
                         MaterialTheme.colorScheme.onSecondary
@@ -82,6 +85,8 @@ fun <T> QhathiaSegmentedControl(
                     },
                     textAlign = TextAlign.Center,
                     maxLines = 1,
+                    softWrap = false,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = style.fontSize),
                 )
             }
         }

@@ -94,8 +94,12 @@ class FakeDeviceRepository : DeviceRepository {
         return rejectResult
     }
 
+    /** Latency of each pairing-status read, so tests see reads that take time (F-60). */
+    var statusDelay: java.time.Duration = java.time.Duration.ZERO
+
     override suspend fun getPairingStatus(sessionId: String): Result<PairingSessionStatus> {
         statusCallCount++
+        if (!statusDelay.isZero) kotlinx.coroutines.delay(statusDelay.toMillis())
         return statusResults.removeFirstOrNull() ?: pairingStatusResult
     }
 

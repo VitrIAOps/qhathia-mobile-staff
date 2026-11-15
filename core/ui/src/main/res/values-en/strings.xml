@@ -116,4 +116,15 @@
     <string name="discard_changes_message">If you leave now, all unsaved changes will be lost.</string>
     <string name="discard_changes_confirm">Discard</string>
     <string name="discard_changes_dismiss">Keep editing</string>
+
+    <!-- Period pills at large font sizes (font scale 1.5 or more). -->
+    <string name="sales_period_monthly_short">Month</string>
+    <string name="sales_period_weekly_short">Wk.</string>
+    <string name="sales_period_daily_short">Day</string>
+    <string name="sales_period_hourly_short">Hour</string>
+
+    <string name="discount_toggle_on">On</string>
+    <string name="discount_toggle_off">Off</string>
+    <string name="photo_position_cd">Photo %1$d of %2$d</string>
+    <string name="photo_main_suffix_cd">, main</string>
 </resources>

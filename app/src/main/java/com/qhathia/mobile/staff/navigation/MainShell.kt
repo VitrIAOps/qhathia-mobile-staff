@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.navigation
 
+import com.qhathia.mobile.staff.core.ui.component.isCompactHeight
 import com.qhathia.mobile.staff.feature.devicelinking.navigation.TABLET_UNLINKED_ALREADY_GONE_KEY
 import android.Manifest
 import android.content.pm.PackageManager
@@ -169,7 +170,9 @@ fun MainShell(
     Scaffold(
         bottomBar = {
             if (!showBottomBar) return@Scaffold
-            QhathiaBottomBar {
+            // A phone in landscape: icons only, so the list keeps the height (F-84 a).
+            val compact = isCompactHeight()
+            QhathiaBottomBar(compact = compact) {
                 topLevelDestinations.forEach { destination ->
                     val selected = currentRoute?.hierarchy?.any { it.route == destination.route } == true
                     val badged = destination.route == ORDER_REQUESTS_ROUTE && pendingOrderCount > 0
@@ -179,6 +182,7 @@ fun MainShell(
                         iconRes = destination.iconRes,
                         label = stringResource(destination.labelRes),
                         badgeCount = if (badged) pendingOrderCount else null,
+                        showLabel = !compact,
                         badgeContentDescription = if (badged) {
                             pluralStringResource(
                                 R.plurals.nav_requests_pending_cd,

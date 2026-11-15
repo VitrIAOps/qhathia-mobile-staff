@@ -29,7 +29,8 @@
     <string name="inventory_price_discounted_cd">Precio original %1$s, precio con descuento %2$s</string>
 
     <string name="inventory_register_cd">Registrar producto</string>
-    <string name="inventory_product_image_cd">Imagen del producto</string>
+    <string name="inventory_product_photo_cd">Foto de %1$s</string>
+    <string name="inventory_product_no_photo_cd">Sin foto</string>
     <string name="inventory_open_detail_cd">Ver detalle</string>
 
     <string name="inventory_empty">No hay productos para mostrar</string>

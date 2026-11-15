@@ -10,6 +10,9 @@ internal object QhathiaPalette {
     val TextPrimary = Color(0xFF0A2540)
     val TextSecondary = Color(0xFF616161)
     val TextDisabled = Color(0xFF9E9E9E)
+
+    // Field placeholder: 4.61:1 on white, still lighter than TextPrimary.
+    val Placeholder = Color(0xFF757575)
     val BorderDefault = Color(0xFFE0E0E0)
     val BorderStrong = Color(0xFF9E9E9E)
     val BorderFocus = Color(0xFF0A2540)
@@ -90,8 +93,14 @@ internal object QhathiaPalette {
     val DarkSurface = Color(0xFF0E1721)
     val DarkTextPrimary = Color(0xFFE8EDF2)
     val DarkTextSecondary = Color(0xFFB0B8C1)
+
+    // Field placeholder on DarkSurface: 5.99:1.
+    val DarkPlaceholder = Color(0xFF8A96A3)
     val DarkBorderDefault = Color(0xFF2A3744)
     val DarkIconMuted = Color(0xFF7D93A8)
+
+    /** Inactive tabs and "Ver más" on the dark surface: ~8:1, where [NavInactive] is ~1.6:1. */
+    val DarkNavInactive = Color(0xFF8FB3D9)
     val DarkErrorContainer = Color(0xFF4A1A0B)
     val DarkOnErrorContainer = Color(0xFFFFB4A1)
     val DarkWarningContainer = Color(0xFF3A2E05)
