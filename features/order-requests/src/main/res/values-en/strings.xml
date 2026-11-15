@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Header -->
-    <string name="order_requests_title">Purchase requests</string>
+    <string name="order_requests_title">Requests</string>
     <string name="order_requests_last_updated">Last updated at %1$s</string>
     <string name="order_requests_refresh_cd">Refresh requests</string>
     <string name="order_requests_search_placeholder">Search by name or code</string>
@@ -9,11 +9,11 @@
 
     <!-- Status filters -->
     <string name="order_filter_pending">Pending (%1$d)</string>
-    <string name="order_filter_confirmed">Accepted</string>
-    <string name="order_filter_rejected">Rejected</string>
+    <string name="order_filter_confirmed">Confirmed</string>
+    <string name="order_filter_rejected">Rejected / Expired</string>
 
     <!-- Card -->
-    <string name="order_card_code">Code: %1$s</string>
+    <string name="order_card_code">Code %1$s</string>
     <string name="order_card_total">Total: %1$s</string>
     <string name="order_action_reject">Reject</string>
     <string name="order_action_detail">View details</string>
@@ -35,53 +35,69 @@
     <string name="order_detail_title">Request #%1$s details</string>
     <string name="order_detail_title_no_code">Request details</string>
     <string name="order_detail_close_cd">Close</string>
-    <string name="order_detail_total">Order total:</string>
+    <string name="order_detail_total">Total:</string>
     <!-- Shown instead of the actions on an order that can no longer be acted on. -->
     <string name="order_detail_resolved_confirmed">This request was already confirmed</string>
     <string name="order_detail_resolved_rejected">This request was already rejected</string>
     <string name="order_detail_resolved_cancelled">This request was cancelled</string>
     <string name="order_detail_resolved_expired">This request expired</string>
-    <string name="order_action_confirm">Confirm order</string>
+    <string name="order_action_confirm">Confirm request</string>
     <!-- "pcs" is an abbreviation that does not inflect. -->
     <string name="order_item_quantity" tools:ignore="PluralsCandidate">%1$d pcs</string>
-    <string name="order_item_low_stock">Only a few left</string>
-    <string name="order_item_out_of_stock">Out of stock</string>
+    <string name="order_item_low_stock">Low stock</string>
+    <string name="order_item_out_of_stock">Sold out</string>
 
     <!-- Reject form -->
-    <string name="order_reject_title">Reject order</string>
+    <string name="order_reject_title">Reject request</string>
     <string name="order_reject_subtitle">Choose why you are rejecting request #%1$s</string>
     <string name="order_reject_subtitle_no_code">Choose why you are rejecting the request</string>
-    <string name="order_reject_reason_no_stock">Out of stock</string>
+    <string name="order_reject_reason_no_stock">Sold out</string>
     <string name="order_reject_reason_insufficient_quantity">Not enough quantity</string>
     <string name="order_reject_reason_customer_changed_mind">Customer changed their mind</string>
     <string name="order_reject_reason_payment_issue">Payment problems</string>
-    <string name="order_reject_reason_other">Other reason:</string>
+    <string name="order_reject_reason_other">Other reason</string>
     <string name="order_reject_other_placeholder">Write the reason</string>
     <string name="order_action_cancel">Cancel</string>
-    <string name="order_action_confirm_rejection">Confirm</string>
+    <string name="order_action_confirm_rejection">Reject request</string>
 
     <!-- Outcomes -->
     <string name="order_confirmed_snackbar">Request confirmed</string>
     <string name="order_rejected_snackbar">Request rejected</string>
 
     <!-- Empty states -->
-    <string name="order_empty_pending">No pending requests</string>
-    <string name="order_empty_confirmed">No accepted requests</string>
-    <string name="order_empty_rejected">No rejected requests</string>
+    <string name="order_empty_pending">No pending requests. When a customer orders on the tablet, you\'ll see it here.</string>
+    <string name="order_empty_confirmed">No confirmed requests</string>
+    <string name="order_empty_rejected">No rejected or expired requests</string>
 
     <!-- Errors -->
     <string name="order_error_load">Couldn\'t load the requests</string>
     <string name="order_error_detail">Couldn\'t load the request details</string>
     <string name="order_retry">Retry</string>
     <string name="order_error_stock">There is no longer enough stock of %1$s</string>
-    <string name="order_error_stock_generic">There is no longer enough stock for this order</string>
-    <string name="order_error_already_handled">Another seller already handled this order</string>
+    <string name="order_error_stock_generic">There is no longer enough stock for this request</string>
+    <string name="order_error_already_handled">Someone on your team already handled this request</string>
     <string name="order_error_not_found">This request is no longer available</string>
     <string name="order_error_network">No connection. Try again</string>
-    <string name="order_error_unknown">The action couldn\'t be completed</string>
+    <string name="order_error_unknown">The action couldn\'t be completed. Try again.</string>
     <string name="order_item_list_price">was %1$s</string>
     <string name="order_item_product_deleted">Product deleted from the inventory</string>
     <string name="order_item_current_name">Now: %1$s</string>
     <string name="order_error_not_sellable">Cannot confirm: “%1$s” is no longer for sale. Reject it to let the customer know.</string>
-    <string name="order_error_not_sellable_generic">Cannot confirm: a product of this order is no longer for sale. Reject it to let the customer know.</string>
+    <string name="order_error_not_sellable_generic">Cannot confirm: a product of this request is no longer for sale. Reject it to let the customer know.</string>
+
+    <!-- Arrival, closed-order chips and recover (UX-C-02, C-08) -->
+    <string name="order_card_code_arrived">Code %1$s · %2$s</string>
+    <string name="order_arrived_just_now">just now</string>
+    <string name="order_status_rejected">Rejected</string>
+    <string name="order_status_cancelled">Cancelled</string>
+    <string name="order_action_recover">Recover request</string>
+    <string name="order_recovered_snackbar">Request recovered</string>
+    <string name="order_error_not_recoverable">This request can no longer be recovered</string>
+
+    <!-- Customer contact in the detail (UX-C-05) -->
+    <string name="order_contact_call">Call</string>
+    <string name="order_contact_whatsapp">WhatsApp</string>
+    <string name="order_contact_customer">the customer</string>
+    <string name="order_contact_call_cd">Call %1$s</string>
+    <string name="order_contact_whatsapp_cd">Message %1$s on WhatsApp</string>
 </resources>

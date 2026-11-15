@@ -2,6 +2,7 @@ package com.qhathia.mobile.staff.feature.orderrequests.model
 
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
+import com.qhathia.mobile.staff.core.domain.model.NotificationPreferences
 import com.qhathia.mobile.staff.core.domain.model.Order
 import com.qhathia.mobile.staff.core.domain.model.OrderDetail
 import kotlinx.collections.immutable.ImmutableList
@@ -34,6 +35,13 @@ data class OrderRequestsUiState(
      * another filter or search was loaded. A settled order or the same page reloaded never bumps it.
      */
     val scrollToTopKey: Int = 0,
+    /**
+     * From how many minutes left a pending card turns amber: the backend's
+     * `orderExpiringWarningMinutes` (`domain/rules/order-confirmation.md#R2`), 10 until it is read.
+     */
+    val expiringWarningMinutes: Int = NotificationPreferences.DEFAULT_WARNING_MINUTES,
+    /** The order whose recover is in flight; its button shows progress and ignores taps. */
+    val recoveringOrderId: String? = null,
 )
 
 /**

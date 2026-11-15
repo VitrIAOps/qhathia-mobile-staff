@@ -24,6 +24,8 @@ android {
 }
 
 dependencies {
+    // Money format lives in core:common so non-UI modules (notifications) share it.
+    api(project(":core:common"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)

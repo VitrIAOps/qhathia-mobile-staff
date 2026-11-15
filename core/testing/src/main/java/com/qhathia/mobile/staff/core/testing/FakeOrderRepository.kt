@@ -65,6 +65,14 @@ class FakeOrderRepository : OrderRepository {
         changes.tryEmit(Unit)
     }
 
+    private val showPending = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
+
+    override val showPendingRequested: Flow<Unit> = showPending.asSharedFlow()
+
+    override fun requestShowPending() {
+        showPending.tryEmit(Unit)
+    }
+
     /** Pushes [count] straight onto [pendingOrderCount], bypassing any query. */
     fun emitPendingCount(count: Int) {
         pendingCount.value = count
@@ -73,6 +81,10 @@ class FakeOrderRepository : OrderRepository {
     var detailResult: Result<OrderDetail> = Result.success(TestFixtures.orderDetail())
     var confirmResult: Result<OrderDetail> = Result.success(TestFixtures.orderDetail())
     var rejectResult: Result<OrderDetail> = Result.success(TestFixtures.orderDetail())
+    var recoverResult: Result<OrderDetail> = Result.success(TestFixtures.orderDetail())
+
+    var recoveredIds: MutableList<String> = mutableListOf()
+        private set
 
     val calls: MutableList<OrdersCall> = mutableListOf()
 
@@ -128,5 +140,11 @@ class FakeOrderRepository : OrderRepository {
         rejectedReasons += reason
         if (rejectResult.isSuccess) refreshPendingOrderCount()
         return rejectResult
+    }
+
+    override suspend fun recoverOrder(id: String): Result<OrderDetail> {
+        recoveredIds += id
+        if (recoverResult.isSuccess) refreshPendingOrderCount()
+        return recoverResult
     }
 }

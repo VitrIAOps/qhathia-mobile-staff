@@ -2,6 +2,7 @@ package com.qhathia.mobile.staff.core.notifications
 
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.qhathia.mobile.staff.core.domain.usecase.GetOrderDetailUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.HandleOrderPushUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RegisterPushTokenUseCase
 import dagger.hilt.android.AndroidEntryPoint
@@ -35,6 +36,9 @@ class QhathiaMessagingService : FirebaseMessagingService() {
     @Inject
     lateinit var handleOrderPush: HandleOrderPushUseCase
 
+    @Inject
+    lateinit var getOrderDetail: GetOrderDetailUseCase
+
     override fun onNewToken(token: String) {
         // Re-register the rotated token. No-ops server-side (401 → fail-open) when no session exists.
         runBlocking { registerPushToken() }
@@ -46,7 +50,18 @@ class QhathiaMessagingService : FirebaseMessagingService() {
             event = data[KEY_EVENT],
             orderId = data[KEY_ORDER_ID],
         )
-        runBlocking { withTimeoutOrNull(PUSH_SYNC_TIMEOUT_MS) { handleOrderPush(data[KEY_EVENT]) } }
+        val event = data[KEY_EVENT]
+        val orderId = data[KEY_ORDER_ID]
+        runBlocking {
+            withTimeoutOrNull(PUSH_SYNC_TIMEOUT_MS) {
+                handleOrderPush(event)
+                // The payload has no personal data; the order is read with this app's own session
+                // and the same notification is rewritten. Fail-open: on error the generic text stays.
+                if (event == EVENT_NEW_ORDER && orderId != null) {
+                    getOrderDetail(orderId).onSuccess { presenter.updateNewOrder(orderId, it) }
+                }
+            }
+        }
     }
 
     private companion object {

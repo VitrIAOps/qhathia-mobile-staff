@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Header -->
-    <string name="order_requests_title">Solicitudes de compra</string>
+    <string name="order_requests_title">Solicitudes</string>
     <string name="order_requests_last_updated">Última actualización a las %1$s</string>
     <string name="order_requests_refresh_cd">Actualizar solicitudes</string>
     <string name="order_requests_search_placeholder">Buscar por nombre o código</string>
@@ -9,19 +9,19 @@
 
     <!-- Status filters. Only Pendientes carries a count. -->
     <string name="order_filter_pending">Pendientes (%1$d)</string>
-    <string name="order_filter_confirmed">Aceptados</string>
-    <string name="order_filter_rejected">Rechazados</string>
+    <string name="order_filter_confirmed">Confirmadas</string>
+    <string name="order_filter_rejected">Rechazadas / Vencidas</string>
 
     <!-- Card -->
-    <string name="order_card_code">Código: %1$s</string>
+    <string name="order_card_code">Código %1$s</string>
     <string name="order_card_total">Total: %1$s</string>
     <string name="order_action_reject">Rechazar</string>
     <string name="order_action_detail">Ver detalle</string>
 
     <!-- Expiry countdown. The amount is built from the plurals below and injected as %1$s. -->
-    <string name="order_expires_in">Expira en %1$s</string>
+    <string name="order_expires_in">Vence en %1$s</string>
     <string name="order_expires_in_less_than_a_minute">menos de 1 minuto</string>
-    <string name="order_expired">Expirado</string>
+    <string name="order_expired">Vencida</string>
     <plurals name="order_duration_minutes">
         <item quantity="one">%d minuto</item>
         <item quantity="other">%d minutos</item>
@@ -35,53 +35,70 @@
     <string name="order_detail_title">Detalle de solicitud #%1$s</string>
     <string name="order_detail_title_no_code">Detalle de solicitud</string>
     <string name="order_detail_close_cd">Cerrar</string>
-    <string name="order_detail_total">Total del pedido:</string>
+    <string name="order_detail_total">Total:</string>
     <!-- Shown instead of the actions on an order that can no longer be acted on. -->
     <string name="order_detail_resolved_confirmed">Esta solicitud ya fue confirmada</string>
     <string name="order_detail_resolved_rejected">Esta solicitud ya fue rechazada</string>
     <string name="order_detail_resolved_cancelled">Esta solicitud fue cancelada</string>
     <string name="order_detail_resolved_expired">Esta solicitud venció</string>
-    <string name="order_action_confirm">Confirmar pedido</string>
+    <string name="order_action_confirm">Confirmar solicitud</string>
     <!-- "und" abbreviates "unidades" and does not inflect in Spanish, so this stays a string. -->
     <string name="order_item_quantity" tools:ignore="PluralsCandidate">%1$d und</string>
-    <string name="order_item_low_stock">Quedan pocos disponibles</string>
-    <string name="order_item_out_of_stock">Sin existencias</string>
+    <string name="order_item_low_stock">Pocas unidades</string>
+    <string name="order_item_out_of_stock">Agotado</string>
 
     <!-- Reject form (second step of the detail dialog) -->
-    <string name="order_reject_title">Rechazar pedido</string>
+    <string name="order_reject_title">Rechazar solicitud</string>
     <string name="order_reject_subtitle">Selecciona el motivo por el que rechazas la solicitud #%1$s</string>
     <string name="order_reject_subtitle_no_code">Selecciona el motivo por el que rechazas la solicitud</string>
-    <string name="order_reject_reason_no_stock">Sin stock</string>
+    <string name="order_reject_reason_no_stock">Agotado</string>
     <string name="order_reject_reason_insufficient_quantity">Cantidad insuficiente</string>
     <string name="order_reject_reason_customer_changed_mind">Cliente se desanimó</string>
     <string name="order_reject_reason_payment_issue">Problemas con el cobro</string>
-    <string name="order_reject_reason_other">Otro motivo:</string>
+    <string name="order_reject_reason_other">Otro motivo</string>
     <string name="order_reject_other_placeholder">Escribe el motivo</string>
     <string name="order_action_cancel">Cancelar</string>
-    <string name="order_action_confirm_rejection">Confirmar</string>
+    <string name="order_action_confirm_rejection">Rechazar solicitud</string>
 
     <!-- Outcomes -->
     <string name="order_confirmed_snackbar">Solicitud confirmada</string>
     <string name="order_rejected_snackbar">Solicitud rechazada</string>
 
     <!-- Empty states, worded per filter -->
-    <string name="order_empty_pending">Sin solicitudes pendientes</string>
-    <string name="order_empty_confirmed">Sin solicitudes aceptadas</string>
-    <string name="order_empty_rejected">Sin solicitudes rechazadas</string>
+    <string name="order_empty_pending">Sin solicitudes pendientes. Cuando un cliente pida algo en la tablet, lo verás aquí.</string>
+    <string name="order_empty_confirmed">Sin solicitudes confirmadas</string>
+    <string name="order_empty_rejected">Sin solicitudes rechazadas ni vencidas</string>
 
     <!-- Errors -->
     <string name="order_error_load">No se pudieron cargar las solicitudes</string>
     <string name="order_error_detail">No se pudo cargar el detalle de la solicitud</string>
     <string name="order_retry">Reintentar</string>
     <string name="order_error_stock">Ya no hay stock suficiente de %1$s</string>
-    <string name="order_error_stock_generic">Ya no hay stock suficiente para este pedido</string>
-    <string name="order_error_already_handled">Otro vendedor ya atendió este pedido</string>
+    <string name="order_error_stock_generic">Ya no hay stock suficiente para esta solicitud</string>
+    <string name="order_error_already_handled">Alguien de tu equipo ya atendió esta solicitud</string>
     <string name="order_error_not_found">Esta solicitud ya no está disponible</string>
     <string name="order_error_network">Sin conexión. Inténtalo nuevamente</string>
-    <string name="order_error_unknown">No se pudo completar la acción</string>
+    <string name="order_error_unknown">No se pudo completar la acción. Inténtalo de nuevo.</string>
     <string name="order_item_list_price">antes %1$s</string>
     <string name="order_item_product_deleted">Producto eliminado del inventario</string>
     <string name="order_item_current_name">Ahora: %1$s</string>
-    <string name="order_error_not_sellable">No se puede confirmar: «%1$s» ya no está a la venta. Recházalo para avisar al cliente.</string>
-    <string name="order_error_not_sellable_generic">No se puede confirmar: un producto del pedido ya no está a la venta. Recházalo para avisar al cliente.</string>
+    <string name="order_error_not_sellable">No se puede confirmar: «%1$s» ya no está a la venta. Recházala para avisar al cliente.</string>
+    <string name="order_error_not_sellable_generic">No se puede confirmar: un producto de la solicitud ya no está a la venta. Recházala para avisar al cliente.</string>
+
+    <!-- Arrival, closed-order chips and recover (UX-C-02, C-08) -->
+    <!-- %1$s order code, %2$s "hace 5 min" -->
+    <string name="order_card_code_arrived">Código %1$s · %2$s</string>
+    <string name="order_arrived_just_now">recién</string>
+    <string name="order_status_rejected">Rechazada</string>
+    <string name="order_status_cancelled">Cancelada</string>
+    <string name="order_action_recover">Recuperar solicitud</string>
+    <string name="order_recovered_snackbar">Solicitud recuperada</string>
+    <string name="order_error_not_recoverable">Esta solicitud ya no se puede recuperar</string>
+
+    <!-- Customer contact in the detail (UX-C-05) -->
+    <string name="order_contact_call">Llamar</string>
+    <string name="order_contact_whatsapp">WhatsApp</string>
+    <string name="order_contact_customer">el cliente</string>
+    <string name="order_contact_call_cd">Llamar a %1$s</string>
+    <string name="order_contact_whatsapp_cd">Escribir a %1$s por WhatsApp</string>
 </resources>

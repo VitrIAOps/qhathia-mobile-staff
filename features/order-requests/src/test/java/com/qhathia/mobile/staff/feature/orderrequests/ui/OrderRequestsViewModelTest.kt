@@ -5,14 +5,20 @@ import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderError
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderException
 import com.qhathia.mobile.staff.core.domain.model.OrderPage
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
+import com.qhathia.mobile.staff.core.domain.model.RecoverOrderError
+import com.qhathia.mobile.staff.core.domain.model.RecoverOrderException
 import com.qhathia.mobile.staff.core.domain.model.RejectOrderError
 import com.qhathia.mobile.staff.core.domain.model.RejectOrderException
 import com.qhathia.mobile.staff.core.domain.usecase.ConfirmOrderUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.GetNotificationPreferencesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrderDetailUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrdersUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveOrdersChangedUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObservePendingOrderCountUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.ObserveShowPendingOrdersUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.RecoverOrderUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RejectOrderUseCase
+import com.qhathia.mobile.staff.core.testing.FakeNotificationPreferencesRepository
 import com.qhathia.mobile.staff.core.testing.FakeOrderRepository
 import com.qhathia.mobile.staff.core.testing.MainDispatcherExtension
 import com.qhathia.mobile.staff.core.testing.TestFixtures
@@ -49,10 +55,12 @@ class OrderRequestsViewModelTest {
     val mainDispatcher = MainDispatcherExtension()
 
     private lateinit var repository: FakeOrderRepository
+    private lateinit var preferences: FakeNotificationPreferencesRepository
 
     @BeforeEach
     fun setUp() {
         repository = FakeOrderRepository()
+        preferences = FakeNotificationPreferencesRepository()
     }
 
     private fun createViewModel() = OrderRequestsViewModel(
@@ -62,6 +70,9 @@ class OrderRequestsViewModelTest {
         rejectOrderUseCase = RejectOrderUseCase(repository),
         observePendingOrderCountUseCase = ObservePendingOrderCountUseCase(repository),
         observeOrdersChangedUseCase = ObserveOrdersChangedUseCase(repository),
+        recoverOrderUseCase = RecoverOrderUseCase(repository),
+        getNotificationPreferencesUseCase = GetNotificationPreferencesUseCase(preferences),
+        observeShowPendingOrdersUseCase = ObserveShowPendingOrdersUseCase(repository),
     )
 
     /**
@@ -766,5 +777,79 @@ class OrderRequestsViewModelTest {
         runCurrent()
 
         assertEquals(before, viewModel.uiState.value.scrollToTopKey)
+    }
+
+    @Test
+    fun `a notification tap shows Pendientes without search, from the top`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.SelectFilter(OrderRequestsFilter.REJECTED))
+        viewModel.onEvent(OrderRequestsUiEvent.Search("ana"))
+        advanceTimeBy(PAST_DEBOUNCE_MS)
+        runCurrent()
+        val keyBefore = viewModel.uiState.value.scrollToTopKey
+
+        repository.requestShowPending()
+        runCurrent()
+
+        val state = viewModel.uiState.value
+        assertEquals(OrderRequestsFilter.PENDING, state.selectedFilter)
+        assertEquals("", state.searchQuery)
+        assertTrue(state.scrollToTopKey > keyBefore)
+        assertEquals(listOf(OrderStatus.PENDING), repository.lastListCall?.statuses)
+        assertNull(repository.lastListCall?.query)
+    }
+
+    @Test
+    fun `the amber step comes from the notification preferences`() = runTest {
+        preferences.current = TestFixtures.notificationPreferences(orderExpiringWarningMinutes = 15)
+        val viewModel = createViewModel()
+        runCurrent()
+
+        assertEquals(15, viewModel.uiState.value.expiringWarningMinutes)
+    }
+
+    @Test
+    fun `without preferences the amber step stays at 10 minutes`() = runTest {
+        preferences.getFailure = IOException("offline")
+        val viewModel = createViewModel()
+        runCurrent()
+
+        assertEquals(10, viewModel.uiState.value.expiringWarningMinutes)
+    }
+
+    @Test
+    fun `recovering an expired order sends one request and confirms it`() = runTest {
+        // Non-eager, so the first recover is still in flight when the second tap arrives.
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(OrderRequestsUiEvent.RecoverOrder("order-1"))
+            viewModel.onEvent(OrderRequestsUiEvent.RecoverOrder("order-1"))
+            runCurrent()
+
+            assertEquals(OrderRequestsUiEffect.ShowRecoveredSnackbar, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(listOf("order-1"), repository.recoveredIds)
+        assertNull(viewModel.uiState.value.recoveringOrderId)
+    }
+
+    @Test
+    fun `an order that can no longer be recovered says so`() = runTest {
+        repository.recoverResult = Result.failure(RecoverOrderException(RecoverOrderError.NotRecoverable))
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(OrderRequestsUiEvent.RecoverOrder("order-1"))
+            runCurrent()
+
+            assertEquals(OrderRequestsUiEffect.ShowError(R.string.order_error_not_recoverable), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

@@ -6,13 +6,18 @@ import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderError
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderException
 import com.qhathia.mobile.staff.core.domain.model.OrderPage
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
+import com.qhathia.mobile.staff.core.domain.model.RecoverOrderError
+import com.qhathia.mobile.staff.core.domain.model.RecoverOrderException
 import com.qhathia.mobile.staff.core.domain.model.RejectOrderError
 import com.qhathia.mobile.staff.core.domain.model.RejectOrderException
 import com.qhathia.mobile.staff.core.domain.usecase.ConfirmOrderUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.GetNotificationPreferencesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrderDetailUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetOrdersUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveOrdersChangedUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObservePendingOrderCountUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.ObserveShowPendingOrdersUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.RecoverOrderUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RejectOrderUseCase
 import com.qhathia.mobile.staff.feature.orderrequests.R
 import com.qhathia.mobile.staff.feature.orderrequests.model.OrderDetailUiState
@@ -75,6 +80,9 @@ class OrderRequestsViewModel @Inject constructor(
     private val rejectOrderUseCase: RejectOrderUseCase,
     observePendingOrderCountUseCase: ObservePendingOrderCountUseCase,
     observeOrdersChangedUseCase: ObserveOrdersChangedUseCase,
+    private val recoverOrderUseCase: RecoverOrderUseCase,
+    private val getNotificationPreferencesUseCase: GetNotificationPreferencesUseCase,
+    observeShowPendingOrdersUseCase: ObserveShowPendingOrdersUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderRequestsUiState())
@@ -119,6 +127,35 @@ class OrderRequestsViewModel @Inject constructor(
             .debounce(ORDERS_CHANGED_DEBOUNCE_MS)
             .onEach { reload(quiet = true) }
             .launchIn(viewModelScope)
+        observeShowPendingOrdersUseCase()
+            .onEach { showPendingFromTop() }
+            .launchIn(viewModelScope)
+        loadWarningMinutes()
+    }
+
+    /**
+     * A notification tap: Pendientes, without a search that could hide the new request, from the top.
+     * The re-query itself comes from the orders-changed signal sent with it.
+     */
+    private fun showPendingFromTop() {
+        _uiState.update {
+            it.copy(
+                selectedFilter = OrderRequestsFilter.PENDING,
+                searchQuery = "",
+                scrollToTopKey = it.scrollToTopKey + 1,
+            )
+        }
+        selectedFilter.value = OrderRequestsFilter.PENDING
+        searchQuery.value = ""
+    }
+
+    /** Read once per screen; a failure keeps the default, so the amber step still comes at 10 min. */
+    private fun loadWarningMinutes() {
+        viewModelScope.launch {
+            getNotificationPreferencesUseCase().onSuccess { prefs ->
+                _uiState.update { it.copy(expiringWarningMinutes = prefs.orderExpiringWarningMinutes) }
+            }
+        }
     }
 
     fun onEvent(event: OrderRequestsUiEvent) {
@@ -146,6 +183,7 @@ class OrderRequestsViewModel @Inject constructor(
             is OrderRequestsUiEvent.OpenDetail -> loadDetail(event.orderId)
             OrderRequestsUiEvent.DismissDetail -> _uiState.update { it.copy(detail = null) }
             is OrderRequestsUiEvent.ConfirmOrder -> confirmOrder(event.orderId)
+            is OrderRequestsUiEvent.RecoverOrder -> recoverOrder(event.orderId)
 
             is OrderRequestsUiEvent.StartRejection -> startRejection(event)
             is OrderRequestsUiEvent.SelectRejectionReason -> updateRejection {
@@ -360,6 +398,49 @@ class OrderRequestsViewModel @Inject constructor(
                             _uiEffect.emit(error.toEffect())
                             reload()
                         }
+                    }
+                }
+        }
+    }
+
+    /**
+     * Brings an expired order back to Pendientes. Guarded like the other mutations, so a double tap
+     * sends one request; the dialog (if it was open on this order) closes on success.
+     */
+    private fun recoverOrder(orderId: String) {
+        if (!startMutation(orderId)) return
+        _uiState.update { it.copy(recoveringOrderId = orderId) }
+        viewModelScope.launch {
+            val result = recoverOrderUseCase(orderId)
+            _uiState.update { it.copy(recoveringOrderId = null) }
+            result
+                .onSuccess {
+                    finishMutation(closeDialog = true)
+                    _uiEffect.emit(OrderRequestsUiEffect.ShowRecoveredSnackbar)
+                    reload(quiet = true)
+                }
+                .onFailure { throwable ->
+                    val error = (throwable as? RecoverOrderException)?.error
+                    if (error == RecoverOrderError.Network || error == null) {
+                        // Retryable: nothing changed server-side.
+                        if (_uiState.value.detail?.orderId == orderId) {
+                            showInDialog(SubmitError(R.string.order_error_network))
+                        } else {
+                            finishMutation(closeDialog = false)
+                            _uiEffect.emit(OrderRequestsUiEffect.ShowError(R.string.order_error_network))
+                        }
+                    } else {
+                        finishMutation(closeDialog = true)
+                        _uiEffect.emit(
+                            OrderRequestsUiEffect.ShowError(
+                                when (error) {
+                                    RecoverOrderError.NotRecoverable -> R.string.order_error_not_recoverable
+                                    RecoverOrderError.NotFound -> R.string.order_error_not_found
+                                    else -> R.string.order_error_unknown
+                                },
+                            ),
+                        )
+                        reload()
                     }
                 }
         }

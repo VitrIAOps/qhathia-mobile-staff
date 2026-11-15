@@ -1,4 +1,4 @@
-package com.qhathia.mobile.staff.core.ui.format
+package com.qhathia.mobile.staff.core.common.format
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

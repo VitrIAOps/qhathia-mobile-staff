@@ -1,23 +1,36 @@
 <resources>
     <!-- Notification channel -->
-    <string name="notif_channel_orders_name">Purchase orders</string>
-    <string name="notif_channel_orders_description">Alerts about new purchase orders and their status</string>
+    <string name="notif_channel_orders_name">Purchase requests</string>
+    <string name="notif_channel_orders_description">Alerts about new purchase requests and their status</string>
 
-    <!-- New order (NEW_ORDER) -->
-    <string name="notif_new_order_title">New purchase order</string>
-    <string name="notif_new_order_body">You have a new order to handle</string>
+    <!-- New order (NEW_ORDER), before the app fetched it -->
+    <string name="notif_new_order_title">New purchase request</string>
+    <string name="notif_new_order_body">Confirm or reject it before it expires</string>
+
+    <!-- New order, once fetched with the app's session -->
+    <string name="notif_new_order_named_title">New request from %1$s</string>
+    <plurals name="notif_new_order_products">
+        <item quantity="one">%d product</item>
+        <item quantity="other">%d products</item>
+    </plurals>
+    <string name="notif_new_order_detail_body">%1$s · %2$s · expires in %3$d min</string>
+    <string name="notif_new_order_detail_body_no_deadline">%1$s · %2$s</string>
+    <plurals name="notif_new_order_more_products">
+        <item quantity="one">and %d more product</item>
+        <item quantity="other">and %d more products</item>
+    </plurals>
 
     <!-- Order about to expire (ORDER_EXPIRING) -->
-    <string name="notif_order_expiring_title">Order about to expire</string>
-    <string name="notif_order_expiring_body">A pending order is about to expire. Handle it soon.</string>
+    <string name="notif_order_expiring_title">Request about to expire</string>
+    <string name="notif_order_expiring_body">A request expires soon. Confirm or reject it.</string>
 
     <!-- Fallback (unknown events) -->
-    <string name="notif_order_updated_body">An order changed status</string>
-    <string name="notif_order_generic_title">Order updates</string>
+    <string name="notif_order_updated_body">A request changed status</string>
+    <string name="notif_order_generic_title">Request updates</string>
 
     <!-- Group summary over the order notifications -->
     <plurals name="notif_orders_summary_title">
-        <item quantity="one">%d order to handle</item>
-        <item quantity="other">%d orders to handle</item>
+        <item quantity="one">%d request to handle</item>
+        <item quantity="other">%d requests to handle</item>
     </plurals>
 </resources>

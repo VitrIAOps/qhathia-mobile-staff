@@ -13,8 +13,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -31,10 +33,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.qhathia.mobile.staff.core.domain.model.NotificationPreferences
 import com.qhathia.mobile.staff.core.domain.model.Order
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
-import com.qhathia.mobile.staff.core.ui.format.toPenPrice
+import com.qhathia.mobile.staff.core.common.format.toPenPrice
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
+import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.orderrequests.R
 import java.time.Instant
@@ -57,6 +61,10 @@ internal fun OrderCard(
     onReject: (Order) -> Unit,
     onOpenDetail: (String) -> Unit,
     modifier: Modifier = Modifier,
+    warningMinutes: Int = NotificationPreferences.DEFAULT_WARNING_MINUTES,
+    minuteClock: Instant = now(),
+    isRecovering: Boolean = false,
+    onRecover: (String) -> Unit = {},
 ) {
     // derivedStateOf keeps the ticker from recomposing the card every second: only the moment the
     // order actually crosses its deadline invalidates this read.
@@ -93,7 +101,16 @@ internal fun OrderCard(
                 )
                 val expiresAt = order.expiresAt
                 if (expiresAt != null && order.status == OrderStatus.PENDING) {
-                    ExpiryCountdown(expiresAt = expiresAt, now = now)
+                    ExpiryCountdown(expiresAt = expiresAt, now = now, warningMinutes = warningMinutes)
+                } else {
+                    // A closed order says what happened instead of a countdown.
+                    order.outcomeLabel()?.let { label ->
+                        StatusChip(
+                            text = label,
+                            containerColor = QhathiaColors.segmentTrack,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 
@@ -101,8 +118,17 @@ internal fun OrderCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Bottom,
             ) {
+                val createdAt = order.createdAt
                 Text(
-                    text = stringResource(R.string.order_card_code, order.displayCode()),
+                    text = if (createdAt != null) {
+                        stringResource(
+                            R.string.order_card_code_arrived,
+                            order.displayCode(),
+                            arrivedAgoLabel(createdAt, minuteClock),
+                        )
+                    } else {
+                        stringResource(R.string.order_card_code, order.displayCode())
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -121,6 +147,33 @@ internal fun OrderCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
+                // An expired request can come back to Pendientes; a manual rejection cannot.
+                if (order.status == OrderStatus.EXPIRED) {
+                    OutlinedButton(
+                        onClick = { onRecover(order.id) },
+                        enabled = !isRecovering,
+                        shape = RoundedCornerShape(Dimens.ButtonRadius),
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = Dimens.ButtonHeight),
+                    ) {
+                        if (isRecovering) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.Restore,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        Text(
+                            text = stringResource(R.string.order_action_recover),
+                            style = MaterialTheme.typography.labelLarge,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(start = Dimens.SpaceSm),
+                        )
+                    }
+                }
                 if (canAct) {
                     OutlinedButton(
                         onClick = { onReject(order) },
@@ -170,6 +223,16 @@ internal fun OrderCard(
     }
 }
 
+/** What happened to a closed order, for its chip: "Vencida", the rejection reason, … */
+@Composable
+private fun Order.outcomeLabel(): String? = when (status) {
+    OrderStatus.EXPIRED -> stringResource(R.string.order_expired)
+    OrderStatus.REJECTED -> rejectionReason?.trim()?.takeIf { it.isNotEmpty() }
+        ?: stringResource(R.string.order_status_rejected)
+    OrderStatus.CANCELLED -> stringResource(R.string.order_status_cancelled)
+    OrderStatus.CONFIRMED, OrderStatus.PENDING -> null
+}
+
 /** Customer name, or `#<orderCode>` when the kiosk recorded no name. */
 internal fun Order.displayTitle(): String = customerName ?: "#${displayCode()}"
 
@@ -207,6 +270,51 @@ private fun OrderCardExpiringSoonPreview() {
                 orderCode = null,
                 expiresIn = 2 * 60L,
             ),
+            now = { PREVIEW_NOW },
+            onReject = {},
+            onOpenDetail = {},
+            modifier = Modifier.padding(Dimens.SpaceMd),
+        )
+    }
+}
+
+@Preview(name = "Order card — expiring, amber", showBackground = true)
+@Preview(name = "Order card — expiring, amber, dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun OrderCardWarningPreview() {
+    QhathiaTheme {
+        OrderCard(
+            order = previewOrder(expiresIn = 8 * 60L),
+            now = { PREVIEW_NOW },
+            onReject = {},
+            onOpenDetail = {},
+            modifier = Modifier.padding(Dimens.SpaceMd),
+        )
+    }
+}
+
+@Preview(name = "Order card — expired, recover", showBackground = true)
+@Preview(name = "Order card — expired, recover, dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun OrderCardExpiredPreview() {
+    QhathiaTheme {
+        OrderCard(
+            order = previewOrder(status = OrderStatus.EXPIRED),
+            now = { PREVIEW_NOW },
+            onReject = {},
+            onOpenDetail = {},
+            modifier = Modifier.padding(Dimens.SpaceMd),
+        )
+    }
+}
+
+@Preview(name = "Order card — rejected with a reason", showBackground = true)
+@Preview(name = "Order card — rejected with a reason, dark", showBackground = true, uiMode = 0x20)
+@Composable
+private fun OrderCardRejectedPreview() {
+    QhathiaTheme {
+        OrderCard(
+            order = previewOrder(status = OrderStatus.REJECTED, rejectionReason = "Cantidad insuficiente"),
             now = { PREVIEW_NOW },
             onReject = {},
             onOpenDetail = {},

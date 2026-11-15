@@ -26,6 +26,16 @@ interface OrderRepository {
     fun notifyOrdersChanged()
 
     /**
+     * Fires when the merchant asked to see the pending requests from outside Solicitudes (a
+     * notification tap): the screen selects Pendientes and shows the list from its top. A signal,
+     * like [ordersChanged]; a screen created afterwards already starts on Pendientes.
+     */
+    val showPendingRequested: Flow<Unit>
+
+    /** Tells Solicitudes to show Pendientes from the top. */
+    fun requestShowPending()
+
+    /**
      * Re-reads the pending count and publishes it to [pendingOrderCount]. Failing with an auth
      * error resets the cache to zero, so a count cannot outlive the session it was read under.
      *
@@ -62,4 +72,10 @@ interface OrderRepository {
      * Failures carry a `RejectOrderException`.
      */
     suspend fun rejectOrder(id: String, reason: String?): Result<OrderDetail>
+
+    /**
+     * Brings an expired order back to `PENDING` with a fresh deadline (`POST /orders/{id}/recover`).
+     * Failures carry a `RecoverOrderException`.
+     */
+    suspend fun recoverOrder(id: String): Result<OrderDetail>
 }

@@ -1,4 +1,4 @@
-package com.qhathia.mobile.staff.core.ui.format
+package com.qhathia.mobile.staff.core.common.format
 
 import java.math.BigDecimal
 import java.math.RoundingMode

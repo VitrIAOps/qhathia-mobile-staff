@@ -67,6 +67,8 @@ fun OrderRequestsContent(
     // Handed down as a lambda so the ticking read happens inside each countdown label rather than
     // in the list or the cards.
     val nowProvider = remember { { now } }
+    // "hace 5 min" only changes once a minute.
+    val minuteClock by rememberMinuteClock()
 
     val onSearch = remember(onEvent) { { query: String -> onEvent(OrderRequestsUiEvent.Search(query)) } }
     val onRefresh = remember(onEvent) { { onEvent(OrderRequestsUiEvent.Refresh) } }
@@ -84,6 +86,9 @@ fun OrderRequestsContent(
     }
     val onConfirm = remember(onEvent) {
         { id: String -> onEvent(OrderRequestsUiEvent.ConfirmOrder(id)) }
+    }
+    val onRecover = remember(onEvent) {
+        { id: String -> onEvent(OrderRequestsUiEvent.RecoverOrder(id)) }
     }
     val onDismissDetail = remember(onEvent) { { onEvent(OrderRequestsUiEvent.DismissDetail) } }
     val onSelectRejectionReason = remember(onEvent) {
@@ -142,6 +147,10 @@ fun OrderRequestsContent(
                             now = nowProvider,
                             onReject = onReject,
                             onOpenDetail = onOpenDetail,
+                            warningMinutes = uiState.expiringWarningMinutes,
+                            minuteClock = minuteClock,
+                            isRecovering = uiState.recoveringOrderId == order.id,
+                            onRecover = onRecover,
                         )
                     }
                 }
@@ -155,6 +164,8 @@ fun OrderRequestsContent(
             now = nowProvider,
             onDismiss = onDismissDetail,
             onConfirm = onConfirm,
+            onRecover = onRecover,
+            minuteClock = minuteClock,
             onStartRejection = {
                 onEvent(
                     OrderRequestsUiEvent.StartRejection(
