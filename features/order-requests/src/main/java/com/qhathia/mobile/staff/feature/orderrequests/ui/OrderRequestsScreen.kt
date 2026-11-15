@@ -53,6 +53,8 @@ fun OrderRequestsScreen(
                     resources.getString(R.string.order_confirmed_snackbar)
                 OrderRequestsUiEffect.ShowRejectedSnackbar ->
                     resources.getString(R.string.order_rejected_snackbar)
+                OrderRequestsUiEffect.ShowRecoveredSnackbar ->
+                    resources.getString(R.string.order_recovered_snackbar)
                 is OrderRequestsUiEffect.ShowError ->
                     if (effect.productName != null) {
                         resources.getString(effect.messageRes, effect.productName)

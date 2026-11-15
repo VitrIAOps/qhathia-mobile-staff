@@ -27,7 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.Subscription
 import com.qhathia.mobile.staff.core.ui.component.settings.QhathiaPlanProgressBar
-import com.qhathia.mobile.staff.core.ui.format.toPenPrice
+import com.qhathia.mobile.staff.core.common.format.toPenPrice
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme

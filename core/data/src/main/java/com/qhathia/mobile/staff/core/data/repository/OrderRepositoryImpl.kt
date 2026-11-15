@@ -6,6 +6,8 @@ import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderException
 import com.qhathia.mobile.staff.core.domain.model.OrderDetail
 import com.qhathia.mobile.staff.core.domain.model.OrderPage
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
+import com.qhathia.mobile.staff.core.domain.model.RecoverOrderError
+import com.qhathia.mobile.staff.core.domain.model.RecoverOrderException
 import com.qhathia.mobile.staff.core.domain.model.RejectOrderError
 import com.qhathia.mobile.staff.core.domain.model.RejectOrderException
 import com.qhathia.mobile.staff.core.domain.repository.OrderRepository
@@ -54,6 +56,17 @@ class OrderRepositoryImpl @Inject constructor(
 
     override fun notifyOrdersChanged() {
         changes.tryEmit(Unit)
+    }
+
+    private val showPending = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+
+    override val showPendingRequested: Flow<Unit> = showPending.asSharedFlow()
+
+    override fun requestShowPending() {
+        showPending.tryEmit(Unit)
     }
 
     private val countMutex = Mutex()
@@ -154,6 +167,19 @@ class OrderRepositoryImpl @Inject constructor(
                 Result.failure(RejectOrderException(RejectOrderError.Network))
         }
 
+    override suspend fun recoverOrder(id: String): Result<OrderDetail> =
+        when (val result = apiService.recoverOrder(id)) {
+            is OrderMutationResult.Success -> {
+                // The order is pending again: the badges count it at once.
+                refreshPendingOrderCount(reuseInFlight = false)
+                Result.success(result.order.toDomain())
+            }
+            is OrderMutationResult.HttpError ->
+                Result.failure(RecoverOrderException(result.toRecoverError()))
+            is OrderMutationResult.NetworkError ->
+                Result.failure(RecoverOrderException(RecoverOrderError.Network))
+        }
+
     /**
      * After an order left PENDING the count is re-read; if that fails (the network dropped right
      * after the answer), the order just handled is taken off locally so the badges do not keep it.
@@ -183,6 +209,12 @@ class OrderRepositoryImpl @Inject constructor(
         code == HTTP_NOT_FOUND -> RejectOrderError.NotFound
         problem?.errorCode == ERROR_INVALID_STATE_TRANSITION -> RejectOrderError.AlreadyHandled
         else -> RejectOrderError.Unknown("HTTP $code")
+    }
+
+    private fun OrderMutationResult.HttpError.toRecoverError(): RecoverOrderError = when {
+        code == HTTP_NOT_FOUND -> RecoverOrderError.NotFound
+        problem?.errorCode == ERROR_INVALID_STATE_TRANSITION -> RecoverOrderError.NotRecoverable
+        else -> RecoverOrderError.Unknown("HTTP $code")
     }
 
     private companion object {

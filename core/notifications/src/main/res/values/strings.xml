@@ -1,23 +1,38 @@
 <resources>
     <!-- Notification channel -->
-    <string name="notif_channel_orders_name">Órdenes de compra</string>
-    <string name="notif_channel_orders_description">Avisos de nuevas órdenes de compra y su estado</string>
+    <string name="notif_channel_orders_name">Solicitudes de compra</string>
+    <string name="notif_channel_orders_description">Avisos de nuevas solicitudes de compra y su estado</string>
 
-    <!-- New order (NEW_ORDER) -->
-    <string name="notif_new_order_title">Nueva orden de compra</string>
-    <string name="notif_new_order_body">Tienes una nueva orden por atender</string>
+    <!-- New order (NEW_ORDER), before the app fetched it -->
+    <string name="notif_new_order_title">Nueva solicitud de compra</string>
+    <string name="notif_new_order_body">Confírmala o recházala antes de que venza</string>
+
+    <!-- New order, once fetched with the app's session -->
+    <string name="notif_new_order_named_title">Nueva solicitud de %1$s</string>
+    <plurals name="notif_new_order_products">
+        <item quantity="one">%d producto</item>
+        <item quantity="other">%d productos</item>
+    </plurals>
+    <!-- %1$s total, %2$s product count, %3$d minutes left -->
+    <string name="notif_new_order_detail_body">%1$s · %2$s · vence en %3$d min</string>
+    <!-- %1$s total, %2$s product count (no deadline) -->
+    <string name="notif_new_order_detail_body_no_deadline">%1$s · %2$s</string>
+    <plurals name="notif_new_order_more_products">
+        <item quantity="one">y %d producto más</item>
+        <item quantity="other">y %d productos más</item>
+    </plurals>
 
     <!-- Order about to expire (ORDER_EXPIRING) -->
-    <string name="notif_order_expiring_title">Orden por vencer</string>
-    <string name="notif_order_expiring_body">Una orden pendiente está por vencer. Atiéndela pronto.</string>
+    <string name="notif_order_expiring_title">Solicitud por vencer</string>
+    <string name="notif_order_expiring_body">Una solicitud vence pronto. Confírmala o recházala.</string>
 
     <!-- Fallback (unknown events) -->
-    <string name="notif_order_updated_body">El estado de una orden cambió</string>
-    <string name="notif_order_generic_title">Actualización de órdenes</string>
+    <string name="notif_order_updated_body">El estado de una solicitud cambió</string>
+    <string name="notif_order_generic_title">Actualización de solicitudes</string>
 
     <!-- Group summary over the order notifications -->
     <plurals name="notif_orders_summary_title">
-        <item quantity="one">%d orden por atender</item>
-        <item quantity="other">%d órdenes por atender</item>
+        <item quantity="one">%d solicitud por atender</item>
+        <item quantity="other">%d solicitudes por atender</item>
     </plurals>
 </resources>

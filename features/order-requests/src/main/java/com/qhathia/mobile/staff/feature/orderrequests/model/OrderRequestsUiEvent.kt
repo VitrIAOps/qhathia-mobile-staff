@@ -21,6 +21,9 @@ sealed interface OrderRequestsUiEvent {
 
     data class ConfirmOrder(val orderId: String) : OrderRequestsUiEvent
 
+    /** "Recuperar solicitud" on an expired order, from its card or its detail. */
+    data class RecoverOrder(val orderId: String) : OrderRequestsUiEvent
+
     /**
      * Opens the reject form. It arrives from both the card's Rechazar action and the detail
      * dialog's, so every rejection goes through the same motive step; [orderCode] only names the

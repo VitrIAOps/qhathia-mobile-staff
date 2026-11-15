@@ -5,19 +5,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.border
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -25,13 +25,19 @@ import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -94,24 +100,20 @@ internal fun OrderRejectForm(
             verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
         ) {
             RejectionReason.entries.forEach { reason ->
-                val selected = state.selectedReason == reason
                 ReasonRow(
-                    selected = selected,
+                    selected = state.selectedReason == reason,
                     onSelect = { onSelectReason(reason) },
                     label = labels.getValue(reason),
-                ) {
-                    // "Otro motivo: ______" — the blank in the design is the field itself, so it
-                    // stays on the row and only accepts text once the option is picked.
-                    if (reason == RejectionReason.OTHER) {
-                        OtherReasonField(
-                            value = state.otherReason,
-                            enabled = selected,
-                            onValueChange = onOtherReasonChange,
-                            onFocus = { onSelectReason(RejectionReason.OTHER) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
+                )
+            }
+            // "Otro motivo" gets its own full-width field under the options, focused with the
+            // keyboard up: inside the row it was a one-line blank that cut the reason.
+            if (state.selectedReason == RejectionReason.OTHER) {
+                OtherReasonField(
+                    value = state.otherReason,
+                    onValueChange = onOtherReasonChange,
+                    modifier = Modifier.padding(horizontal = Dimens.SpaceMd),
+                )
             }
         }
 
@@ -150,7 +152,7 @@ internal fun OrderRejectForm(
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .height(40.dp),
+                    .heightIn(min = Dimens.ButtonHeight),
             ) {
                 if (isSubmitting) {
                     CircularProgressIndicator(
@@ -162,6 +164,7 @@ internal fun OrderRejectForm(
                     Text(
                         text = stringResource(R.string.order_action_confirm_rejection),
                         style = MaterialTheme.typography.labelLarge,
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -178,7 +181,6 @@ private fun ReasonRow(
     selected: Boolean,
     onSelect: () -> Unit,
     label: String,
-    trailing: @Composable RowScope.() -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -208,50 +210,61 @@ private fun ReasonRow(
             fontWeight = FontWeight.Normal,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        trailing()
     }
 }
 
-/** The underlined blank of "Otro motivo: ______". */
+/** The typed motive behind "Otro motivo": full width, up to three lines, focused on appearing. */
 @Composable
 private fun OtherReasonField(
     value: String,
-    enabled: Boolean,
     onValueChange: (String) -> Unit,
-    onFocus: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
-    Column(modifier = modifier) {
-        BasicTextField(
-            value = value,
-            onValueChange = { if (enabled) onValueChange(it) else onFocus() },
-            enabled = enabled,
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            textStyle = LocalTextStyle.current.merge(
-                MaterialTheme.typography.bodyLarge.copy(color = colors.onSurface),
-            ),
-            cursorBrush = SolidColor(colors.primary),
-            modifier = Modifier.fillMaxWidth(),
-            decorationBox = { innerTextField ->
-                Box(contentAlignment = Alignment.CenterStart) {
-                    if (value.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.order_reject_other_placeholder),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = colors.onSurfaceVariant,
-                        )
-                    }
-                    innerTextField()
-                }
-            },
-        )
-        HorizontalDivider(
-            color = if (enabled) colors.primary else colors.outlineVariant,
-        )
+    val focusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        keyboard?.show()
     }
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        minLines = 2,
+        maxLines = OTHER_REASON_MAX_LINES,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Sentences,
+            imeAction = ImeAction.Done,
+        ),
+        keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
+        textStyle = LocalTextStyle.current.merge(
+            MaterialTheme.typography.bodyLarge.copy(color = colors.onSurface),
+        ),
+        cursorBrush = SolidColor(colors.primary),
+        modifier = modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        decorationBox = { innerTextField ->
+            Box(
+                modifier = Modifier
+                    .border(1.dp, colors.primary, RoundedCornerShape(Dimens.FieldRadius))
+                    .padding(horizontal = Dimens.SpaceMd, vertical = Dimens.SpaceSm),
+                contentAlignment = Alignment.TopStart,
+            ) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.order_reject_other_placeholder),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colors.onSurfaceVariant,
+                    )
+                }
+                innerTextField()
+            }
+        },
+    )
 }
+
+private const val OTHER_REASON_MAX_LINES = 3
 
 // ---- Previews ----
 
