@@ -39,7 +39,11 @@ class LoginViewModel @Inject constructor(
     fun onEvent(event: LoginUiEvent) {
         when (event) {
             is LoginUiEvent.EmailChanged ->
-                _uiState.update { it.copy(email = event.value, emailError = null) }
+                _uiState.update {
+                    // Wrong credentials are about both fields: editing either one clears that error.
+                    val passwordError = it.passwordError.takeUnless { e -> e == R.string.login_error_invalid_credentials }
+                    it.copy(email = event.value, emailError = null, passwordError = passwordError)
+                }
             is LoginUiEvent.PasswordChanged ->
                 _uiState.update { it.copy(password = event.value, passwordError = null) }
             LoginUiEvent.Submit -> submit()
@@ -66,8 +70,16 @@ class LoginViewModel @Inject constructor(
                     _uiEffect.emit(LoginUiEffect.NavigateToHome)
                 }
                 .onFailure { throwable ->
-                    _uiState.update { it.copy(isSubmitting = false) }
-                    _uiEffect.emit(LoginUiEffect.ShowError(throwable.toMessageRes()))
+                    // Wrong credentials stay under the password until a field is edited, instead of a
+                    // snackbar that goes away far from the fields (UX-C-15). Other errors stay snackbars.
+                    if ((throwable as? LoginException)?.error == LoginError.InvalidCredentials) {
+                        _uiState.update {
+                            it.copy(isSubmitting = false, passwordError = R.string.login_error_invalid_credentials)
+                        }
+                    } else {
+                        _uiState.update { it.copy(isSubmitting = false) }
+                        _uiEffect.emit(LoginUiEffect.ShowError(throwable.toMessageRes()))
+                    }
                 }
         }
     }

@@ -100,7 +100,7 @@ internal fun DeviceCard(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(Dimens.SpaceMd), verticalArrangement = Arrangement.spacedBy(Dimens.SpaceMd)) {
-            DeviceIdentity(device = device, connected = connected, onOpenSettings = onOpenSettings)
+            DeviceIdentity(device = device, connected = connected, now = now, onOpenSettings = onOpenSettings)
             CatalogBox(
                 catalogCount = catalogCount,
                 updatedAt = listOfNotNull(device.lastSyncAt, device.lastPingAt).maxOrNull(),
@@ -150,7 +150,7 @@ internal fun DeviceCard(
 }
 
 @Composable
-private fun DeviceIdentity(device: Device, connected: Boolean, onOpenSettings: () -> Unit) {
+private fun DeviceIdentity(device: Device, connected: Boolean, now: Instant, onOpenSettings: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Icon(
             imageVector = Icons.Outlined.TabletAndroid,
@@ -180,9 +180,14 @@ private fun DeviceIdentity(device: Device, connected: Boolean, onOpenSettings: (
                         else -> R.string.device_disconnected
                     },
                 )
+                // "Conectada · hace 1 min": when it last reported, not the technical model, which
+                // Ajustes de la tablet shows; tablet names are unique, so the model is not needed
+                // to tell two cards apart (UX-C-16).
+                val lastPing = device.lastPingAt
                 Text(
-                    // The model tells two tablets with similar names apart.
-                    text = device.model?.let { stringResource(R.string.device_status_with_model, status, it) } ?: status,
+                    text = lastPing?.let {
+                        stringResource(R.string.device_status_with_time, status, relativeTimeBetween(it, now).label())
+                    } ?: status,
                     style = MaterialTheme.typography.bodySmall,
                     color = statusColor,
                     maxLines = 1,

@@ -103,7 +103,7 @@
     <string name="help_faq_expanded">Expanded</string>
     <string name="help_faq_collapsed">Collapsed</string>
     <string name="help_faq_link_tablet_q">How do I link a new tablet?</string>
-    <string name="help_faq_link_tablet_a">In Profile → Devices, tap “Link another device” and enter the 5-character code shown on the tablet. The code expires after 5 minutes.</string>
+    <string name="help_faq_link_tablet_a">In Profile → Devices, tap “Link tablet” and enter the 5-character code shown on the tablet. The code expires after 5 minutes.</string>
     <string name="help_faq_ai_suggestions_q">Where do the AI suggestions come from?</string>
     <string name="help_faq_ai_suggestions_a">They come from what your customers search for on the tablet and from your recent sales: products they couldn\'t find and products that are running out.</string>
     <string name="help_faq_offline_q">Can I use the app without internet?</string>
@@ -146,11 +146,11 @@
     <string name="security_password_never">Never updated</string>
     <string name="security_password_changed">Password updated</string>
     <string name="security_biometric">Sign in with fingerprint</string>
-    <string name="security_biometric_subtitle">Get in without typing your password</string>
+    <string name="security_biometric_subtitle">Sign in without typing your password</string>
     <string name="security_sessions_title">Active sessions</string>
     <string name="security_session_current">%1$s · this device</string>
     <string name="security_session_unknown_device">Unknown device</string>
-    <string name="security_session_last_used">Active %1$s</string>
+    <string name="security_session_last_used">Last used %1$s</string>
     <string name="security_session_close">Close</string>
     <string name="security_session_close_cd">Sign out on %1$s</string>
     <string name="security_sessions_error">We couldn\'t load your sessions</string>
