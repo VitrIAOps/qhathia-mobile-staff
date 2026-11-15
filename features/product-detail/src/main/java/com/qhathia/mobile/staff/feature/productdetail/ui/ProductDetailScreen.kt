@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.qhathia.mobile.staff.core.ui.component.photoPickMessage
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEffect
 import com.qhathia.mobile.staff.feature.productdetail.model.ProductDetailUiEvent
 
@@ -43,6 +44,8 @@ fun ProductDetailScreen(
                 is ProductDetailUiEffect.NavigateBackDeleted -> onDeleted(effect.alreadyDeleted)
                 ProductDetailUiEffect.NavigateBackCancelled -> onBack()
                 ProductDetailUiEffect.NavigateToOrderRequests -> onNavigateToOrderRequests()
+                is ProductDetailUiEffect.ShowPhotoPickResult ->
+                    snackbarHostState.showSnackbar(resources.photoPickMessage(effect.result))
                 is ProductDetailUiEffect.ShowError ->
                     snackbarHostState.showSnackbar(
                         message = resources.getString(effect.messageRes),

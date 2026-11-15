@@ -40,7 +40,7 @@ const val INVENTORY_REGISTERED_PRODUCT_ID_KEY = "inventory_registered_product_id
  * snackbar, plan-limit → message). A registration also hands back the new product's id.
  */
 fun NavGraphBuilder.inventoryGraph(
-    onNavigateToRegister: () -> Unit,
+    onNavigateToRegister: (prefillName: String?) -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
     onNavigateToOrderRequests: () -> Unit,
 ) {

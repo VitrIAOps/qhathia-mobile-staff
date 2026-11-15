@@ -17,6 +17,7 @@ import com.qhathia.mobile.staff.core.domain.usecase.RemoveProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.SaveProductDiscountUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.UpdateProductPhotosUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.UpdateProductUseCase
+import com.qhathia.mobile.staff.core.ui.component.PhotoPickResult
 import com.qhathia.mobile.staff.core.testing.FakeCategoryRepository
 import com.qhathia.mobile.staff.core.testing.FakeProductAiRepository
 import com.qhathia.mobile.staff.core.testing.FakeProductDiscountRepository
@@ -1326,7 +1327,10 @@ class ProductDetailViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(1, mimeType = "image/heic")))
-            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_photos_unsupported), awaitItem())
+            assertEquals(
+                ProductDetailUiEffect.ShowPhotoPickResult(PhotoPickResult(added = 0, notJpgOrPng = 1, overLimit = 0, total = 3)),
+                awaitItem(),
+            )
         }
         assertEquals(3, viewModel.uiState.value.photos.size)
     }
@@ -1340,7 +1344,10 @@ class ProductDetailViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(4)))
-            assertEquals(ProductDetailUiEffect.ShowError(R.string.detail_photos_limit_reached), awaitItem())
+            assertEquals(
+                ProductDetailUiEffect.ShowPhotoPickResult(PhotoPickResult(added = 2, notJpgOrPng = 0, overLimit = 2, total = 10)),
+                awaitItem(),
+            )
         }
         val state = viewModel.uiState.value
         assertEquals(10, state.photos.size)

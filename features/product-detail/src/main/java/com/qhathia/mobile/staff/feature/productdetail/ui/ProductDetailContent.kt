@@ -5,6 +5,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
 import com.qhathia.mobile.staff.core.ui.R as CoreUiR
 import com.qhathia.mobile.staff.feature.productdetail.model.PartialSave
+import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscardChangesDialog
 import com.qhathia.mobile.staff.core.ui.component.QhathiaSavingOverlay
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -37,7 +38,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -236,11 +241,17 @@ private fun EditForm(
     onEvent: (ProductDetailUiEvent) -> Unit,
 ) {
     val enabled = !uiState.isSaving
+    // "Siguiente" on the keyboard: name → price → stock → tags (UX-C-12).
+    val priceFocus = remember { FocusRequester() }
+    val quantityFocus = remember { FocusRequester() }
+    val tagsFocus = remember { FocusRequester() }
+    // "Guardar" sits under the scrolling fields, in view from the start and above the keyboard.
+    Column(modifier = Modifier.fillMaxSize().imePadding()) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .weight(1f)
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .imePadding()
             .padding(Dimens.SpaceLg),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpaceLg),
     ) {
@@ -260,6 +271,7 @@ private fun EditForm(
             onValueChange = { onEvent(ProductDetailUiEvent.NameChanged(it)) },
             enabled = enabled,
             errorRes = uiState.nameError,
+            onNext = { priceFocus.requestFocus() },
         )
         DetailDescriptionField(
             value = uiState.description,
@@ -285,6 +297,8 @@ private fun EditForm(
             onValueChange = { onEvent(ProductDetailUiEvent.PriceChanged(it)) },
             enabled = enabled,
             errorRes = uiState.priceError,
+            onNext = { quantityFocus.requestFocus() },
+            modifier = Modifier.focusRequester(priceFocus),
         )
         Column {
             QhathiaDiscountToggleRow(
@@ -311,8 +325,11 @@ private fun EditForm(
             enabled = enabled,
             errorRes = uiState.quantityError,
             isConsult = uiState.isConsult,
+            onNext = { tagsFocus.requestFocus() },
+            modifier = Modifier.focusRequester(quantityFocus),
         )
         DetailTagsField(
+            modifier = Modifier.focusRequester(tagsFocus),
             value = uiState.tags,
             onValueChange = { onEvent(ProductDetailUiEvent.TagsChanged(it)) },
             enabled = enabled,
@@ -324,18 +341,19 @@ private fun EditForm(
             onClick = { onEvent(ProductDetailUiEvent.PreviewRequested) },
         )
 
-        Spacer(Modifier.height(Dimens.SpaceSm))
-
-        FormActions(
-            isSaveEnabled = uiState.isSaveEnabled,
-            isSaving = uiState.isSaving,
-            onCancel = { onEvent(ProductDetailUiEvent.CancelRequested) },
-            onSave = { onEvent(ProductDetailUiEvent.Save) },
-        )
         DeleteProductAction(
             enabled = !uiState.isSaving && !uiState.isDeleting,
             onClick = { onEvent(ProductDetailUiEvent.DeleteRequested) },
         )
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    FormActions(
+        isSaveEnabled = uiState.isSaveEnabled,
+        isSaving = uiState.isSaving,
+        onCancel = { onEvent(ProductDetailUiEvent.CancelRequested) },
+        onSave = { onEvent(ProductDetailUiEvent.Save) },
+        modifier = Modifier.padding(horizontal = Dimens.SpaceLg),
+    )
     }
 }
 
@@ -434,7 +452,7 @@ private fun FormActions(
             ),
             modifier = Modifier
                 .weight(1.4f)
-                .height(Dimens.ButtonHeight),
+                .heightIn(min = Dimens.ButtonHeight),
         ) {
             if (isSaving) {
                 CircularProgressIndicator(
@@ -449,6 +467,7 @@ private fun FormActions(
     }
 }
 
+/** The shared dialog, with the detail's own message when part of a save already failed. */
 @Composable
 private fun DiscardChangesDialog(
     partialSave: PartialSave?,
@@ -456,25 +475,11 @@ private fun DiscardChangesDialog(
     onDismiss: () -> Unit,
 ) {
     val message = when (partialSave) {
-        PartialSave.DISCOUNT -> R.string.detail_discard_message_partial_discount
-        PartialSave.PHOTOS -> R.string.detail_discard_message_partial_photos
-        null -> R.string.detail_discard_message
+        PartialSave.DISCOUNT -> stringResource(R.string.detail_discard_message_partial_discount)
+        PartialSave.PHOTOS -> stringResource(R.string.detail_discard_message_partial_photos)
+        null -> null
     }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.detail_discard_title)) },
-        text = { Text(stringResource(message)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(stringResource(R.string.detail_discard_confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.detail_discard_dismiss))
-            }
-        },
-    )
+    QhathiaDiscardChangesDialog(onConfirm = onConfirm, onDismiss = onDismiss, message = message)
 }
 
 /**

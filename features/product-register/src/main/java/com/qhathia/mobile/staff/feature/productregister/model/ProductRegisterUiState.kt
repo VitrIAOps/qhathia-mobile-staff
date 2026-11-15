@@ -56,6 +56,19 @@ data class ProductRegisterUiState(
             images.isNotEmpty() &&
             images.size <= MAX_PRODUCT_PHOTOS
 
+    /**
+     * What still blocks "Agregar", in the order the form asks for it, for the line under the button.
+     * Empty when only an in-flight submit blocks it.
+     */
+    val missingForSubmit: List<MissingField>
+        get() = buildList {
+            if (!isValidProductName(name)) add(MissingField.NAME)
+            if (!isValidPrice(price)) add(MissingField.PRICE)
+            if (!isValidQuantity(quantity)) add(MissingField.STOCK)
+            if (selectedCategoryId == null) add(MissingField.CATEGORY)
+            if (images.isEmpty()) add(MissingField.PHOTO)
+        }
+
     /** Another photo fits under the backend's limit. */
     val canAddPhotos: Boolean
         get() = images.size < MAX_PRODUCT_PHOTOS
@@ -108,3 +121,6 @@ data class ProductRegisterUiState(
 /** Splits the free-text tag input into trimmed, non-blank tag values. */
 fun parseTags(input: String): List<String> =
     input.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
+/** A piece of the form that "Agregar" still needs. */
+enum class MissingField { NAME, PRICE, STOCK, CATEGORY, PHOTO }

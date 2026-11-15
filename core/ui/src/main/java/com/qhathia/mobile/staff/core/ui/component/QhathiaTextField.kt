@@ -78,6 +78,7 @@ fun QhathiaTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    maxLines: Int = Int.MAX_VALUE,
     label: String? = null,
     showLabel: Boolean = false,
 ) {
@@ -119,6 +120,7 @@ fun QhathiaTextField(
                 enabled = enabled,
                 singleLine = singleLine,
                 minLines = minLines,
+                maxLines = if (singleLine) 1 else maxLines,
                 interactionSource = interactionSource,
                 textStyle = LocalTextStyle.current.merge(
                     MaterialTheme.typography.bodyMedium.copy(

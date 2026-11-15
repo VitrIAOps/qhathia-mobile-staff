@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Sales summary: period selector labels. -->
     <string name="sales_period_monthly">Mensual</string>
     <string name="sales_period_weekly">Semanal</string>
@@ -46,13 +46,13 @@
     <string name="discount_toggle_label">Descuento</string>
     <!-- %1$s is the percentage ("20") or the amount in soles ("15", "15.50"). -->
     <string name="discount_summary_percentage">Descuento de %1$s%%</string>
-    <string name="discount_summary_amount">Descuento de %1$s soles</string>
+    <string name="discount_summary_amount">Descuento de S/ %1$s</string>
     <string name="discount_edit_cd">Editar descuento</string>
     <string name="discount_dialog_title">Aplicar descuento</string>
     <string name="discount_mode_percentage">Porcentaje</string>
     <string name="discount_mode_amount">Monto</string>
     <string name="discount_percentage_label">Porcentaje de descuento</string>
-    <string name="discount_percentage_placeholder">20%</string>
+    <string name="discount_percentage_placeholder">Ej.: 20</string>
     <string name="discount_amount_label">Monto de descuento</string>
     <string name="discount_amount_placeholder">S/ 0.00</string>
     <string name="discount_quick_option">%1$d%%</string>
@@ -155,4 +155,24 @@
     <string name="discount_toggle_off">Desactivado</string>
     <string name="photo_position_cd">Foto %1$d de %2$d</string>
     <string name="photo_main_suffix_cd">, principal</string>
+
+    <!-- One message after a photo pick (UX-C-03) -->
+    <plurals name="photo_pick_added">
+        <item quantity="one">Se agregó %d foto.</item>
+        <item quantity="other">Se agregaron %d.</item>
+    </plurals>
+    <plurals name="photo_pick_not_jpg_png">
+        <item quantity="one">%d no es JPG ni PNG y no se agregó.</item>
+        <item quantity="other">%d no son JPG ni PNG y no se agregaron.</item>
+    </plurals>
+    <plurals name="photo_pick_over_limit">
+        <item quantity="one">%1$d no entró: ya tienes %2$d fotos.</item>
+        <item quantity="other">%1$d no entraron: ya tienes %2$d fotos.</item>
+    </plurals>
+    <!-- The number is a fixed limit, always plural. -->
+    <string name="photo_pick_limit_reached" tools:ignore="PluralsCandidate">Ya tienes %1$d fotos.</string>
+    <!-- "5 de 10 fotos" under the photos title -->
+    <!-- The number is a fixed limit, always plural. -->
+    <string name="photo_count" tools:ignore="PluralsCandidate">%1$d de %2$d fotos</string>
+    <string name="discount_duration_note">Dura 7 días</string>
 </resources>

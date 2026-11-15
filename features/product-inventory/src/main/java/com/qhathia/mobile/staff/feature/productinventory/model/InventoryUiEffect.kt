@@ -10,7 +10,8 @@ sealed interface InventoryUiEffect {
     data class ShowMessage(@param:StringRes val messageRes: Int) : InventoryUiEffect
 
     /** Navigate to the product registration screen (from the registration FAB). */
-    data object NavigateToRegister : InventoryUiEffect
+    /** Open the registration form, with Nombre set to [prefillName] when it comes from a search. */
+    data class NavigateToRegister(val prefillName: String? = null) : InventoryUiEffect
 
     /** Navigate to the detail/edit screen of the tapped product. Only the id crosses the boundary. */
     data class NavigateToProductDetail(val productId: String) : InventoryUiEffect

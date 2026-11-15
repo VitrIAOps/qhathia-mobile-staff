@@ -13,6 +13,7 @@ import com.qhathia.mobile.staff.core.domain.model.DiscountException
 import com.qhathia.mobile.staff.core.domain.model.ProductDetail
 import com.qhathia.mobile.staff.core.domain.model.ProductUpdate
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
+import com.qhathia.mobile.staff.core.ui.component.PhotoPickResult
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductError
 import com.qhathia.mobile.staff.core.domain.model.UpdateProductException
 import com.qhathia.mobile.staff.core.domain.usecase.DeleteProductUseCase
@@ -287,7 +288,7 @@ class ProductDetailViewModel @Inject constructor(
     /**
      * Adds picked photos to the form as pending. Only JPG and PNG are kept, a photo already on the
      * form is ignored, and only as many as fit under [MAX_PHOTOS] are taken; anything left out is
-     * explained with a message. Nothing is sent until save.
+     * told in one message with what was added. Nothing is sent until save.
      */
     private fun onPhotosPicked(picked: List<SelectedImage>) {
         val current = _uiState.value
@@ -305,10 +306,13 @@ class ProductDetailViewModel @Inject constructor(
                 )
             }
         }
-        when {
-            fresh.size > accepted.size -> emit(ProductDetailUiEffect.ShowError(R.string.detail_photos_limit_reached))
-            unsupported.isNotEmpty() -> emit(ProductDetailUiEffect.ShowError(R.string.detail_photos_unsupported))
-        }
+        val result = PhotoPickResult(
+            added = accepted.size,
+            notJpgOrPng = unsupported.size,
+            overLimit = fresh.size - accepted.size,
+            total = current.photos.size + accepted.size,
+        )
+        if (result.needsMessage) emit(ProductDetailUiEffect.ShowPhotoPickResult(result))
     }
 
     /** Removes a photo from the form; the last one stays, since a product keeps at least one. */

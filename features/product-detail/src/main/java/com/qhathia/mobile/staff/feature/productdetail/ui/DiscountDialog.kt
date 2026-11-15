@@ -48,7 +48,7 @@ internal fun DiscountDialog(
     )
 }
 
-/** "Descuento de 20%" or "Descuento de 15 soles", shown under the discount toggle. */
+/** "Descuento de 20%" or "Descuento de S/ 15", shown under the discount toggle. */
 @Composable
 internal fun Discount.summaryText(): String = stringResource(
     when (type) {

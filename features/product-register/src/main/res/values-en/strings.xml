@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="register_title">Product registration</string>
     <string name="register_back_cd">Back</string>
     <string name="register_bell_cd">View requests</string>
 
     <string name="register_photos_title">Product photos</string>
-    <string name="register_photos_subtitle">The first photo will be the main one. Up to 10 photos.</string>
+    <string name="register_photos_subtitle">The first photo will be the main one.</string>
 
     <string name="register_name_label">Name</string>
-    <string name="register_name_placeholder">E.g. Cordless drill</string>
+    <string name="register_name_placeholder">e.g. Cordless drill</string>
     <string name="register_price_label">Price</string>
     <string name="register_price_placeholder">S/ 0.00</string>
     <string name="register_price_prefix">S/</string>
     <string name="register_quantity_label">Stock</string>
     <string name="register_quantity_placeholder">0</string>
     <string name="register_description_label">Description</string>
-    <string name="register_description_placeholder">E.g. Describe materials, uses and features</string>
+    <string name="register_description_placeholder">Materials, uses and features. e.g. 650 W drill with case</string>
     <string name="register_description_ai">Generate with AI</string>
     <string name="register_description_ai_optimize">Optimize with AI</string>
 
     <string name="register_category_label">Category</string>
     <string name="register_tags_label">Tags</string>
-    <string name="register_tags_placeholder">E.g. Imported, Refurbished, Premium …</string>
+    <string name="register_tags_placeholder">e.g. Imported, Refurbished, Premium…</string>
 
     <string name="register_preview">Preview</string>
     <string name="register_preview_hint">Enter a name, a price and at least one photo to see the preview.</string>
@@ -33,20 +33,15 @@
     <string name="register_retry">Retry</string>
     <string name="register_catalog_error">Couldn\'t load the categories</string>
 
-    <string name="register_error_name">The name is too long</string>
+    <!-- The number is a fixed limit, always plural. -->
+    <string name="register_error_name" tools:ignore="PluralsCandidate">Use at most %1$d characters</string>
     <string name="register_error_price">Enter a valid price greater than zero</string>
     <string name="register_error_quantity">Enter a valid quantity (0 or more)</string>
-    <string name="register_error_image_format">Only JPG or PNG images are allowed</string>
     <string name="register_error_image">Couldn\'t process the image</string>
     <string name="register_error_network">No connection. Try again</string>
     <string name="register_error_validation">Check the details you entered</string>
     <string name="register_error_unknown">Something went wrong. Try again</string>
     <string name="register_error_ai">Couldn\'t generate with AI. Try again</string>
-
-    <string name="register_discard_title">Discard changes?</string>
-    <string name="register_discard_message">If you leave now, all unsaved changes will be lost.</string>
-    <string name="register_discard_confirm">Discard</string>
-    <string name="register_discard_dismiss">Keep editing</string>
 
     <string name="register_ai_replace_title">Replace fields?</string>
     <string name="register_ai_replace_message">AI generation will replace the description, category and tags you already entered.</string>
@@ -54,5 +49,13 @@
     <string name="register_ai_replace_dismiss">Cancel</string>
     <string name="register_discount_over_price">The discount is higher than the price. Edit or remove it.</string>
     <string name="register_discount_removed_over_price">We removed the discount because it is higher than the new price. Check and add again.</string>
-    <string name="register_photos_limit_reached">Only 10 photos can be added; some were left out</string>
+
+    <string name="register_missing_line">To add it, fill in %1$s.</string>
+    <string name="register_missing_join_last">%1$s and %2$s</string>
+    <string name="register_missing_name">the name</string>
+    <string name="register_missing_price">the price</string>
+    <string name="register_missing_stock">the stock</string>
+    <string name="register_missing_category">the category</string>
+    <string name="register_missing_photo">at least one photo</string>
+    <string name="register_ai_needs_photo">Add a photo to generate the description with AI.</string>
 </resources>
