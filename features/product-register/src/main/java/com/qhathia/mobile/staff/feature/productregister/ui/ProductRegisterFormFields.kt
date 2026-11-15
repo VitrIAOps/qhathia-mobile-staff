@@ -14,6 +14,11 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import com.qhathia.mobile.staff.core.common.validation.MAX_PRODUCT_NAME_LENGTH
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.ButtonDefaults
@@ -69,6 +74,7 @@ internal fun RegisterNameField(
     enabled: Boolean,
     errorRes: Int?,
     modifier: Modifier = Modifier,
+    onNext: () -> Unit = {},
 ) {
     LabeledField(label = stringResource(R.string.register_name_label), modifier = modifier) {
         QhathiaTextField(
@@ -78,7 +84,13 @@ internal fun RegisterNameField(
             placeholder = stringResource(R.string.register_name_placeholder),
             enabled = enabled,
             isError = errorRes != null,
-            errorText = errorRes?.let { stringResource(it) },
+            // The only name error is the length one, which names the limit.
+            errorText = errorRes?.let { stringResource(it, MAX_PRODUCT_NAME_LENGTH) },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = ImeAction.Next,
+            ),
+            keyboardActions = KeyboardActions(onNext = { onNext() }),
         )
     }
 }
@@ -93,6 +105,7 @@ internal fun RegisterDescriptionField(
     isAiLoading: Boolean,
     isAiActionEnabled: Boolean,
     modifier: Modifier = Modifier,
+    hasPhoto: Boolean = true,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
         Row(
@@ -123,6 +136,14 @@ internal fun RegisterDescriptionField(
             singleLine = false,
             minLines = 4,
         )
+        // "Generar con IA" reads the first photo; without one it is off, and this says why.
+        if (!isAiActionEnabled && !isAiLoading && !hasPhoto) {
+            Text(
+                text = stringResource(R.string.register_ai_needs_photo),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -177,6 +198,7 @@ internal fun RegisterPriceField(
     enabled: Boolean,
     errorRes: Int?,
     modifier: Modifier = Modifier,
+    onNext: () -> Unit = {},
 ) {
     LabeledField(label = stringResource(R.string.register_price_label), modifier = modifier) {
         QhathiaTextField(
@@ -187,7 +209,8 @@ internal fun RegisterPriceField(
             enabled = enabled,
             isError = errorRes != null,
             errorText = errorRes?.let { stringResource(it) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { onNext() }),
             visualTransformation = PrefixTransformation("${stringResource(R.string.register_price_prefix)} "),
         )
     }
@@ -200,6 +223,7 @@ internal fun RegisterQuantityField(
     enabled: Boolean,
     errorRes: Int?,
     modifier: Modifier = Modifier,
+    onNext: () -> Unit = {},
 ) {
     LabeledField(label = stringResource(R.string.register_quantity_label), modifier = modifier) {
         QhathiaTextField(
@@ -210,7 +234,8 @@ internal fun RegisterQuantityField(
             enabled = enabled,
             isError = errorRes != null,
             errorText = errorRes?.let { stringResource(it) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { onNext() }),
         )
     }
 }
@@ -222,16 +247,24 @@ internal fun RegisterTagsField(
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val focusManager = LocalFocusManager.current
     LabeledField(label = stringResource(R.string.register_tags_label), modifier = modifier) {
         QhathiaTextField(
             label = stringResource(R.string.register_tags_label),
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { onValueChange(it.replace('\n', ' ')) },
             placeholder = stringResource(R.string.register_tags_placeholder),
             enabled = enabled,
+            // Up to three lines, so AI-proposed tags are read whole; a newline is never a tag.
+            singleLine = false,
+            maxLines = TAGS_MAX_LINES,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
         )
     }
 }
+
+private const val TAGS_MAX_LINES = 3
 
 /**
  * Prepends a fixed [prefix] (e.g. the `S/` currency symbol) to the field's text for display. When

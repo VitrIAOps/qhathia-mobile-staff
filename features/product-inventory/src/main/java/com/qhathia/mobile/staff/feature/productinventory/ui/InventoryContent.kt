@@ -33,6 +33,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Button
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -119,7 +121,13 @@ fun InventoryContent(
                     uiState.isError && uiState.loadedProducts.isEmpty() ->
                         ErrorState(onRetry = { onEvent(InventoryUiEvent.Retry) })
                     uiState.visibleProducts.isEmpty() ->
-                        EmptyState()
+                        EmptyState(
+                            searchQuery = uiState.searchQuery.trim(),
+                            hasFilters = uiState.selectedCategoryId != null || uiState.selectedAvailability != null,
+                            onClearSearch = { onEvent(InventoryUiEvent.Search("")) },
+                            onRegisterWithName = { onEvent(InventoryUiEvent.RegisterWithNameClicked(it)) },
+                            onClearFilters = { onEvent(InventoryUiEvent.ClearFiltersClicked) },
+                        )
                     else ->
                         ProductListCard(
                             products = uiState.visibleProducts,
@@ -249,16 +257,56 @@ private fun LoadingState(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Why the list is empty, with a way out (UX-C-11): a search with no match offers clearing it or
+ * registering a product with that name; filters with no match offer removing them; a store with no
+ * products at all points at "+".
+ */
 @Composable
-private fun EmptyState(modifier: Modifier = Modifier) {
+private fun EmptyState(
+    searchQuery: String,
+    hasFilters: Boolean,
+    onClearSearch: () -> Unit,
+    onRegisterWithName: (String) -> Unit,
+    onClearFilters: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     PullableCenter(modifier) {
-        Text(
-            text = stringResource(R.string.inventory_empty),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
             modifier = Modifier.padding(Dimens.SpaceLg),
-        )
+        ) {
+            Text(
+                text = when {
+                    searchQuery.isNotEmpty() -> stringResource(R.string.inventory_empty_search, searchQuery)
+                    hasFilters -> stringResource(R.string.inventory_empty_filters)
+                    else -> stringResource(R.string.inventory_empty)
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            when {
+                searchQuery.isNotEmpty() -> {
+                    OutlinedButton(onClick = onClearSearch, modifier = Modifier.heightIn(min = Dimens.ButtonHeight)) {
+                        Text(stringResource(R.string.inventory_empty_clear_search))
+                    }
+                    Button(
+                        onClick = { onRegisterWithName(searchQuery) },
+                        modifier = Modifier.heightIn(min = Dimens.ButtonHeight),
+                    ) {
+                        Text(stringResource(R.string.inventory_empty_register_named, searchQuery))
+                    }
+                }
+                hasFilters -> OutlinedButton(
+                    onClick = onClearFilters,
+                    modifier = Modifier.heightIn(min = Dimens.ButtonHeight),
+                ) {
+                    Text(stringResource(R.string.inventory_empty_clear_filters))
+                }
+            }
+        }
     }
 }
 

@@ -48,7 +48,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun InventoryScreen(
-    onNavigateToRegister: () -> Unit,
+    onNavigateToRegister: (prefillName: String?) -> Unit,
     onNavigateToProductDetail: (String) -> Unit,
     onNavigateToOrderRequests: () -> Unit,
     registerResult: String?,
@@ -77,7 +77,7 @@ fun InventoryScreen(
                     snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
                 is InventoryUiEffect.ShowMessage ->
                     snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
-                InventoryUiEffect.NavigateToRegister -> onNavigateToRegister()
+                is InventoryUiEffect.NavigateToRegister -> onNavigateToRegister(effect.prefillName)
                 is InventoryUiEffect.NavigateToProductDetail ->
                     onNavigateToProductDetail(effect.productId)
                 is InventoryUiEffect.ScrollToProduct ->

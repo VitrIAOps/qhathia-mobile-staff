@@ -43,7 +43,8 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
 /**
- * DS "Aplicar descuento" dialog: the original price struck through above the resulting price, a
+ * DS "Aplicar descuento" dialog: the resulting price (with the original struck through above it once
+ * the value lowers it), a
  * Porcentaje / Monto selector, the value input (with quick percentage options in percentage mode)
  * and the Cancelar / Aplicar actions.
  *
@@ -94,14 +95,18 @@ fun QhathiaDiscountDialog(
 
                 Spacer(Modifier.height(Dimens.SpaceLg))
 
-                val originalPriceCd = stringResource(R.string.discount_original_price_cd, originalPrice.toPenPrice())
-                Text(
-                    text = originalPrice.toPenPrice(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textDecoration = TextDecoration.LineThrough,
-                    modifier = Modifier.semantics { contentDescription = originalPriceCd },
-                )
+                // Struck through only once the value actually lowers the price: before that a crossed
+                // price reads as a discount that is not there yet (UX-C-13).
+                if (resultingPrice < originalPrice) {
+                    val originalPriceCd = stringResource(R.string.discount_original_price_cd, originalPrice.toPenPrice())
+                    Text(
+                        text = originalPrice.toPenPrice(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textDecoration = TextDecoration.LineThrough,
+                        modifier = Modifier.semantics { contentDescription = originalPriceCd },
+                    )
+                }
                 val resultingPriceCd = stringResource(R.string.discount_resulting_price_cd, resultingPrice.toPenPrice())
                 Text(
                     text = resultingPrice.toPenPrice(),
@@ -154,6 +159,12 @@ fun QhathiaDiscountDialog(
                             keyboardType = if (isPercentage) KeyboardType.Number else KeyboardType.Decimal,
                             imeAction = ImeAction.Done,
                         ),
+                    )
+                    // The backend keeps a discount for a week; it is not chosen here (decision 2026-11-08).
+                    Text(
+                        text = stringResource(R.string.discount_duration_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
@@ -236,8 +247,9 @@ private fun QuickPercentageOption(
         shape = RoundedCornerShape(Dimens.FieldRadius),
         border = BorderStroke(1.dp, if (selected) colors.primary else colors.outline),
         colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = if (selected) colors.primaryContainer else colors.surface,
-            contentColor = if (selected) colors.onPrimaryContainer else colors.onSurface,
+            // Navy with white text, never Material's tinted container (UX-C-13).
+            containerColor = if (selected) colors.primary else colors.surface,
+            contentColor = if (selected) colors.onPrimary else colors.onSurface,
         ),
         modifier = modifier.heightIn(min = Dimens.FieldHeight),
     ) {

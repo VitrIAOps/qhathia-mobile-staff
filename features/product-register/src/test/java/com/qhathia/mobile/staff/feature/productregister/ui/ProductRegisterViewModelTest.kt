@@ -15,6 +15,7 @@ import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.OptimizeDescriptionUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.RegisterProductUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.SaveProductDiscountUseCase
+import com.qhathia.mobile.staff.core.ui.component.PhotoPickResult
 import com.qhathia.mobile.staff.core.testing.FakeCategoryRepository
 import com.qhathia.mobile.staff.core.testing.FakeProductAiRepository
 import com.qhathia.mobile.staff.core.testing.FakeProductDiscountRepository
@@ -231,14 +232,17 @@ class ProductRegisterViewModelTest {
     }
 
     @Test
-    fun `unsupported image format emits ShowError and is not added`() = runTest {
+    fun `unsupported image format is explained and not added`() = runTest {
         val viewModel = createViewModel()
 
         viewModel.uiEffect.test {
             viewModel.onEvent(
                 ProductRegisterUiEvent.ImagesPicked(listOf(SelectedImage("content://x", "image/gif"))),
             )
-            assertTrue(awaitItem() is ProductRegisterUiEffect.ShowError)
+            assertEquals(
+                ProductRegisterUiEffect.ShowPhotoPickResult(PhotoPickResult(added = 0, notJpgOrPng = 1, overLimit = 0, total = 0)),
+                awaitItem(),
+            )
             cancelAndIgnoreRemainingEvents()
         }
         assertTrue(viewModel.uiState.value.images.isEmpty())
@@ -862,7 +866,10 @@ class ProductRegisterViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductRegisterUiEvent.ImagesPicked(eleven))
-            assertEquals(ProductRegisterUiEffect.ShowError(R.string.register_photos_limit_reached), awaitItem())
+            assertEquals(
+                ProductRegisterUiEffect.ShowPhotoPickResult(PhotoPickResult(added = 10, notJpgOrPng = 0, overLimit = 1, total = 10)),
+                awaitItem(),
+            )
         }
         assertEquals(10, viewModel.uiState.value.images.size)
         assertFalse(viewModel.uiState.value.canAddPhotos)
@@ -875,8 +882,37 @@ class ProductRegisterViewModelTest {
 
         viewModel.uiEffect.test {
             viewModel.onEvent(ProductRegisterUiEvent.ImagesPicked(listOf(SelectedImage("content://p/11", "image/png"))))
-            assertEquals(ProductRegisterUiEffect.ShowError(R.string.register_photos_limit_reached), awaitItem())
+            assertEquals(
+                ProductRegisterUiEffect.ShowPhotoPickResult(PhotoPickResult(added = 0, notJpgOrPng = 0, overLimit = 1, total = 10)),
+                awaitItem(),
+            )
         }
         assertEquals(10, viewModel.uiState.value.images.size)
+    }
+
+    @Test
+    fun `valid and invalid photos together get one message with both counts`() = runTest {
+        val viewModel = createViewModel()
+        val valid = (1..5).map { SelectedImage("content://ok/$it", "image/jpeg") }
+        val invalid = (1..3).map { SelectedImage("content://bad/$it", "image/webp") }
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.ImagesPicked(valid + invalid))
+            assertEquals(
+                ProductRegisterUiEffect.ShowPhotoPickResult(PhotoPickResult(added = 5, notJpgOrPng = 3, overLimit = 0, total = 5)),
+                awaitItem(),
+            )
+        }
+        assertEquals(5, viewModel.uiState.value.images.size)
+    }
+
+    @Test
+    fun `a pick that fits needs no message`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductRegisterUiEvent.ImagesPicked(listOf(SelectedImage("content://ok/1", "image/png"))))
+            expectNoEvents()
+        }
     }
 }

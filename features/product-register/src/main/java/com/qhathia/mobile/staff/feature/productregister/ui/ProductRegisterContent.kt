@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +19,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -28,6 +29,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -36,6 +39,7 @@ import com.qhathia.mobile.staff.core.domain.model.Discount
 import com.qhathia.mobile.staff.core.domain.model.DiscountDraft
 import com.qhathia.mobile.staff.core.domain.model.DiscountType
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
+import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscardChangesDialog
 import com.qhathia.mobile.staff.core.ui.component.QhathiaDiscountToggleRow
 import com.qhathia.mobile.staff.core.ui.component.QhathiaSavingOverlay
 import com.qhathia.mobile.staff.core.ui.component.productpreview.QhathiaProductPreviewDialog
@@ -43,6 +47,7 @@ import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.productregister.R
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEvent
+import com.qhathia.mobile.staff.feature.productregister.model.MissingField
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiState
 import com.qhathia.mobile.staff.feature.productregister.model.toPreviewData
 import kotlinx.collections.immutable.persistentListOf
@@ -60,6 +65,10 @@ fun ProductRegisterContent(
     modifier: Modifier = Modifier,
 ) {
     val enabled = !uiState.isSubmitting
+    // "Siguiente" on the keyboard: name → price → stock → tags (UX-C-12).
+    val priceFocus = remember { FocusRequester() }
+    val quantityFocus = remember { FocusRequester() }
+    val tagsFocus = remember { FocusRequester() }
 
     Box(
         modifier = modifier
@@ -87,11 +96,14 @@ fun ProductRegisterContent(
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 2.dp,
             ) {
+                // The actions sit under the scrolling fields, so "Agregar" is in view from the start
+                // and rides above the keyboard (UX-C-12).
+                Column(modifier = Modifier.fillMaxSize().imePadding()) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f)
+                        .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .imePadding()
                         .padding(Dimens.SpaceLg),
                     verticalArrangement = Arrangement.spacedBy(Dimens.SpaceLg),
                 ) {
@@ -107,6 +119,7 @@ fun ProductRegisterContent(
                         onValueChange = { onEvent(ProductRegisterUiEvent.NameChanged(it)) },
                         enabled = enabled,
                         errorRes = uiState.nameError,
+                        onNext = { priceFocus.requestFocus() },
                     )
                     RegisterDescriptionField(
                         value = uiState.description,
@@ -116,6 +129,7 @@ fun ProductRegisterContent(
                         isOptimizeMode = uiState.isOptimizeMode,
                         isAiLoading = uiState.isAiLoading,
                         isAiActionEnabled = uiState.isAiActionEnabled,
+                        hasPhoto = uiState.images.isNotEmpty(),
                     )
                     LabeledField(label = stringResource(R.string.register_category_label)) {
                         CategorySelector(
@@ -133,6 +147,8 @@ fun ProductRegisterContent(
                         onValueChange = { onEvent(ProductRegisterUiEvent.PriceChanged(it)) },
                         enabled = enabled,
                         errorRes = uiState.priceError,
+                        onNext = { quantityFocus.requestFocus() },
+                        modifier = Modifier.focusRequester(priceFocus),
                     )
                     QhathiaDiscountToggleRow(
                         checked = uiState.discount != null || uiState.discountDraft != null,
@@ -152,8 +168,11 @@ fun ProductRegisterContent(
                         onValueChange = { onEvent(ProductRegisterUiEvent.QuantityChanged(it)) },
                         enabled = enabled,
                         errorRes = uiState.quantityError,
+                        onNext = { tagsFocus.requestFocus() },
+                        modifier = Modifier.focusRequester(quantityFocus),
                     )
                     RegisterTagsField(
+                        modifier = Modifier.focusRequester(tagsFocus),
                         value = uiState.tags,
                         onValueChange = { onEvent(ProductRegisterUiEvent.TagsChanged(it)) },
                         enabled = enabled,
@@ -165,14 +184,16 @@ fun ProductRegisterContent(
                         onClick = { onEvent(ProductRegisterUiEvent.PreviewRequested) },
                     )
 
-                    Spacer(Modifier.height(Dimens.SpaceSm))
-
-                    FormActions(
-                        isSubmitEnabled = uiState.isSubmitEnabled,
-                        isSubmitting = uiState.isSubmitting,
-                        onCancel = { onEvent(ProductRegisterUiEvent.CancelRequested) },
-                        onSubmit = { onEvent(ProductRegisterUiEvent.Submit) },
-                    )
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                FormActions(
+                    isSubmitEnabled = uiState.isSubmitEnabled,
+                    isSubmitting = uiState.isSubmitting,
+                    missing = if (uiState.isSubmitting) emptyList() else uiState.missingForSubmit,
+                    onCancel = { onEvent(ProductRegisterUiEvent.CancelRequested) },
+                    onSubmit = { onEvent(ProductRegisterUiEvent.Submit) },
+                    modifier = Modifier.padding(horizontal = Dimens.SpaceLg, vertical = Dimens.SpaceSm),
+                )
                 }
             }
         }
@@ -180,7 +201,7 @@ fun ProductRegisterContent(
         if (uiState.isSubmitting) QhathiaSavingOverlay()
 
         if (uiState.showDiscardDialog) {
-            DiscardChangesDialog(
+            QhathiaDiscardChangesDialog(
                 onConfirm = { onEvent(ProductRegisterUiEvent.ConfirmDiscard) },
                 onDismiss = { onEvent(ProductRegisterUiEvent.DismissDiscard) },
             )
@@ -254,8 +275,57 @@ private fun PreviewAction(
     }
 }
 
+/** "Cancelar" and "Agregar", fixed under the form, with what is [missing] while "Agregar" is off. */
 @Composable
 private fun FormActions(
+    isSubmitEnabled: Boolean,
+    isSubmitting: Boolean,
+    missing: List<MissingField>,
+    onCancel: () -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs)) {
+        FormActionButtons(isSubmitEnabled, isSubmitting, onCancel, onSubmit)
+        if (missing.isNotEmpty()) {
+            Text(
+                text = missingFieldsLine(missing),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/** "Para agregar, completa nombre, precio y al menos una foto." */
+@Composable
+private fun missingFieldsLine(missing: List<MissingField>): String {
+    val parts = missing.map {
+        stringResource(
+            when (it) {
+                MissingField.NAME -> R.string.register_missing_name
+                MissingField.PRICE -> R.string.register_missing_price
+                MissingField.STOCK -> R.string.register_missing_stock
+                MissingField.CATEGORY -> R.string.register_missing_category
+                MissingField.PHOTO -> R.string.register_missing_photo
+            },
+        )
+    }
+    val joined = if (parts.size == 1) {
+        parts.single()
+    } else {
+        stringResource(
+            R.string.register_missing_join_last,
+            parts.dropLast(1).joinToString(", "),
+            parts.last(),
+        )
+    }
+    return stringResource(R.string.register_missing_line, joined)
+}
+
+@Composable
+private fun FormActionButtons(
     isSubmitEnabled: Boolean,
     isSubmitting: Boolean,
     onCancel: () -> Unit,
@@ -263,9 +333,7 @@ private fun FormActions(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = Dimens.SpaceSm),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -286,7 +354,7 @@ private fun FormActions(
             ),
             modifier = Modifier
                 .weight(1.4f)
-                .height(Dimens.ButtonHeight),
+                .heightIn(min = Dimens.ButtonHeight),
         ) {
             if (isSubmitting) {
                 CircularProgressIndicator(
@@ -299,28 +367,6 @@ private fun FormActions(
             }
         }
     }
-}
-
-@Composable
-private fun DiscardChangesDialog(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.register_discard_title)) },
-        text = { Text(stringResource(R.string.register_discard_message)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(stringResource(R.string.register_discard_confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.register_discard_dismiss))
-            }
-        },
-    )
 }
 
 @Composable

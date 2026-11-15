@@ -39,7 +39,7 @@ import javax.inject.Inject
  * product count is derived from the visible list in [InventoryUiState].
  *
  * A row's actions menu edits that product's discount in place. Opening the menu looks up whether
- * the product has one, so the option reads "Registrar descuento" or "Editar descuento"; choosing
+ * the product has one, so the option reads "Agregar descuento" or "Editar descuento"; choosing
  * it opens the dialog prefilled, and applying saves it straight away. The same menu deletes the
  * product, after a confirmation, since the delete cannot be undone.
  */
@@ -113,7 +113,15 @@ class InventoryViewModel @Inject constructor(
                     )
                 }
             InventoryUiEvent.RegisterProductClicked ->
-                viewModelScope.launch { _uiEffect.emit(InventoryUiEffect.NavigateToRegister) }
+                viewModelScope.launch { _uiEffect.emit(InventoryUiEffect.NavigateToRegister()) }
+            is InventoryUiEvent.RegisterWithNameClicked ->
+                viewModelScope.launch {
+                    _uiEffect.emit(InventoryUiEffect.NavigateToRegister(event.name.trim().takeIf { it.isNotEmpty() }))
+                }
+            InventoryUiEvent.ClearFiltersClicked -> {
+                _uiState.update { it.copy(selectedCategoryId = null, selectedAvailability = null) }
+                loadProducts()
+            }
             is InventoryUiEvent.ProductClicked ->
                 viewModelScope.launch {
                     _uiEffect.emit(InventoryUiEffect.NavigateToProductDetail(event.productId))

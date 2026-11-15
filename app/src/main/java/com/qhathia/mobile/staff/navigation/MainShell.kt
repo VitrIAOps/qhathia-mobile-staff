@@ -222,7 +222,7 @@ fun MainShell(
             )
             salesStatisticsGraph(onBack = { navController.popIfOn(SALES_STATISTICS_ROUTE) })
             inventoryGraph(
-                onNavigateToRegister = { navController.navigateOnce(productRegisterRoute()) },
+                onNavigateToRegister = { name -> navController.navigateOnce(productRegisterRoute(name)) },
                 onNavigateToProductDetail = { id -> navController.navigateOnce(productDetailRoute(id)) },
                 onNavigateToOrderRequests = { switchTab(ORDER_REQUESTS_ROUTE) },
             )

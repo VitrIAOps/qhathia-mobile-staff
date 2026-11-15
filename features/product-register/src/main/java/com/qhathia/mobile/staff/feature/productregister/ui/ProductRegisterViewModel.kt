@@ -13,6 +13,7 @@ import com.qhathia.mobile.staff.core.domain.model.ProductDraft
 import com.qhathia.mobile.staff.core.domain.model.RegisterProductError
 import com.qhathia.mobile.staff.core.domain.model.RegisterProductException
 import com.qhathia.mobile.staff.core.domain.model.SelectedImage
+import com.qhathia.mobile.staff.core.ui.component.PhotoPickResult
 import com.qhathia.mobile.staff.core.domain.usecase.DraftProductFromImageUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.GetCategoriesUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.OptimizeDescriptionUseCase
@@ -183,7 +184,7 @@ class ProductRegisterViewModel @Inject constructor(
 
     /**
      * Adds the picked photos: only JPG and PNG, no duplicates, and only as many as fit under
-     * [MAX_PRODUCT_PHOTOS]. Anything left out is explained with a message (the format first).
+     * [MAX_PRODUCT_PHOTOS]. What was added and what was left out is told in one message.
      */
     private fun onImagesPicked(picked: List<SelectedImage>) {
         if (_uiState.value.isSubmitting) return
@@ -198,10 +199,13 @@ class ProductRegisterViewModel @Inject constructor(
                 state.copy(images = (state.images + accepted).toImmutableList(), isDirty = true)
             }
         }
-        when {
-            invalid.isNotEmpty() -> emit(ProductRegisterUiEffect.ShowError(R.string.register_error_image_format))
-            fresh.size > accepted.size -> emit(ProductRegisterUiEffect.ShowError(R.string.register_photos_limit_reached))
-        }
+        val result = PhotoPickResult(
+            added = accepted.size,
+            notJpgOrPng = invalid.size,
+            overLimit = fresh.size - accepted.size,
+            total = current.size + accepted.size,
+        )
+        if (result.needsMessage) emit(ProductRegisterUiEffect.ShowPhotoPickResult(result))
     }
 
     private fun onRemoveImage(uri: String) {

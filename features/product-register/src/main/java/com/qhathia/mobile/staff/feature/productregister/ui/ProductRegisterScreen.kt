@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.qhathia.mobile.staff.core.ui.component.photoPickMessage
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEffect
 import com.qhathia.mobile.staff.feature.productregister.model.ProductRegisterUiEvent
 
@@ -48,6 +49,8 @@ fun ProductRegisterScreen(
                 ProductRegisterUiEffect.NavigateToOrderRequests -> onNavigateToOrderRequests()
                 is ProductRegisterUiEffect.ShowError ->
                     snackbarHostState.showSnackbar(resources.getString(effect.messageRes))
+                is ProductRegisterUiEffect.ShowPhotoPickResult ->
+                    snackbarHostState.showSnackbar(resources.photoPickMessage(effect.result))
             }
         }
     }

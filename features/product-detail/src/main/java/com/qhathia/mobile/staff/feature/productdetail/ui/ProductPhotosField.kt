@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.qhathia.mobile.staff.core.ui.R as CoreUiR
+import com.qhathia.mobile.staff.feature.productdetail.model.MAX_PHOTOS
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,8 +28,7 @@ import kotlinx.collections.immutable.toImmutableList
 
 /**
  * The product's photos on the edit form: the shared strip (saved photos and pending picks, primary
- * first) plus a hint when a limit applies — "Máximo 10 fotos" when full, and "El producto necesita
- * al menos una foto" when only one is left and it cannot be removed. A legacy product with no photos
+ * first) plus a hint when a limit applies — "Máximo 10 fotos" when full, and "Es la única foto…" when only one is left and it cannot be removed. A legacy product with no photos
  * keeps its explanatory placeholder above the "Agregar" tile.
  */
 @Composable
@@ -43,6 +44,11 @@ internal fun ProductPhotosField(
     val tiles = remember(photos) { photos.map { PhotoTile(key = it.key, model = it.model) }.toImmutableList() }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
         if (photos.isEmpty()) EmptyPhotos()
+        Text(
+            text = stringResource(CoreUiR.string.photo_count, photos.size, MAX_PHOTOS),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         QhathiaPhotoStrip(
             photos = tiles,
             onPick = { picked -> onPick(picked.map { SelectedImage(uri = it.uri, mimeType = it.mimeType) }) },
@@ -50,6 +56,7 @@ internal fun ProductPhotosField(
             enabled = enabled,
             canAdd = canAdd,
             canRemove = canRemove,
+            remainingSlots = MAX_PHOTOS - photos.size,
         )
         val hint = when {
             !canAdd -> R.string.detail_photos_max_hint

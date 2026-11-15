@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Sales summary: period selector labels. -->
     <string name="sales_period_monthly">Monthly</string>
     <string name="sales_period_weekly">Weekly</string>
@@ -39,13 +39,13 @@
     <!-- Product discount: toggle row and "Apply discount" dialog -->
     <string name="discount_toggle_label">Discount</string>
     <string name="discount_summary_percentage">%1$s%% discount</string>
-    <string name="discount_summary_amount">%1$s soles discount</string>
+    <string name="discount_summary_amount">S/ %1$s discount</string>
     <string name="discount_edit_cd">Edit discount</string>
     <string name="discount_dialog_title">Apply discount</string>
     <string name="discount_mode_percentage">Percentage</string>
     <string name="discount_mode_amount">Amount</string>
     <string name="discount_percentage_label">Discount percentage</string>
-    <string name="discount_percentage_placeholder">20%</string>
+    <string name="discount_percentage_placeholder">e.g. 20</string>
     <string name="discount_amount_label">Discount amount</string>
     <string name="discount_amount_placeholder">S/ 0.00</string>
     <string name="discount_quick_option">%1$d%%</string>
@@ -127,4 +127,23 @@
     <string name="discount_toggle_off">Off</string>
     <string name="photo_position_cd">Photo %1$d of %2$d</string>
     <string name="photo_main_suffix_cd">, main</string>
+
+    <!-- One message after a photo pick (UX-C-03) -->
+    <plurals name="photo_pick_added">
+        <item quantity="one">%d photo added.</item>
+        <item quantity="other">%d added.</item>
+    </plurals>
+    <plurals name="photo_pick_not_jpg_png">
+        <item quantity="one">%d is not JPG or PNG and wasn\'t added.</item>
+        <item quantity="other">%d are not JPG or PNG and weren\'t added.</item>
+    </plurals>
+    <plurals name="photo_pick_over_limit">
+        <item quantity="one">%1$d didn\'t fit: you already have %2$d photos.</item>
+        <item quantity="other">%1$d didn\'t fit: you already have %2$d photos.</item>
+    </plurals>
+    <!-- The number is a fixed limit, always plural. -->
+    <string name="photo_pick_limit_reached" tools:ignore="PluralsCandidate">You already have %1$d photos.</string>
+    <!-- The number is a fixed limit, always plural. -->
+    <string name="photo_count" tools:ignore="PluralsCandidate">%1$d of %2$d photos</string>
+    <string name="discount_duration_note">Lasts 7 days</string>
 </resources>

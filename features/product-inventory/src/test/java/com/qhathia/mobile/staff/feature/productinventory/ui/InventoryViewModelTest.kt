@@ -899,4 +899,27 @@ class InventoryViewModelTest {
         assertEquals(2, viewModel.uiState.value.productCount)
         assertFalse(viewModel.uiState.value.isRefreshing)
     }
+
+    @Test
+    fun `Registrar on an empty search opens the form with that name`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.uiEffect.test {
+            viewModel.onEvent(InventoryUiEvent.RegisterWithNameClicked("  zzqx "))
+            assertEquals(InventoryUiEffect.NavigateToRegister(prefillName = "zzqx"), awaitItem())
+        }
+    }
+
+    @Test
+    fun `Quitar filtros clears category and availability and re-queries`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.SelectCategory("c2"))
+        viewModel.onEvent(InventoryUiEvent.SelectAvailability(Availability.LOW_STOCK))
+
+        viewModel.onEvent(InventoryUiEvent.ClearFiltersClicked)
+
+        assertNull(viewModel.uiState.value.selectedCategoryId)
+        assertNull(viewModel.uiState.value.selectedAvailability)
+        assertNull(productRepository.lastCategoryId)
+    }
 }
