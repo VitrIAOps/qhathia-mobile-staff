@@ -38,15 +38,15 @@
     <string name="menu_settings_subtitle">Idioma de la app</string>
     <string name="menu_devices_title">Dispositivos</string>
     <plurals name="menu_devices_linked">
-        <item quantity="one">%d vinculada</item>
-        <item quantity="other">%d vinculadas</item>
+        <item quantity="one">%d tablet vinculada</item>
+        <item quantity="other">%d tablets vinculadas</item>
     </plurals>
     <plurals name="menu_devices_connected">
-        <item quantity="one">%d activa</item>
-        <item quantity="other">%d activas</item>
+        <item quantity="one">%d conectada</item>
+        <item quantity="other">%d conectadas</item>
     </plurals>
-    <!-- "5 vinculadas (1 activa)": "tablet" is feminine. %1$s linked, %2$s connected. -->
-    <string name="menu_devices_summary">%1$s (%2$s)</string>
+    <!-- "5 tablets vinculadas · 1 conectada": "tablet" is feminine. %1$s linked, %2$s connected. -->
+    <string name="menu_devices_summary">%1$s · %2$s</string>
     <string name="menu_devices_fallback">Tus tablets vitrina</string>
     <string name="menu_help_title">Ayuda</string>
     <string name="menu_help_subtitle">Preguntas frecuentes y guías</string>
@@ -54,7 +54,7 @@
     <!-- Subscription -->
     <string name="subscription_title">Mi suscripción</string>
     <string name="subscription_plan_badge">PLAN %1$s</string>
-    <string name="subscription_status_active">Activo</string>
+    <string name="subscription_status_active">Activa</string>
     <string name="subscription_status_cancelled">Cancelada</string>
     <string name="subscription_status_expired">Vencida</string>
     <string name="subscription_price_monthly">%1$s al mes</string>
@@ -86,7 +86,7 @@
     <string name="personal_change_photo_cd">Cambiar foto, próximamente</string>
     <string name="personal_full_name">Nombre completo</string>
     <string name="personal_email">Correo</string>
-    <string name="personal_phone">Teléfono</string>
+    <string name="personal_phone">Celular</string>
     <string name="personal_error">No pudimos cargar tus datos</string>
     <string name="personal_save">Guardar cambios</string>
     <string name="personal_saved">Datos actualizados</string>
@@ -112,7 +112,7 @@
     <string name="help_faq_offline_q">¿Puedo usar la app sin internet?</string>
     <string name="help_faq_offline_a">Necesitas internet para ver pedidos y actualizar tu inventario. La tablet guarda su catálogo y lo sigue mostrando si pierde la conexión por un rato.</string>
     <string name="help_faq_prices_q">¿Cómo cambio los precios que ve el cliente?</string>
-    <string name="help_faq_prices_a">Edita el producto desde Inventario. La tablet recibe el nuevo precio en su siguiente sincronización, o de inmediato con «Actualizar catálogo» en Dispositivos.</string>
+    <string name="help_faq_prices_a">Edita el producto desde Inventario. La tablet recibe el nuevo precio cuando la tablet se actualice, o de inmediato con «Actualizar catálogo» en Dispositivos.</string>
     <string name="help_guides_title">Guías rápidas</string>
     <string name="help_guide_first_steps">Primeros pasos con tu tablet vitrina</string>
     <string name="help_guide_combos">Cómo armar combos que se venden</string>
@@ -169,7 +169,7 @@
     <string name="biometric_prompt_negative">Cancelar</string>
     <string name="biometric_not_enrolled_title">Configura tu huella</string>
     <string name="biometric_not_enrolled_message">Configura tu huella en los ajustes del equipo para usar esta opción</string>
-    <string name="biometric_open_settings">Abrir ajustes</string>
+    <string name="biometric_open_settings">Abrir ajustes del teléfono</string>
     <string name="biometric_not_now">Ahora no</string>
     <string name="biometric_not_available_message">Tu equipo no tiene lector de huella disponible</string>
     <string name="biometric_ok">Entendido</string>
