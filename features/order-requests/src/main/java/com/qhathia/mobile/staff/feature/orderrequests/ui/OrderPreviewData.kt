@@ -41,6 +41,7 @@ internal fun previewOrderItem(
     quantity: Int = 1,
     productStock: Int? = 12,
     productImageUrl: String? = null,
+    listPrice: Double? = null,
 ) = OrderItem(
     id = id,
     productId = "product-$id",
@@ -51,6 +52,7 @@ internal fun previewOrderItem(
     productStock = productStock,
     productAvailability = Availability.AVAILABLE,
     productImageUrl = productImageUrl,
+    listPrice = listPrice,
 )
 
 internal fun previewOrderDetail(
@@ -60,6 +62,8 @@ internal fun previewOrderDetail(
     order = previewOrder(total = 150.0, status = status, expiresIn = expiresIn),
     items = listOf(
         previewOrderItem(id = "item-1"),
+        // A discounted line: quantity, price and struck list price must each stay whole (S17-01).
+        previewOrderItem(id = "item-5", unitPrice = 60.0, listPrice = 80.0),
         // The low-stock variant: a tracked stock at or below the warning threshold.
         previewOrderItem(id = "item-2", productStock = 2),
         // The sold-out variant: zero reads "Agotado", not "Pocas unidades".

@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
+import androidx.compose.foundation.layout.FlowRow
 import com.qhathia.mobile.staff.core.common.format.toPenPrice
 import com.qhathia.mobile.staff.feature.orderrequests.model.SubmitError
 import androidx.compose.ui.text.style.TextDecoration
@@ -343,6 +344,19 @@ private fun OrderItemRow(
             horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
         ) {
             OrderItemThumbnail(imageUrl = item.productImageUrl)
+            // From font 1.5 the line total goes under the line's details: beside them it left the name so
+            // little width that it broke into letters ("Amolad-ora").
+            val totalBelow = LocalDensity.current.fontScale >= LineTotalBelowFontScale
+            val lineTotal: @Composable () -> Unit = {
+                Text(
+                    text = item.lineTotal.toPenPrice(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.onSurface,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.productName,
@@ -361,11 +375,25 @@ private fun OrderItemRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd)) {
+                // Quantity first, it is what the merchant prepares. The pieces wrap whole: in a plain Row
+                // a discounted line left "1 und" almost no width and it broke letter by letter (S17-01).
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
+                ) {
+                    Text(
+                        text = stringResource(R.string.order_item_quantity, item.quantity),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
                     Text(
                         text = item.unitPrice.toPenPrice(),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                     // Charged below its list price: the discount the customer got.
                     val listPrice = item.listPrice
@@ -378,21 +406,14 @@ private fun OrderItemRow(
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant,
                             textDecoration = TextDecoration.LineThrough,
+                            maxLines = 1,
+                            softWrap = false,
                         )
                     }
-                    Text(
-                        text = stringResource(R.string.order_item_quantity, item.quantity),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                    )
                 }
+                if (totalBelow) lineTotal()
             }
-            Text(
-                text = item.lineTotal.toPenPrice(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = colors.onSurface,
-            )
+            if (!totalBelow) lineTotal()
         }
 
         // Null stock means a consult-mode product: nothing is tracked, so nothing is warned about.
@@ -575,10 +596,15 @@ private fun OrderDetail?.dialogTitle(): String {
     }
 }
 
+/** From this font scale an item's line total goes under its details. */
+private const val LineTotalBelowFontScale = 1.5f
+
 // ---- Previews ----
 
 @Preview(name = "Order detail — light", showBackground = true)
 @Preview(name = "Order detail — dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Order detail — font 1.3", showBackground = true, fontScale = 1.3f)
+@Preview(name = "Order detail — font 2.0", showBackground = true, fontScale = 2f)
 @Composable
 private fun OrderDetailDialogPreview() {
     QhathiaTheme {
