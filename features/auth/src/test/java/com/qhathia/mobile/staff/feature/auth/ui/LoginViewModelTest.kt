@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.auth.ui
 
+import com.qhathia.mobile.staff.core.testing.FakeAuthTokenCache
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.model.LoginError
 import com.qhathia.mobile.staff.core.domain.model.LoginException
@@ -35,7 +36,7 @@ class LoginViewModelTest {
     fun setUp() {
         authRepository = FakeAuthRepository()
         sessionRepository = FakeSessionRepository()
-        viewModel = LoginViewModel(LoginUseCase(authRepository, sessionRepository))
+        viewModel = LoginViewModel(LoginUseCase(authRepository, sessionRepository, FakeAuthTokenCache()))
     }
 
     private fun enterValidCredentials() {

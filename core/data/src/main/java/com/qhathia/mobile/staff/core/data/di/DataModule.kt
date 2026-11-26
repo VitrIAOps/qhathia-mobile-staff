@@ -33,10 +33,12 @@ import com.qhathia.mobile.staff.core.data.repository.OrderRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.ProductAiRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.ProductDiscountRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.ProductRepositoryImpl
+import com.qhathia.mobile.staff.core.data.repository.KtorBearerTokenCache
 import com.qhathia.mobile.staff.core.data.repository.SessionAuthTokenProvider
 import com.qhathia.mobile.staff.core.data.repository.SessionRepositoryImpl
 import com.qhathia.mobile.staff.core.data.repository.StoreInsightsRepositoryImpl
 import com.qhathia.mobile.staff.core.domain.repository.AuthRepository
+import com.qhathia.mobile.staff.core.domain.repository.AuthTokenCache
 import com.qhathia.mobile.staff.core.domain.repository.CategoryRepository
 import com.qhathia.mobile.staff.core.domain.repository.DeviceRepository
 import com.qhathia.mobile.staff.core.domain.repository.NotificationTokenRepository
@@ -62,6 +64,10 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthTokenCache(impl: KtorBearerTokenCache): AuthTokenCache
 
     @Binds
     @Singleton

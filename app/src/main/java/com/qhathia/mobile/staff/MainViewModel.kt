@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -118,18 +119,28 @@ class MainViewModel @Inject constructor(
         return Duration.between(since, clock.instant()) >= RELOCK_AFTER
     }
 
+    /** Declared before the `init` collector below, which may set it during construction. */
+    private var pushJob: Job? = null
+
     private val isAuthenticated = observeSession()
         .map { session -> session != null }
         .distinctUntilChanged()
-        .onEach { authenticated ->
-            if (authenticated) {
-                ensurePushRegistered()
-            } else {
-                pushJob?.cancel()
-                // The next session starts with a password login, which already proves who is there.
-                unlocked.value = true
+
+    init {
+        // Once per sign-in or sign-out, apart from [authState]: that flow restarts whenever the UI
+        // stops and resumes collecting it, and each restart used to register the push token again (F-47).
+        isAuthenticated
+            .onEach { authenticated ->
+                if (authenticated) {
+                    ensurePushRegistered()
+                } else {
+                    pushJob?.cancel()
+                    // The next session starts with a password login, which already proves who is there.
+                    unlocked.value = true
+                }
             }
-        }
+            .launchIn(viewModelScope)
+    }
 
     val authState: StateFlow<AuthState> =
         combine(isAuthenticated, observeBiometricEnabled(), unlocked) { authenticated, biometric, isUnlocked ->
@@ -146,7 +157,6 @@ class MainViewModel @Inject constructor(
                 initialValue = AuthState.Loading,
             )
 
-    private var pushJob: Job? = null
 
     /**
      * Registers the push token for the signed-in session. A failure (typically no network at start)

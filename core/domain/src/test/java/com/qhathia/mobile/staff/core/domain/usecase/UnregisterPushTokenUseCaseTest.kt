@@ -12,7 +12,7 @@ class UnregisterPushTokenUseCaseTest {
     fun `given a token when invoked then it unregisters and deletes the local token`() = runTest {
         val provider = FakePushTokenProvider(token = "fcm-abc")
         val repository = FakeNotificationTokenRepository()
-        val useCase = UnregisterPushTokenUseCase(provider, repository)
+        val useCase = UnregisterPushTokenUseCase(provider, repository, PushRegistrationGate())
 
         useCase()
 
@@ -25,7 +25,7 @@ class UnregisterPushTokenUseCaseTest {
     fun `given no token when invoked then it still deletes the local token`() = runTest {
         val provider = FakePushTokenProvider(token = null)
         val repository = FakeNotificationTokenRepository()
-        val useCase = UnregisterPushTokenUseCase(provider, repository)
+        val useCase = UnregisterPushTokenUseCase(provider, repository, PushRegistrationGate())
 
         useCase()
 
@@ -40,7 +40,7 @@ class UnregisterPushTokenUseCaseTest {
             val repository = FakeNotificationTokenRepository().apply {
                 unregisterResult = Result.failure(IllegalStateException("offline"))
             }
-            val useCase = UnregisterPushTokenUseCase(provider, repository)
+            val useCase = UnregisterPushTokenUseCase(provider, repository, PushRegistrationGate())
 
             useCase() // must not throw
 
