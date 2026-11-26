@@ -16,7 +16,13 @@ private val PEN_SYMBOLS = DecimalFormatSymbols().apply {
     minusSign = '-'
 }
 
-private const val PREFIX = "S/ "
+/**
+ * "S/" and the figure are joined by a no-break space, so large text never leaves "S/" alone at the
+ * end of a line (S17-06).
+ */
+const val PEN_PREFIX = "S/\u00A0"
+
+private const val PREFIX = PEN_PREFIX
 
 // DecimalFormat is not thread-safe; a fresh one per call is cheap enough for UI text.
 private fun priceFormat() = DecimalFormat("#,##0.00", PEN_SYMBOLS).apply { roundingMode = RoundingMode.HALF_UP }

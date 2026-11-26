@@ -1,10 +1,12 @@
 package com.qhathia.mobile.staff.feature.productregister.ui
 
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,7 +49,7 @@ import com.qhathia.mobile.staff.feature.productregister.R
 internal fun FieldLabel(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleSmall,
+        style = MaterialTheme.typography.titleSmall.copy(hyphens = Hyphens.None),
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurface,
         modifier = modifier,
@@ -108,14 +110,14 @@ internal fun RegisterDescriptionField(
     hasPhoto: Boolean = true,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
-        Row(
+        // The AI action moves under the label when both do not fit, instead of breaking "Descri-pción" (S17-06).
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            FieldLabel(
-                text = stringResource(R.string.register_description_label),
-                modifier = Modifier.weight(1f),
-            )
+            FieldLabel(text = stringResource(R.string.register_description_label))
             GenerateWithAiButton(
                 enabled = isAiActionEnabled,
                 isLoading = isAiLoading,
@@ -167,7 +169,8 @@ private fun GenerateWithAiButton(
         border = BorderStroke(1.dp, primary),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = primary),
         contentPadding = PaddingValues(horizontal = Dimens.SpaceSm, vertical = 0.dp),
-        modifier = modifier.height(Dimens.SpaceLg),
+        // A minimum, not a fixed height: "Optimizar con IA" was clipped at large text (S17-06).
+        modifier = modifier.heightIn(min = Dimens.SpaceLg),
     ) {
         if (isLoading) {
             CircularProgressIndicator(

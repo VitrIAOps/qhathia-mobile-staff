@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.productdetail.ui
 
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.foundation.layout.heightIn
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -61,7 +62,7 @@ import kotlinx.collections.immutable.ImmutableList
 internal fun FieldLabel(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleSmall,
+        style = MaterialTheme.typography.titleSmall.copy(hyphens = Hyphens.None),
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurface,
         modifier = modifier,
@@ -120,11 +121,14 @@ internal fun DetailDescriptionField(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            FieldLabel(
-                text = stringResource(R.string.detail_description_label),
-                modifier = Modifier.weight(1f),
-            )
+        // The AI action moves under the label when both do not fit, instead of breaking "Descri-pción" (S17-06).
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            FieldLabel(text = stringResource(R.string.detail_description_label))
             OptimizeWithAiButton(
                 enabled = isAiActionEnabled,
                 isLoading = isAiLoading,
@@ -162,7 +166,8 @@ private fun OptimizeWithAiButton(
         border = BorderStroke(1.dp, primary),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = primary),
         contentPadding = PaddingValues(horizontal = Dimens.SpaceSm, vertical = 0.dp),
-        modifier = modifier.height(Dimens.SpaceLg),
+        // A minimum, not a fixed height: "Optimizar con IA" was clipped at large text (S17-06).
+        modifier = modifier.heightIn(min = Dimens.SpaceLg),
     ) {
         if (isLoading) {
             CircularProgressIndicator(

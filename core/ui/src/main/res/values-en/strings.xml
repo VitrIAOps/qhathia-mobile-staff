@@ -39,7 +39,7 @@
     <!-- Product discount: toggle row and "Apply discount" dialog -->
     <string name="discount_toggle_label">Discount</string>
     <string name="discount_summary_percentage">%1$s%% discount</string>
-    <string name="discount_summary_amount">S/ %1$s discount</string>
+    <string name="discount_summary_amount">S/\u00A0%1$s discount</string>
     <string name="discount_edit_cd">Edit discount</string>
     <string name="discount_dialog_title">Apply discount</string>
     <string name="discount_mode_percentage">Percentage</string>

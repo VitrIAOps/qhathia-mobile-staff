@@ -123,11 +123,11 @@
 
     <!-- Notificaciones -->
     <string name="notifications_title">Notificaciones</string>
-    <string name="notifications_group_orders">Pedidos</string>
+    <string name="notifications_group_orders">Solicitudes</string>
     <string name="notifications_group_tablet">Tablet</string>
     <string name="notifications_group_business">Tu negocio</string>
-    <string name="notifications_new_order">Nuevo pedido</string>
-    <string name="notifications_order_expiring">Pedido por expirar</string>
+    <string name="notifications_new_order">Nueva solicitud</string>
+    <string name="notifications_order_expiring">Solicitud por vencer</string>
     <!-- %1$d: orderExpiringWarningMinutes from the backend. -->
     <plurals name="notifications_order_expiring_subtitle">
         <item quantity="one">Aviso %1$d minuto antes de que venza</item>

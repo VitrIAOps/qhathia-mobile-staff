@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.qhathia.mobile.staff.core.ui.R
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
@@ -36,6 +39,12 @@ private val MaxBarHeight = 62.dp
 private val MinBarHeight = 6.dp
 
 private val BarTopRadius = 8.dp
+
+/** Smallest size a bar label shrinks to before it would stop being readable. */
+private val MinLabelSize = 10.sp
+
+/** Above this font scale the amounts drop "S/": four "S/ 2,855" do not fit side by side. */
+private const val DropPrefixFontScale = 1.5f
 
 /**
  * A window's buckets as a row of bars, each labelled with its amount above and its name below. The
@@ -93,6 +102,8 @@ private fun RowScope.SalesBar(
         (bucket.amount.toFloat() / maxAmount.toFloat()).coerceIn(0f, 1f)
     }
     val barHeight = (MaxBarHeight * fraction).coerceAtLeast(MinBarHeight)
+    val bigText = LocalDensity.current.fontScale > DropPrefixFontScale
+    val style = MaterialTheme.typography.bodySmall
 
     Column(
         modifier = Modifier.weight(1f),
@@ -100,8 +111,8 @@ private fun RowScope.SalesBar(
         verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
     ) {
         Text(
-            text = bucket.amount.toSolesLabel(),
-            style = MaterialTheme.typography.bodySmall,
+            text = if (bigText) bucket.amount.toSolesFigure() else bucket.amount.toSolesLabel(),
+            style = style,
             fontWeight = if (highlighted) FontWeight.SemiBold else FontWeight.Normal,
             color = if (highlighted) {
                 MaterialTheme.colorScheme.secondary
@@ -110,6 +121,9 @@ private fun RowScope.SalesBar(
             },
             textAlign = TextAlign.Center,
             maxLines = 1,
+            // Shrinks rather than wrapping: a second line is never drawn, so "Sem" lost its number (F-84 c).
+            softWrap = false,
+            autoSize = TextAutoSize.StepBased(minFontSize = MinLabelSize, maxFontSize = style.fontSize),
         )
         Box(
             modifier = Modifier
@@ -126,10 +140,13 @@ private fun RowScope.SalesBar(
         )
         Text(
             text = bucket.label,
-            style = MaterialTheme.typography.bodySmall,
+            style = style,
             color = QhathiaColors.onSummaryCard,
             textAlign = TextAlign.Center,
             maxLines = 1,
+            // Shrinks rather than wrapping: a second line is never drawn, so "Sem" lost its number (F-84 c).
+            softWrap = false,
+            autoSize = TextAutoSize.StepBased(minFontSize = MinLabelSize, maxFontSize = style.fontSize),
         )
     }
 }
@@ -149,6 +166,14 @@ private fun QhathiaSalesBarChartPreview() {
     }
 }
 
+/** Font scale 2.0: the figures drop "S/" and shrink, never cut to "S/" or "Sem" (F-84 c). */
+@Preview(name = "Sales chart, font 2.0 — light", showBackground = true, backgroundColor = 0xFF10283C, fontScale = 2f, widthDp = 320)
+@Preview(name = "Sales chart, font 2.0 — dark", showBackground = true, uiMode = 0x20, fontScale = 2f, widthDp = 320)
+@Composable
+private fun QhathiaSalesBarChartLargeFontPreview() {
+    QhathiaSalesBarChartPreview()
+}
+
 /** One tiny bucket next to a large one — the case the minimum bar height exists for. */
 @Preview(name = "Sales chart, lopsided — light", showBackground = true, backgroundColor = 0xFF10283C)
 @Preview(name = "Sales chart, lopsided — dark", showBackground = true, uiMode = 0x20)
@@ -159,7 +184,7 @@ private fun QhathiaSalesBarChartLopsidedPreview() {
             QhathiaSalesBarChart(
                 buckets = SalesSummaryPreviewData.lopsidedBuckets,
                 highlightedIndex = 3,
-                totalLabel = "S/ 1,712",
+                totalLabel = BigDecimal(1712).toSolesLabel(),
             )
         }
     }

@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.ui.component
 
+import androidx.compose.foundation.layout.sizeIn
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -239,7 +240,8 @@ private fun AddPhotoTile(
     val accent = MaterialTheme.colorScheme.secondary
     Column(
         modifier = modifier
-            .size(TileSize)
+            // A minimum, not a fixed size: at large text "Agregar" grew out of the tile (T-6).
+            .sizeIn(minWidth = TileSize, minHeight = TileSize)
             // A disabled tile (busy form, or the photo limit) reads as unavailable, not just inert.
             .alpha(if (enabled) 1f else 0.38f)
             .clip(RoundedCornerShape(Dimens.FieldRadius))
@@ -254,7 +256,8 @@ private fun AddPhotoTile(
                     cornerRadius = CornerRadius(Dimens.FieldRadius.toPx()),
                 )
             }
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(Dimens.SpaceXs),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -268,6 +271,8 @@ private fun AddPhotoTile(
             text = stringResource(R.string.photo_add),
             style = MaterialTheme.typography.labelMedium,
             color = accent,
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }

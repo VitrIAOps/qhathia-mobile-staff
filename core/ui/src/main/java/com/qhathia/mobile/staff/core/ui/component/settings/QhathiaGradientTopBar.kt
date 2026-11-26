@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.core.ui.component.settings
 
+import androidx.compose.ui.unit.dp
+import com.qhathia.mobile.staff.core.ui.component.isCompactHeight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -38,13 +40,14 @@ fun QhathiaGradientTopBar(
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {},
+    compact: Boolean = isCompactHeight(),
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(QhathiaColors.headerGradient)
             .statusBarsPadding()
-            .padding(horizontal = Dimens.SpaceXs, vertical = Dimens.SpaceMd),
+            .padding(horizontal = Dimens.SpaceXs, vertical = if (compact) 0.dp else Dimens.SpaceMd),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
@@ -60,7 +63,8 @@ fun QhathiaGradientTopBar(
         }
         Text(
             text = title,
-            style = MaterialTheme.typography.titleLarge,
+            // A short window keeps the bar to one slim row, as Inicio and Inventario do (S17-07).
+            style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = QhathiaColors.onHeaderGradient,
             maxLines = 1,
@@ -75,6 +79,7 @@ fun QhathiaGradientTopBar(
 
 @Preview(name = "Gradient top bar — light", showBackground = true)
 @Preview(name = "Gradient top bar — dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Gradient top bar — landscape", showBackground = true, widthDp = 800, heightDp = 360)
 @Composable
 private fun QhathiaGradientTopBarPreview() {
     QhathiaTheme {

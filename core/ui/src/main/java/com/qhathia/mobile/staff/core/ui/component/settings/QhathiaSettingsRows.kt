@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -237,26 +238,28 @@ private fun RowTexts(
     comingSoon: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val alpha = if (comingSoon) 0.6f else 1f
+    // A coming-soon row keeps the normal text colours: dimmed text failed contrast (T-4.4); the tag
+    // and the disabled semantics say it is not available yet.
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // The tag moves under the title when both do not fit, instead of being cut (S17-06).
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
-                modifier = Modifier.weight(1f, fill = false),
+                color = MaterialTheme.colorScheme.onSurface,
             )
-            if (comingSoon) {
-                Spacer(Modifier.width(Dimens.SpaceSm))
-                QhathiaComingSoonTag()
-            }
+            if (comingSoon) QhathiaComingSoonTag()
         }
         if (subtitle != null) {
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -264,6 +267,7 @@ private fun RowTexts(
 
 @Preview(name = "Settings rows — light", showBackground = true)
 @Preview(name = "Settings rows — dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Settings rows, font 2.0", showBackground = true, fontScale = 2f, widthDp = 360)
 @Composable
 private fun QhathiaSettingsRowsPreview() {
     QhathiaTheme {

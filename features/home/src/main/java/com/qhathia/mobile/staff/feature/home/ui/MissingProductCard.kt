@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.home.ui
 
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,9 @@ import com.qhathia.mobile.staff.feature.home.R
 /** Card width from the design; the row scrolls, so it does not stretch to the viewport. */
 internal val MissingCardWidth = 209.dp
 
+/** From this font scale the card stacks the count above the name. */
+private const val StackFontScale = 1.5f
+
 /**
  * A product kiosk shoppers searched for and did not find: how many distinct people asked for it
  * ("~N búsquedas" when the backend could only count searches), its canonical term, how they most
@@ -53,14 +57,12 @@ internal fun MissingProductCard(
             .padding(Dimens.SpaceSm),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            PersonCountBlock(personCount = suggestion.personCount, estimated = suggestion.personCountEstimated)
+        // From font 1.5 the name goes under the count at the card's full width: beside it, a
+        // one-word name broke into letters ("Martill-o") (S17-06).
+        val stacked = LocalDensity.current.fontScale >= StackFontScale
+        val texts: @Composable (Modifier) -> Unit = { textModifier ->
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = textModifier,
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
@@ -89,6 +91,19 @@ internal fun MissingProductCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+            }
+        }
+        if (stacked) {
+            PersonCountBlock(personCount = suggestion.personCount, estimated = suggestion.personCountEstimated)
+            texts(Modifier.fillMaxWidth())
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PersonCountBlock(personCount = suggestion.personCount, estimated = suggestion.personCountEstimated)
+                texts(Modifier.weight(1f))
             }
         }
         if (onAdd != null) {
@@ -143,6 +158,7 @@ private fun PersonCountBlock(
 
 @Preview(name = "Missing product card — light", showBackground = true)
 @Preview(name = "Missing product card — dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Missing product card — font 2.0", showBackground = true, fontScale = 2f)
 @Composable
 private fun MissingProductCardPreview() {
     QhathiaTheme {

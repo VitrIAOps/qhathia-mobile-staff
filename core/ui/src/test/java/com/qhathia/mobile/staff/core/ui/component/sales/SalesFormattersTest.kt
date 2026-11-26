@@ -8,8 +8,13 @@ class SalesFormattersTest {
 
     @Test
     fun `soles are grouped and rounded to whole units`() {
-        assertEquals("S/ 5,770", BigDecimal("5770").toSolesLabel())
-        assertEquals("S/ 71", BigDecimal("70.5").toSolesLabel())
+        assertEquals("S/\u00A05,770", BigDecimal("5770").toSolesLabel())
+        assertEquals("S/\u00A071", BigDecimal("70.5").toSolesLabel())
+    }
+
+    @Test
+    fun `the bare figure drops the prefix and keeps the grouping`() {
+        assertEquals("2,855", BigDecimal("2855").toSolesFigure())
     }
 
     @Test

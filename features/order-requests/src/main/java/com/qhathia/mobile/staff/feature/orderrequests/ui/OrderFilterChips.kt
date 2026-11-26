@@ -2,12 +2,10 @@ package com.qhathia.mobile.staff.feature.orderrequests.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,12 +35,13 @@ internal fun OrderFilterChips(
     onSelectFilter: (OrderRequestsFilter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    // Wraps to a second line instead of scrolling a chip out of view at large text (T-6).
+    FlowRow(
         modifier = modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+        verticalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
     ) {
         OrderFilterChip(
             label = stringResource(R.string.order_filter_pending, pendingCount),

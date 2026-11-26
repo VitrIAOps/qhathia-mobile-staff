@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.profile.subscription
 
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -192,7 +193,8 @@ private fun PaymentSections() {
         )
     }
     val cancelCd = stringResource(R.string.subscription_cancel_cd)
-    Row(
+    // The tag moves under the label when both do not fit, instead of being cut (S17-06).
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = Dimens.SpaceSm)
@@ -200,15 +202,15 @@ private fun PaymentSections() {
                 contentDescription = cancelCd
                 disabled()
             },
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = stringResource(R.string.subscription_cancel),
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant, // Not orange: it is not an action yet (T-4.5).
         )
-        Spacer(Modifier.width(Dimens.SpaceSm))
         QhathiaComingSoonTag()
     }
 }

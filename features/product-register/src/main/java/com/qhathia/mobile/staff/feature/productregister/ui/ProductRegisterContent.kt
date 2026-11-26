@@ -1,24 +1,25 @@
 package com.qhathia.mobile.staff.feature.productregister.ui
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import com.qhathia.mobile.staff.core.ui.component.QhathiaFormActionButtons
+import com.qhathia.mobile.staff.core.ui.component.isCompactHeight
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -27,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -58,6 +58,7 @@ import kotlinx.collections.immutable.persistentListOf
  * cancel/submit actions, following the Figma mockup. A translucent loader overlays the form while
  * submitting, and the discard-confirmation dialog is shown when `showDiscardDialog` is set.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProductRegisterContent(
     uiState: ProductRegisterUiState,
@@ -69,6 +70,20 @@ fun ProductRegisterContent(
     val priceFocus = remember { FocusRequester() }
     val quantityFocus = remember { FocusRequester() }
     val tagsFocus = remember { FocusRequester() }
+    // In a short window the actions scroll with the form instead of taking a third of the height,
+    // and the "Falta…" line steps aside while the keyboard is open (S17-07).
+    val compact = isCompactHeight()
+    val imeVisible = WindowInsets.isImeVisible
+    val actions: @Composable (Modifier) -> Unit = { actionsModifier ->
+        FormActions(
+            isSubmitEnabled = uiState.isSubmitEnabled,
+            isSubmitting = uiState.isSubmitting,
+            missing = if (uiState.isSubmitting || imeVisible) emptyList() else uiState.missingForSubmit,
+            onCancel = { onEvent(ProductRegisterUiEvent.CancelRequested) },
+            onSubmit = { onEvent(ProductRegisterUiEvent.Submit) },
+            modifier = actionsModifier,
+        )
+    }
 
     Box(
         modifier = modifier
@@ -85,6 +100,7 @@ fun ProductRegisterContent(
                 onOpenOrderRequests = { onEvent(ProductRegisterUiEvent.OrderRequestsRequested) },
                 bellEnabled = !uiState.isSubmitting,
                 backEnabled = !uiState.isSubmitting,
+                compact = compact,
             )
 
             Surface(
@@ -183,17 +199,12 @@ fun ProductRegisterContent(
                         showHint = !uiState.isPreviewEnabled && enabled,
                         onClick = { onEvent(ProductRegisterUiEvent.PreviewRequested) },
                     )
-
+                    if (compact) actions(Modifier)
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                FormActions(
-                    isSubmitEnabled = uiState.isSubmitEnabled,
-                    isSubmitting = uiState.isSubmitting,
-                    missing = if (uiState.isSubmitting) emptyList() else uiState.missingForSubmit,
-                    onCancel = { onEvent(ProductRegisterUiEvent.CancelRequested) },
-                    onSubmit = { onEvent(ProductRegisterUiEvent.Submit) },
-                    modifier = Modifier.padding(horizontal = Dimens.SpaceLg, vertical = Dimens.SpaceSm),
-                )
+                if (!compact) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    actions(Modifier.padding(horizontal = Dimens.SpaceLg, vertical = Dimens.SpaceSm))
+                }
                 }
             }
         }
@@ -332,41 +343,15 @@ private fun FormActionButtons(
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TextButton(
-            onClick = onCancel,
-            enabled = !isSubmitting,
-            modifier = Modifier.weight(1f),
-        ) {
-            Text(stringResource(R.string.register_cancel))
-        }
-        Button(
-            onClick = onSubmit,
-            enabled = isSubmitEnabled,
-            shape = RoundedCornerShape(Dimens.ButtonRadius),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            modifier = Modifier
-                .weight(1.4f)
-                .heightIn(min = Dimens.ButtonHeight),
-        ) {
-            if (isSubmitting) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.height(20.dp),
-                )
-            } else {
-                Text(stringResource(R.string.register_submit), style = MaterialTheme.typography.labelLarge)
-            }
-        }
-    }
+    QhathiaFormActionButtons(
+        cancelLabel = stringResource(R.string.register_cancel),
+        submitLabel = stringResource(R.string.register_submit),
+        isSubmitEnabled = isSubmitEnabled,
+        isSubmitting = isSubmitting,
+        onCancel = onCancel,
+        onSubmit = onSubmit,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -414,6 +399,8 @@ private fun filledState() = ProductRegisterUiState(
 
 @Preview(name = "Register — empty", showBackground = true)
 @Preview(name = "Register — empty dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Register — font 2.0", showBackground = true, fontScale = 2f, widthDp = 360, heightDp = 1400)
+@Preview(name = "Register — landscape", showBackground = true, widthDp = 800, heightDp = 360)
 @Composable
 private fun ProductRegisterContentEmptyPreview() {
     QhathiaTheme {

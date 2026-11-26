@@ -10,16 +10,16 @@ class MoneyFormatTest {
 
     @Test
     fun `a price has two decimals, a point and thousands commas`() {
-        assertEquals("S/ 12,345,678.50", 12345678.5.toPenPrice())
-        assertEquals("S/ 189.90", 189.9.toPenPrice())
-        assertEquals("S/ 149.00", 149.0.toPenPrice())
-        assertEquals("S/ 1,234.50", BigDecimal("1234.5").toPenPrice())
+        assertEquals("S/\u00A012,345,678.50", 12345678.5.toPenPrice())
+        assertEquals("S/\u00A0189.90", 189.9.toPenPrice())
+        assertEquals("S/\u00A0149.00", 149.0.toPenPrice())
+        assertEquals("S/\u00A01,234.50", BigDecimal("1234.5").toPenPrice())
     }
 
     @Test
     fun `a price rounds half up`() {
-        assertEquals("S/ 0.01", 0.005.toPenPrice())
-        assertEquals("S/ 2.68", 2.675.toPenPrice())
+        assertEquals("S/\u00A00.01", 0.005.toPenPrice())
+        assertEquals("S/\u00A02.68", 2.675.toPenPrice())
     }
 
     @Test
@@ -29,8 +29,8 @@ class MoneyFormatTest {
 
     @Test
     fun `an amount is in whole soles with thousands commas`() {
-        assertEquals("S/ 2,849", BigDecimal("2848.5").toPenAmount())
-        assertEquals("S/ 5,770", BigDecimal("5770").toPenAmount())
+        assertEquals("S/\u00A02,849", BigDecimal("2848.5").toPenAmount())
+        assertEquals("S/\u00A05,770", BigDecimal("5770").toPenAmount())
     }
 
     @Test
@@ -38,8 +38,8 @@ class MoneyFormatTest {
         val previous = Locale.getDefault()
         try {
             Locale.setDefault(Locale.forLanguageTag("es-ES"))
-            assertEquals("S/ 12,345,678.50", 12345678.5.toPenPrice())
-            assertEquals("S/ 2,849", BigDecimal("2848.5").toPenAmount())
+            assertEquals("S/\u00A012,345,678.50", 12345678.5.toPenPrice())
+            assertEquals("S/\u00A02,849", BigDecimal("2848.5").toPenAmount())
         } finally {
             Locale.setDefault(previous)
         }
