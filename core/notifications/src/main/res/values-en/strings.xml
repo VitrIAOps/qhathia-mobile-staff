@@ -33,4 +33,5 @@
         <item quantity="one">%d request to handle</item>
         <item quantity="other">%d requests to handle</item>
     </plurals>
+    <string name="notif_action_view">View request</string>
 </resources>

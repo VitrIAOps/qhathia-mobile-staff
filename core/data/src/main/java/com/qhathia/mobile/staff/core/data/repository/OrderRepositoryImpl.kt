@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.data.repository
 
+import kotlinx.coroutines.flow.StateFlow
 import com.qhathia.mobile.staff.core.data.mapper.toDomain
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderError
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderException
@@ -67,6 +68,18 @@ class OrderRepositoryImpl @Inject constructor(
 
     override fun requestShowPending() {
         showPending.tryEmit(Unit)
+    }
+
+    private val openOrder = MutableStateFlow<String?>(null)
+
+    override val orderToOpen: StateFlow<String?> = openOrder.asStateFlow()
+
+    override fun requestOpenOrder(orderId: String) {
+        openOrder.value = orderId
+    }
+
+    override fun clearOrderToOpen(orderId: String) {
+        openOrder.compareAndSet(orderId, null)
     }
 
     private val countMutex = Mutex()

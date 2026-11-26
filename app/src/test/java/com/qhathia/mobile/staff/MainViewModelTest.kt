@@ -133,6 +133,24 @@ class MainViewModelTest {
     }
 
     @Test
+    fun `the order id from a notification waits behind the lock with its destination`() = runTest {
+        val viewModel = createViewModel(
+            FakeSessionRepository(TestFixtures.session()),
+            FakeAppPreferencesRepository(biometricEnabled = true),
+        )
+        viewModel.onDeepLink(DESTINATION_ORDER_REQUESTS, "order-7")
+
+        // The shell still on screen consumes while the lock is due: both stay.
+        viewModel.onPendingDestinationConsumed()
+        assertEquals("order-7", viewModel.pendingOrderId.value)
+
+        viewModel.onUnlocked()
+        viewModel.onPendingDestinationConsumed()
+        assertNull(viewModel.pendingDestination.value)
+        assertNull(viewModel.pendingOrderId.value)
+    }
+
+    @Test
     fun `a tap on a cold start with fingerprint keeps the destination until unlocked`() = runTest {
         val viewModel = createViewModel(
             FakeSessionRepository(TestFixtures.session()),

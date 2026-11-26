@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.domain.repository
 
+import kotlinx.coroutines.flow.StateFlow
 import com.qhathia.mobile.staff.core.domain.model.OrderDetail
 import com.qhathia.mobile.staff.core.domain.model.OrderPage
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
@@ -34,6 +35,19 @@ interface OrderRepository {
 
     /** Tells Solicitudes to show Pendientes from the top. */
     fun requestShowPending()
+
+    /**
+     * The order a notification asked to open, until Solicitudes opens it (F-55, S17-05). A state,
+     * not a signal like [showPendingRequested]: after a cold start Solicitudes subscribes later than
+     * the shell asks.
+     */
+    val orderToOpen: StateFlow<String?>
+
+    /** Asks Solicitudes to open [orderId]'s detail. */
+    fun requestOpenOrder(orderId: String)
+
+    /** Solicitudes took [orderId]; a newer request is left alone. */
+    fun clearOrderToOpen(orderId: String)
 
     /**
      * Re-reads the pending count and publishes it to [pendingOrderCount]. Failing with an auth

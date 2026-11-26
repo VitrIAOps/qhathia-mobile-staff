@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.testing
 
+import kotlinx.coroutines.flow.StateFlow
 import com.qhathia.mobile.staff.core.domain.model.OrderDetail
 import com.qhathia.mobile.staff.core.domain.model.OrderPage
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
@@ -71,6 +72,18 @@ class FakeOrderRepository : OrderRepository {
 
     override fun requestShowPending() {
         showPending.tryEmit(Unit)
+    }
+
+    private val openOrder = MutableStateFlow<String?>(null)
+
+    override val orderToOpen: StateFlow<String?> = openOrder.asStateFlow()
+
+    override fun requestOpenOrder(orderId: String) {
+        openOrder.value = orderId
+    }
+
+    override fun clearOrderToOpen(orderId: String) {
+        openOrder.compareAndSet(orderId, null)
     }
 
     /** Pushes [count] straight onto [pendingOrderCount], bypassing any query. */

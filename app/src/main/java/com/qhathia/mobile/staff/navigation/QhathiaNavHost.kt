@@ -25,6 +25,7 @@ fun QhathiaNavHost(
     startAuthenticated: Boolean,
     pendingDestination: String?,
     onPendingDestinationConsumed: () -> Unit,
+    pendingOrderId: String? = null,
     navController: NavHostController = rememberNavController(),
 ) {
     NavHost(
@@ -42,6 +43,7 @@ fun QhathiaNavHost(
             MainShell(
                 pendingDestination = pendingDestination,
                 onPendingDestinationConsumed = onPendingDestinationConsumed,
+                pendingOrderId = pendingOrderId,
             )
         }
     }
