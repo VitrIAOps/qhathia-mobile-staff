@@ -222,6 +222,8 @@ internal object DeviceLinkingPreviewData {
 
 @Preview(name = "Dispositivos — light", showBackground = true, heightDp = 1100)
 @Preview(name = "Dispositivos — dark", showBackground = true, heightDp = 1100, uiMode = 0x20)
+@Preview(name = "Dispositivos — font 1.3", showBackground = true, heightDp = 1300, fontScale = 1.3f)
+@Preview(name = "Dispositivos — landscape", showBackground = true, widthDp = 800, heightDp = 360)
 @Composable
 private fun DeviceLinkingContentPreview() {
     QhathiaTheme {

@@ -1,12 +1,12 @@
 package com.qhathia.mobile.staff.feature.profile.personal
 
+import androidx.compose.foundation.layout.FlowRow
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -154,9 +154,10 @@ private fun PersonalDataBody(
                 // The saved name, not the one being typed: the avatar changes once it is saved.
                 QhathiaInitialsAvatar(initials = initialsOf(profile.fullName), size = 88.dp)
                 val changePhotoCd = stringResource(R.string.personal_change_photo_cd)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+                FlowRow(
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
                     modifier = Modifier.clearAndSetSemantics {
                         contentDescription = changePhotoCd
                         disabled()
@@ -166,7 +167,7 @@ private fun PersonalDataBody(
                         text = stringResource(R.string.personal_change_photo),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, // Not orange: it is not an action yet (T-4.5).
                     )
                     QhathiaComingSoonTag()
                 }

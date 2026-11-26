@@ -28,8 +28,8 @@ class StatisticsShareTest {
         val shared = share(StatisticsTab.SUMMARY, state)
 
         assertEquals(
-            "${R.string.statistics_share_summary}|2 – 8 de noviembre|S/ 2,385|" +
-                "${summary.kpis.salesCount}|S/ ${summary.kpis.averageTicket.toInt()}|${summary.kpis.unitsSold}",
+            "${R.string.statistics_share_summary}|2 – 8 de noviembre|S/\u00A02,385|" +
+                "${summary.kpis.salesCount}|S/\u00A0${summary.kpis.averageTicket.toInt()}|${summary.kpis.unitsSold}",
             shared,
         )
     }
@@ -47,8 +47,8 @@ class StatisticsShareTest {
         val lines = share(StatisticsTab.RANKING, state)!!.lines()
 
         assertEquals("${R.string.statistics_share_ranking_header}|2 – 8 de noviembre", lines[0])
-        assertEquals("${R.string.statistics_share_ranking_row}|1|Taladro|S/ 1,870", lines[1])
-        assertEquals("${R.string.statistics_share_ranking_row}|2|Foco|S/ 515", lines[2])
+        assertEquals("${R.string.statistics_share_ranking_row}|1|Taladro|S/\u00A01,870", lines[1])
+        assertEquals("${R.string.statistics_share_ranking_row}|2|Foco|S/\u00A0515", lines[2])
     }
 
     @Test

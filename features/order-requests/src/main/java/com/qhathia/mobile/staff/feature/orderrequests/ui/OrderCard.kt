@@ -37,6 +37,7 @@ import com.qhathia.mobile.staff.core.domain.model.NotificationPreferences
 import com.qhathia.mobile.staff.core.domain.model.Order
 import com.qhathia.mobile.staff.core.domain.model.OrderStatus
 import com.qhathia.mobile.staff.core.common.format.toPenPrice
+import com.qhathia.mobile.staff.core.ui.component.AdaptiveButtonRow
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaColors
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
@@ -114,9 +115,12 @@ internal fun OrderCard(
                 }
             }
 
-            Row(
+            // Code and total share a row only when both fit; otherwise the total moves below (F-84 b).
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
+                itemVerticalAlignment = Alignment.Bottom,
             ) {
                 val createdAt = order.createdAt
                 Text(
@@ -131,9 +135,9 @@ internal fun OrderCard(
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
+                    // Never ellipsized: "hace 31…" lost the minutes at font 1.3. At its own width, so
+                    // when it does not fit beside the total, the total moves below (F-84 b).
+                    modifier = Modifier.padding(end = Dimens.SpaceSm),
                 )
                 Text(
                     text = stringResource(
@@ -146,16 +150,15 @@ internal fun OrderCard(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
+            // Side by side when every label fits its share, stacked otherwise (F-84).
+            AdaptiveButtonRow(modifier = Modifier.fillMaxWidth()) {
                 // An expired request can come back to Pendientes; a manual rejection cannot.
                 if (order.status == OrderStatus.EXPIRED) {
                     OutlinedButton(
                         onClick = { onRecover(order.id) },
                         enabled = !isRecovering,
                         shape = RoundedCornerShape(Dimens.ButtonRadius),
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = Dimens.ButtonHeight),
+                        modifier = Modifier.heightIn(min = Dimens.ButtonHeight),
                     ) {
                         if (isRecovering) {
                             CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -178,9 +181,7 @@ internal fun OrderCard(
                     OutlinedButton(
                         onClick = { onReject(order) },
                         shape = RoundedCornerShape(Dimens.ButtonRadius),
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = Dimens.ButtonHeight),
+                        modifier = Modifier.heightIn(min = Dimens.ButtonHeight),
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
@@ -202,9 +203,7 @@ internal fun OrderCard(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = Dimens.ButtonHeight),
+                    modifier = Modifier.heightIn(min = Dimens.ButtonHeight),
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.List,
@@ -246,6 +245,7 @@ internal fun Order.displayCode(): String =
 @Preview(name = "Order card — dark", showBackground = true, uiMode = 0x20)
 @Preview(name = "Order card — font 1.3, light", showBackground = true, fontScale = 1.3f)
 @Preview(name = "Order card — font 1.3, dark", showBackground = true, fontScale = 1.3f, uiMode = 0x20)
+@Preview(name = "Order card — font 2.0", showBackground = true, fontScale = 2f, widthDp = 360)
 @Composable
 private fun OrderCardPreview() {
     QhathiaTheme {

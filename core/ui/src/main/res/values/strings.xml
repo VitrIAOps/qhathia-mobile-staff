@@ -46,7 +46,7 @@
     <string name="discount_toggle_label">Descuento</string>
     <!-- %1$s is the percentage ("20") or the amount in soles ("15", "15.50"). -->
     <string name="discount_summary_percentage">Descuento de %1$s%%</string>
-    <string name="discount_summary_amount">Descuento de S/ %1$s</string>
+    <string name="discount_summary_amount">Descuento de S/\u00A0%1$s</string>
     <string name="discount_edit_cd">Editar descuento</string>
     <string name="discount_dialog_title">Aplicar descuento</string>
     <string name="discount_mode_percentage">Porcentaje</string>

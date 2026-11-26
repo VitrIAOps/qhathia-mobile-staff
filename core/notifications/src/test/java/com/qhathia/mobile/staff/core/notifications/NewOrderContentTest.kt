@@ -26,7 +26,7 @@ class NewOrderContentTest {
         )
 
         assertEquals("Ana Torres", content.customerName)
-        assertEquals("S/ 1,250.50", content.total)
+        assertEquals("S/\u00A01,250.50", content.total)
         assertEquals(4, content.productCount)
         assertEquals(12L, content.minutesLeft)
         assertEquals(listOf("1 × Taladro", "2 × Brocas", "1 × Martillo"), content.lines)

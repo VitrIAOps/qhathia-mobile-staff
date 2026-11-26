@@ -190,8 +190,8 @@ private fun DeviceIdentity(device: Device, connected: Boolean, now: Instant, onO
                     } ?: status,
                     style = MaterialTheme.typography.bodySmall,
                     color = statusColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    // Two lines rather than "Conectada · hace u…" at large text (S17-06).
+                    maxLines = 2,
                 )
             }
         }
@@ -290,7 +290,8 @@ private fun TileCell(tile: Tile, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
+                // A store name keeps up to two lines (T-6).
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(

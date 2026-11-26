@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.productdetail.ui
 
+import com.qhathia.mobile.staff.core.ui.component.isCompactHeight
+import com.qhathia.mobile.staff.core.ui.component.QhathiaFormActionButtons
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -26,7 +28,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -39,7 +40,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -91,6 +91,7 @@ fun ProductDetailContent(
                 onOpenOrderRequests = { onEvent(ProductDetailUiEvent.OrderRequestsRequested) },
                 bellEnabled = !uiState.isSaving && !uiState.isDeleting,
                 backEnabled = !uiState.isSaving && !uiState.isDeleting,
+                compact = isCompactHeight(),
             )
 
             Surface(
@@ -245,7 +246,18 @@ private fun EditForm(
     val priceFocus = remember { FocusRequester() }
     val quantityFocus = remember { FocusRequester() }
     val tagsFocus = remember { FocusRequester() }
-    // "Guardar" sits under the scrolling fields, in view from the start and above the keyboard.
+    // "Guardar" sits under the scrolling fields, in view from the start and above the keyboard; in a
+    // short window it scrolls with the form instead of taking a third of the height (S17-07).
+    val compact = isCompactHeight()
+    val actions: @Composable (Modifier) -> Unit = { actionsModifier ->
+        FormActions(
+            isSaveEnabled = uiState.isSaveEnabled,
+            isSaving = uiState.isSaving,
+            onCancel = { onEvent(ProductDetailUiEvent.CancelRequested) },
+            onSave = { onEvent(ProductDetailUiEvent.Save) },
+            modifier = actionsModifier,
+        )
+    }
     Column(modifier = Modifier.fillMaxSize().imePadding()) {
     Column(
         modifier = Modifier
@@ -345,15 +357,12 @@ private fun EditForm(
             enabled = !uiState.isSaving && !uiState.isDeleting,
             onClick = { onEvent(ProductDetailUiEvent.DeleteRequested) },
         )
+        if (compact) actions(Modifier)
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    FormActions(
-        isSaveEnabled = uiState.isSaveEnabled,
-        isSaving = uiState.isSaving,
-        onCancel = { onEvent(ProductDetailUiEvent.CancelRequested) },
-        onSave = { onEvent(ProductDetailUiEvent.Save) },
-        modifier = Modifier.padding(horizontal = Dimens.SpaceLg),
-    )
+    if (!compact) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        actions(Modifier.padding(horizontal = Dimens.SpaceLg))
+    }
     }
 }
 
@@ -428,43 +437,15 @@ private fun FormActions(
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = Dimens.SpaceSm),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceMd),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TextButton(
-            onClick = onCancel,
-            enabled = !isSaving,
-            modifier = Modifier.weight(1f),
-        ) {
-            Text(stringResource(R.string.detail_cancel))
-        }
-        Button(
-            onClick = onSave,
-            enabled = isSaveEnabled,
-            shape = RoundedCornerShape(Dimens.ButtonRadius),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            modifier = Modifier
-                .weight(1.4f)
-                .heightIn(min = Dimens.ButtonHeight),
-        ) {
-            if (isSaving) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.height(20.dp),
-                )
-            } else {
-                Text(stringResource(R.string.detail_save), style = MaterialTheme.typography.labelLarge)
-            }
-        }
-    }
+    QhathiaFormActionButtons(
+        cancelLabel = stringResource(R.string.detail_cancel),
+        submitLabel = stringResource(R.string.detail_save),
+        isSubmitEnabled = isSaveEnabled,
+        isSubmitting = isSaving,
+        onCancel = onCancel,
+        onSubmit = onSave,
+        modifier = modifier.padding(vertical = Dimens.SpaceSm),
+    )
 }
 
 /** The shared dialog, with the detail's own message when part of a save already failed. */
@@ -562,6 +543,8 @@ private fun loadedState() = ProductDetailUiState(
 
 @Preview(name = "Detail — with discount", showBackground = true)
 @Preview(name = "Detail — with discount dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Detail — font 2.0", showBackground = true, fontScale = 2f, widthDp = 360, heightDp = 1600)
+@Preview(name = "Detail — landscape", showBackground = true, widthDp = 800, heightDp = 360)
 @Composable
 private fun ProductDetailContentDiscountPreview() {
     QhathiaTheme {

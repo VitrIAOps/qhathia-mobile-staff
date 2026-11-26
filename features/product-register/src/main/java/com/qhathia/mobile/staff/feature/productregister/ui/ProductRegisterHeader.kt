@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.feature.productregister.R
 
@@ -26,11 +27,12 @@ internal fun ProductRegisterHeader(
     modifier: Modifier = Modifier,
     bellEnabled: Boolean = true,
     backEnabled: Boolean = true,
+    compact: Boolean = false,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = Dimens.SpaceSm),
+            .padding(vertical = if (compact) 0.dp else Dimens.SpaceSm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack, enabled = backEnabled) {
@@ -42,7 +44,8 @@ internal fun ProductRegisterHeader(
         }
         Text(
             text = stringResource(R.string.register_title),
-            style = MaterialTheme.typography.titleLarge,
+            // A short window keeps the header to one slim row (S17-07).
+            style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier

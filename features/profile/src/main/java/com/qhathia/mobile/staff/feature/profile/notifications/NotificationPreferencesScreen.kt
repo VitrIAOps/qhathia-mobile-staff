@@ -37,17 +37,19 @@ import com.qhathia.mobile.staff.feature.profile.common.ErrorPane
 import com.qhathia.mobile.staff.feature.profile.common.LoadState
 import com.qhathia.mobile.staff.feature.profile.common.LoadingPane
 
-private data class ToggleSpec(
+internal data class ToggleSpec(
     val preference: NotificationPreference,
     @param:StringRes val title: Int,
     @param:StringRes val subtitle: Int? = null,
 )
 
-private data class ToggleGroup(@param:StringRes val title: Int, val toggles: List<ToggleSpec>)
+internal data class ToggleGroup(@param:StringRes val title: Int, val toggles: List<ToggleSpec>)
 
 /**
  * The groups are presentation only: the backend returns the seven toggles flat. Which of them are
- * live comes from the backend's `supported`; the rest show "Próximamente".
+ * live comes from the backend's `supported`; the rest are hidden, with any group left empty
+ * (product decision of 2026-11-14). Their stored values are kept, so a toggle appears as soon as
+ * the backend supports it.
  */
 private val Groups = listOf(
     ToggleGroup(
@@ -130,7 +132,7 @@ fun NotificationPreferencesContent(
                     .padding(Dimens.SpaceMd),
                 verticalArrangement = Arrangement.spacedBy(Dimens.SpaceLg),
             ) {
-                Groups.forEach { group ->
+                visibleGroups(preferences.value).forEach { group ->
                     ToggleGroupSection(
                         group = group,
                         preferences = preferences.value,
@@ -175,6 +177,20 @@ private fun ToggleGroupSection(
         }
     }
 }
+
+/** The toggles the backend sends, by group; a group with none of them is left out. */
+internal fun visibleGroups(preferences: NotificationPreferences): List<ToggleGroup> =
+    if (SHOW_UNSUPPORTED) {
+        Groups
+    } else {
+        Groups.mapNotNull { group ->
+            val shown = group.toggles.filter { preferences.isSupported(it.preference) }
+            if (shown.isEmpty()) null else group.copy(toggles = shown)
+        }
+    }
+
+/** Unsupported toggles stay hidden until the backend sends them (2026-11-14). */
+private const val SHOW_UNSUPPORTED = false
 
 private val PreviewPreferences = NotificationPreferences(
     values = NotificationPreference.entries.associateWith { it != NotificationPreference.LOW_BATTERY },
