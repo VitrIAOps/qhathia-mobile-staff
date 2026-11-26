@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.core.testing
 
 import com.qhathia.mobile.staff.core.domain.repository.NotificationTokenRepository
+import kotlinx.coroutines.delay
 
 /**
  * Controllable [NotificationTokenRepository] for tests. Set [registerResult] / [unregisterResult] to
@@ -10,6 +11,9 @@ class FakeNotificationTokenRepository : NotificationTokenRepository {
 
     var registerResult: Result<Unit> = Result.success(Unit)
     var unregisterResult: Result<Unit> = Result.success(Unit)
+
+    /** Virtual time [registerToken] takes, so tests can overlap two calls. */
+    var registerDelayMs: Long = 0
 
     var lastRegisteredToken: String? = null
         private set
@@ -24,6 +28,7 @@ class FakeNotificationTokenRepository : NotificationTokenRepository {
 
     override suspend fun registerToken(token: String, deviceLabel: String?): Result<Unit> {
         registerCallCount++
+        if (registerDelayMs > 0) delay(registerDelayMs)
         lastRegisteredToken = token
         lastRegisteredLabel = deviceLabel
         return registerResult

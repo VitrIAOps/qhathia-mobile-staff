@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.core.domain.usecase
 
 import com.qhathia.mobile.staff.core.domain.repository.AuthRepository
+import com.qhathia.mobile.staff.core.domain.repository.AuthTokenCache
 import com.qhathia.mobile.staff.core.domain.repository.SessionRepository
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -13,11 +14,13 @@ import javax.inject.Inject
  * The two network steps are best-effort — a failure (e.g. offline) never prevents the local session
  * from being cleared. The push unregister runs first so the bearer plugin can still refresh, if
  * needed, against the not-yet-revoked refresh token before [AuthRepository.logout] revokes it.
+ * Last, it clears the network's cached token, so nothing sent after sign-out carries it (F-47).
  */
 class LogoutUseCase @Inject constructor(
     private val sessionRepository: SessionRepository,
     private val unregisterPushToken: UnregisterPushTokenUseCase,
     private val authRepository: AuthRepository,
+    private val authTokenCache: AuthTokenCache,
 ) {
     suspend operator fun invoke() {
         unregisterPushToken()
@@ -28,5 +31,6 @@ class LogoutUseCase @Inject constructor(
         }
 
         sessionRepository.clearSession()
+        authTokenCache.clear()
     }
 }

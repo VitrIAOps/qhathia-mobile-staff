@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff
 
+import com.qhathia.mobile.staff.core.domain.usecase.PushRegistrationGate
 import com.qhathia.mobile.staff.core.common.navigation.DESTINATION_ORDER_REQUESTS
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveBiometricEnabledUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveSessionUseCase
@@ -14,6 +15,8 @@ import com.qhathia.mobile.staff.core.testing.MutableClock
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -42,7 +45,7 @@ class MainViewModelTest {
         val viewModel = MainViewModel(
             observeSession = ObserveSessionUseCase(sessions),
             observeBiometricEnabled = ObserveBiometricEnabledUseCase(prefs),
-            registerPushToken = RegisterPushTokenUseCase(sessions, FakePushTokenProvider(), tokens),
+            registerPushToken = RegisterPushTokenUseCase(sessions, FakePushTokenProvider(), tokens, PushRegistrationGate()),
             networkMonitor = network,
             clock = clock,
         )
@@ -213,6 +216,34 @@ class MainViewModelTest {
         network.online(true)
         mainDispatcher.dispatcher.scheduler.advanceTimeBy(Duration.ofMinutes(10).toMillis())
 
+        assertEquals(1, tokens.registerCallCount)
+    }
+
+    @Test
+    fun `the push token is asked for once per sign-in, however often authState is re-collected`() = runTest {
+        // F-47: authState restarts after 5 s without subscribers; that must not register again.
+        val provider = FakePushTokenProvider()
+        val viewModel = MainViewModel(
+            observeSession = ObserveSessionUseCase(FakeSessionRepository(TestFixtures.session())),
+            observeBiometricEnabled = ObserveBiometricEnabledUseCase(FakeAppPreferencesRepository(biometricEnabled = false)),
+            registerPushToken = RegisterPushTokenUseCase(
+                FakeSessionRepository(TestFixtures.session()),
+                provider,
+                tokens,
+                PushRegistrationGate(),
+            ),
+            networkMonitor = network,
+            clock = clock,
+        )
+
+        repeat(3) {
+            val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.authState.collect {} }
+            runCurrent()
+            collector.cancel()
+            advanceTimeBy(6_000)
+        }
+
+        assertEquals(1, provider.currentTokenCallCount)
         assertEquals(1, tokens.registerCallCount)
     }
 }

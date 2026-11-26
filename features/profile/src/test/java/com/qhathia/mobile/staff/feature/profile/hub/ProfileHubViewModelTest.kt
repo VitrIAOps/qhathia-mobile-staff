@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.profile.hub
 
+import com.qhathia.mobile.staff.core.testing.FakeAuthTokenCache
+import com.qhathia.mobile.staff.core.domain.usecase.PushRegistrationGate
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.model.NotificationPreference
 import com.qhathia.mobile.staff.core.domain.model.UserRole
@@ -60,8 +62,9 @@ class ProfileHubViewModelTest {
             getDevicesUseCase = GetDevicesUseCase(devices),
             logoutUseCase = LogoutUseCase(
                 sessionRepository = sessionRepository,
-                unregisterPushToken = UnregisterPushTokenUseCase(FakePushTokenProvider(), FakeNotificationTokenRepository()),
+                unregisterPushToken = UnregisterPushTokenUseCase(FakePushTokenProvider(), FakeNotificationTokenRepository(), PushRegistrationGate()),
                 authRepository = FakeAuthRepository(),
+                authTokenCache = FakeAuthTokenCache(),
             ),
             clock = clock,
         ).also { if (resumed) it.onEvent(ProfileHubUiEvent.Resumed) }

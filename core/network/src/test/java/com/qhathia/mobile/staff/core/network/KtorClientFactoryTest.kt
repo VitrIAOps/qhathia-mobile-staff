@@ -6,7 +6,9 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.ResponseException
 import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
@@ -68,5 +70,31 @@ class KtorClientFactoryTest {
         assertEquals(1, tokens.refreshCount)
         assertEquals(2, requests.size)
         assertEquals(true, failure is ResponseException)
+    }
+
+    @Test
+    fun `after forgetBearerTokens the next request loads the current session's token`() = runTest {
+        var stored = BearerTokens("access-old", "refresh-old")
+        val tokens = object : AuthTokenProvider {
+            override suspend fun loadTokens() = stored
+            override suspend fun refreshTokens(): BearerTokens? = null
+        }
+        val sent = mutableListOf<String?>()
+        val client = HttpClient(
+            MockEngine { request ->
+                sent += request.headers[HttpHeaders.Authorization]
+                respond("{}", HttpStatusCode.OK, headersOf("Content-Type" to listOf("application/json")))
+            },
+        ) {
+            configure(NetworkConfig(baseUrl = "http://localhost/", enableLogging = false), json, tokens)
+        }
+
+        client.get("api/v1/orders")
+        stored = BearerTokens("access-new", "refresh-new") // sign out and log in again
+        client.get("api/v1/orders")
+        client.forgetBearerTokens()
+        client.get("api/v1/orders")
+
+        assertEquals(listOf("Bearer access-old", "Bearer access-old", "Bearer access-new"), sent)
     }
 }
