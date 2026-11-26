@@ -191,6 +191,7 @@ class ProductDetailViewModel @Inject constructor(
      */
     private fun load() {
         lastAppliedUpdate = null
+        photosApplied = null
         viewModelScope.launch {
             _uiState.update {
                 it.copy(isLoading = true, isError = false, isCategoriesLoading = true, isCategoriesError = false)
@@ -299,6 +300,7 @@ class ProductDetailViewModel @Inject constructor(
         val room = (MAX_PHOTOS - current.photos.size).coerceAtLeast(0)
         val accepted = fresh.take(room)
         if (accepted.isNotEmpty()) {
+            photosApplied = null
             _uiState.update { state ->
                 state.copy(
                     photos = (state.photos + accepted.map { FormPhoto.Pending(it) }).toImmutableList(),
@@ -317,11 +319,13 @@ class ProductDetailViewModel @Inject constructor(
 
     /** Removes a photo from the form; the last one stays, since a product keeps at least one. */
     private fun onPhotoRemoved(key: String) {
+        val before = _uiState.value.photos
         _uiState.update { state ->
             if (state.isSaving || state.isDeleting || !state.canRemovePhotos) return@update state
             val remaining = state.photos.filterNot { it.key == key }
             if (remaining.size == state.photos.size) state else state.copy(photos = remaining.toImmutableList(), isDirty = true)
         }
+        if (_uiState.value.photos != before) photosApplied = null
     }
 
     private fun onNameChanged(value: String) {
@@ -412,6 +416,19 @@ class ProductDetailViewModel @Inject constructor(
      */
     private var lastAppliedUpdate: ProductUpdate? = null
 
+    /**
+     * The photo edit left on the form after a save whose photos went through but whose discount did
+     * not. When the next save has the same edit, the photos are on the server already and only the
+     * discount is retried, even if the product could not be read back (F-96).
+     */
+    private var photosApplied: PhotoEdit? = null
+
+    /** What saving the photos would send: the removed ids and the pending picks. */
+    private data class PhotoEdit(val removedIds: Set<String>, val addedKeys: Set<String>)
+
+    private val ProductDetailUiState.photoEdit: PhotoEdit
+        get() = PhotoEdit(removedImageIds.toSet(), addedImages.map { it.key }.toSet())
+
     private fun save() {
         val current = _uiState.value
         if (!current.isSaveEnabled) return
@@ -489,6 +506,7 @@ class ProductDetailViewModel @Inject constructor(
         val discount = persistDiscountChange(submitted)
         if (discount.isSuccess) {
             lastAppliedUpdate = null
+            photosApplied = null
             _uiState.update { it.copy(isSaving = false, isDirty = false, partialSave = null) }
             _uiEffect.emit(ProductDetailUiEffect.NavigateBackSaved)
             return
@@ -496,7 +514,16 @@ class ProductDetailViewModel @Inject constructor(
         if (discount.exceptionOrNull().isProductGone()) return leaveDeleted()
         // Photos that did go through must not be uploaded again on retry. Either read also refreshes
         // the version, which the discount write may have bumped.
-        if (submitted.isPhotosChanged) resyncPhotos(submitted, uploaded = true) else refreshVersion()
+        if (submitted.isPhotosChanged) {
+            // Applied on the server even if the re-read below fails: a retry must not delete them again.
+            val removed = submitted.removedImageIds.toSet()
+            _uiState.update { s -> s.copy(loadedImages = s.loadedImages.filterNot { it.id in removed }.toImmutableList()) }
+            resyncPhotos(submitted, uploaded = true)
+            // Whatever edit is left (pending picks, if the re-read failed) is already uploaded.
+            photosApplied = _uiState.value.photoEdit
+        } else {
+            refreshVersion()
+        }
         // What is stored is read again rather than assumed. If that fails too, the form treats the
         // product as having no discount, so the retry creates the form's discount again.
         val stored = getProductDiscountUseCase(productId)
@@ -577,9 +604,12 @@ class ProductDetailViewModel @Inject constructor(
         getProductDetailUseCase(productId).getOrNull()?.let { read -> _uiState.update { it.adopting(read) } }
     }
 
-    /** Deletes the removed photos and uploads the added ones; nothing when photos did not change. */
+    /**
+     * Deletes the removed photos and uploads the added ones; nothing when photos did not change or
+     * when this same edit already went through on a save whose discount failed ([photosApplied]).
+     */
     private suspend fun persistPhotoChanges(state: ProductDetailUiState): Result<Unit> {
-        if (!state.isPhotosChanged) return Result.success(Unit)
+        if (!state.isPhotosChanged || state.photoEdit == photosApplied) return Result.success(Unit)
         return updateProductPhotosUseCase(
             productId = productId,
             removedImageIds = state.removedImageIds,
@@ -592,8 +622,9 @@ class ProductDetailViewModel @Inject constructor(
      * through. Saved photos are the server's, minus those the merchant removed that still exist (so
      * they are deleted on retry). The upload is a single all-or-nothing request, so pending picks
      * stay pending unless it [uploaded] — then they are on the server already. If the
-     * re-read itself fails the strip is left as it was: a retry deletes what is left (already-gone
-     * photos count as deleted) and uploads again. The read also refreshes the version and stock.
+     * re-read itself fails the strip is left as it was; after an [uploaded] step the caller has
+     * already dropped the deleted photos and remembers the edit, so a retry does not send it again.
+     * The read also refreshes the version and stock.
      */
     private suspend fun resyncPhotos(submitted: ProductDetailUiState, uploaded: Boolean) {
         val read = getProductDetailUseCase(productId).getOrNull() ?: return
