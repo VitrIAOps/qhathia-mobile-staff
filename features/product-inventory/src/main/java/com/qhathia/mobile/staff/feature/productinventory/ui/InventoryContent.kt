@@ -1,5 +1,13 @@
 package com.qhathia.mobile.staff.feature.productinventory.ui
 
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -103,6 +111,15 @@ fun InventoryContent(
                 Spacer(Modifier.height(Dimens.SpaceMd))
                 filterBar(Modifier.padding(horizontal = Dimens.SpaceMd), true)
             }
+            // What narrows the list, in both layouts (S17-02).
+            ActiveFilterChips(
+                categories = uiState.categories,
+                selectedCategoryId = uiState.selectedCategoryId,
+                selectedAvailability = uiState.selectedAvailability,
+                onClearCategory = { onEvent(InventoryUiEvent.SelectCategory(null)) },
+                onClearAvailability = { onEvent(InventoryUiEvent.ClearAvailability) },
+                modifier = Modifier.padding(horizontal = Dimens.SpaceMd).padding(top = Dimens.SpaceXs),
+            )
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -144,21 +161,32 @@ fun InventoryContent(
             }
         }
 
+        // Hidden while the list scrolls down, so it never covers the ⋮ of the row passing under it;
+        // back as soon as the list stops or scrolls up (S17-04).
+        val showFab by remember(listState) {
+            derivedStateOf { !listState.isScrollInProgress || listState.lastScrolledBackward }
+        }
+        AnimatedVisibility(
+            visible = showFab,
+            enter = scaleIn() + fadeIn(),
+            exit = scaleOut() + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(18.dp),
+        ) {
         // DS button: a 40dp square with 8dp corners, not the 56dp circular M3 default.
         SmallFloatingActionButton(
             onClick = { onEvent(InventoryUiEvent.RegisterProductClicked) },
             shape = RoundedCornerShape(Dimens.FieldRadius),
             containerColor = MaterialTheme.colorScheme.secondary,
             contentColor = MaterialTheme.colorScheme.onSecondary,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(18.dp),
         ) {
             Icon(
                 modifier = Modifier.size(24.dp),
                 imageVector = Icons.Rounded.Add,
                 contentDescription = stringResource(R.string.inventory_register_cd),
             )
+        }
         }
 
         if (uiState.isDiscountLoading) {
@@ -374,6 +402,26 @@ private fun InventoryContentPreview() {
                 loadedProducts = sampleProducts(),
                 visibleProducts = sampleProducts(),
                 categories = sampleCategories(),
+            ),
+            onEvent = {},
+        )
+    }
+}
+
+// A category and an availability active: "Filtros · 2" and one chip per filter (S17-02).
+@Preview(name = "Inventory — filters active", showBackground = true)
+@Preview(name = "Inventory — filters active dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Inventory — filters active landscape", showBackground = true, widthDp = 800, heightDp = 360)
+@Composable
+private fun InventoryContentFiltersPreview() {
+    QhathiaTheme {
+        InventoryContent(
+            uiState = InventoryUiState(
+                loadedProducts = sampleProducts(),
+                visibleProducts = sampleProducts().take(2).toImmutableList(),
+                categories = sampleCategories(),
+                selectedCategoryId = sampleCategories().first().id,
+                selectedAvailability = Availability.LOW_STOCK,
             ),
             onEvent = {},
         )

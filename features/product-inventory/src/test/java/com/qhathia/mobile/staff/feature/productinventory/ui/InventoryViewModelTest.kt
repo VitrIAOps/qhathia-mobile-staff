@@ -143,6 +143,19 @@ class InventoryViewModelTest {
     }
 
     @Test
+    fun `clearing the category from its chip keeps the availability`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(InventoryUiEvent.SelectCategory("c2"))
+        viewModel.onEvent(InventoryUiEvent.SelectAvailability(Availability.LOW_STOCK))
+
+        viewModel.onEvent(InventoryUiEvent.SelectCategory(null))
+
+        assertEquals(null, productRepository.lastCategoryId)
+        assertEquals(Availability.LOW_STOCK, productRepository.lastAvailability)
+        assertEquals(Availability.LOW_STOCK, viewModel.uiState.value.selectedAvailability)
+    }
+
+    @Test
     fun `search filters loaded products client-side without re-query`() = runTest {
         productRepository.productsResult = Result.success(
             listOf(
