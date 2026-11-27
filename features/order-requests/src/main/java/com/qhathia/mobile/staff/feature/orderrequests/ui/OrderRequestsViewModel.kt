@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
+import kotlinx.coroutines.flow.filterNotNull
+import com.qhathia.mobile.staff.core.domain.usecase.ClearOrderToOpenUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.ObserveOrderToOpenUseCase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderError
@@ -83,6 +86,8 @@ class OrderRequestsViewModel @Inject constructor(
     private val recoverOrderUseCase: RecoverOrderUseCase,
     private val getNotificationPreferencesUseCase: GetNotificationPreferencesUseCase,
     observeShowPendingOrdersUseCase: ObserveShowPendingOrdersUseCase,
+    observeOrderToOpenUseCase: ObserveOrderToOpenUseCase,
+    private val clearOrderToOpenUseCase: ClearOrderToOpenUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderRequestsUiState())
@@ -129,6 +134,15 @@ class OrderRequestsViewModel @Inject constructor(
             .launchIn(viewModelScope)
         observeShowPendingOrdersUseCase()
             .onEach { showPendingFromTop() }
+            .launchIn(viewModelScope)
+        // A notification for one order opens its detail, once, also when this screen was created after
+        // the tap (F-55, S17-05).
+        observeOrderToOpenUseCase()
+            .filterNotNull()
+            .onEach { orderId ->
+                clearOrderToOpenUseCase(orderId)
+                loadDetail(orderId)
+            }
             .launchIn(viewModelScope)
         loadWarningMinutes()
     }

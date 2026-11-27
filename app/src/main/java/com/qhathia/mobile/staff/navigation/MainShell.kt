@@ -118,6 +118,7 @@ private val topLevelDestinations = listOf(
 fun MainShell(
     pendingDestination: String? = null,
     onPendingDestinationConsumed: () -> Unit = {},
+    pendingOrderId: String? = null,
     viewModel: MainShellViewModel = hiltViewModel(),
 ) {
     RequestNotificationPermissionOnce()
@@ -157,8 +158,9 @@ fun MainShell(
     LaunchedEffect(pendingDestination) {
         if (pendingDestination != DESTINATION_ORDER_REQUESTS) return@LaunchedEffect
         switchTab(ORDER_REQUESTS_ROUTE)
-        // Solicitudes may already be open, so the switch alone would not show the new order.
-        viewModel.onOrdersDeepLink()
+        // Solicitudes may already be open, so the switch alone would not show the new order. With an
+        // order id its detail opens too (F-55, S17-05).
+        viewModel.onOrdersDeepLink(pendingOrderId)
         onPendingDestinationConsumed()
     }
 

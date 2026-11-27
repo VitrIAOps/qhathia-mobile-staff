@@ -57,6 +57,11 @@ class MainViewModel @Inject constructor(
     /** The section to jump to on the next composition of the shell, or null when there is none. */
     val pendingDestination: StateFlow<String?> = _pendingDestination.asStateFlow()
 
+    private val _pendingOrderId = MutableStateFlow<String?>(null)
+
+    /** With [pendingDestination]: the order whose detail to open, kept and cleared together with it. */
+    val pendingOrderId: StateFlow<String?> = _pendingOrderId.asStateFlow()
+
     /** Whether the biometric gate was passed in this process (or skipped by a password login). */
     private val unlocked = MutableStateFlow(false)
     private var backgroundedAt: Instant? = null
@@ -66,11 +71,12 @@ class MainViewModel @Inject constructor(
      * than an `Intent` so this stays a plain unit-testable ViewModel. A null (an ordinary launcher
      * start) leaves any pending destination alone.
      */
-    fun onDeepLink(destination: String?) {
+    fun onDeepLink(destination: String?, orderId: String? = null) {
         if (destination == null) return
         // The tap and the return to the foreground arrive in either order: lock now if it is due, so
         // the shell still on screen cannot take the destination with it.
         if (backgroundedLongEnough()) unlocked.value = false
+        _pendingOrderId.value = orderId
         _pendingDestination.value = destination
     }
 
@@ -81,6 +87,7 @@ class MainViewModel @Inject constructor(
     fun onPendingDestinationConsumed() {
         if (isLockDue()) return
         _pendingDestination.value = null
+        _pendingOrderId.value = null
     }
 
     /** The merchant passed the biometric prompt. */

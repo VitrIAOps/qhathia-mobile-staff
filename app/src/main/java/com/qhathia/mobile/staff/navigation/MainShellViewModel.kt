@@ -46,8 +46,8 @@ class MainShellViewModel @Inject constructor(
     }
 
     /** A notification tap landed on Solicitudes: show Pendientes from the top and re-query. */
-    fun onOrdersDeepLink() {
-        requestShowPendingOrders()
+    fun onOrdersDeepLink(orderId: String? = null) {
+        requestShowPendingOrders(orderId)
         notifyOrdersChanged()
     }
 }

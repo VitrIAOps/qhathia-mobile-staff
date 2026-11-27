@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qhathia.mobile.staff.core.common.navigation.EXTRA_DESTINATION
+import com.qhathia.mobile.staff.core.common.navigation.EXTRA_ORDER_ID
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.navigation.QhathiaNavHost
 import dagger.hilt.android.AndroidEntryPoint
@@ -44,7 +45,7 @@ class MainActivity : AppCompatActivity() {
         // Only on a fresh start: on a configuration change the Activity is recreated with the same
         // launching intent, and re-reading it would jump to the section a second time.
         if (savedInstanceState == null) {
-            viewModel.onDeepLink(intent.getStringExtra(EXTRA_DESTINATION))
+            viewModel.onDeepLink(intent.getStringExtra(EXTRA_DESTINATION), intent.getStringExtra(EXTRA_ORDER_ID))
         }
         setContent {
             QhathiaTheme {
@@ -57,7 +58,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        viewModel.onDeepLink(intent.getStringExtra(EXTRA_DESTINATION))
+        viewModel.onDeepLink(intent.getStringExtra(EXTRA_DESTINATION), intent.getStringExtra(EXTRA_ORDER_ID))
     }
 }
 
@@ -66,6 +67,7 @@ class MainActivity : AppCompatActivity() {
 private fun QhathiaRoot(viewModel: MainViewModel = hiltViewModel()) {
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val pendingDestination by viewModel.pendingDestination.collectAsStateWithLifecycle()
+    val pendingOrderId by viewModel.pendingOrderId.collectAsStateWithLifecycle()
 
     val processLifecycle = ProcessLifecycleOwner.get().lifecycle
     DisposableEffect(processLifecycle) {
@@ -95,11 +97,13 @@ private fun QhathiaRoot(viewModel: MainViewModel = hiltViewModel()) {
         AuthState.Authenticated -> QhathiaNavHost(
             startAuthenticated = true,
             pendingDestination = pendingDestination,
+            pendingOrderId = pendingOrderId,
             onPendingDestinationConsumed = viewModel::onPendingDestinationConsumed,
         )
         AuthState.Unauthenticated -> QhathiaNavHost(
             startAuthenticated = false,
             pendingDestination = pendingDestination,
+            pendingOrderId = pendingOrderId,
             onPendingDestinationConsumed = viewModel::onPendingDestinationConsumed,
         )
     }

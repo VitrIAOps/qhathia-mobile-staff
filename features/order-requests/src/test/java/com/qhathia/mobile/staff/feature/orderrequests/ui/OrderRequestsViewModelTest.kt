@@ -1,5 +1,9 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
+import com.qhathia.mobile.staff.core.testing.FakeOrderNotificationTray
+import com.qhathia.mobile.staff.core.domain.usecase.RequestShowPendingOrdersUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.ClearOrderToOpenUseCase
+import com.qhathia.mobile.staff.core.domain.usecase.ObserveOrderToOpenUseCase
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderError
 import com.qhathia.mobile.staff.core.domain.model.ConfirmOrderException
@@ -57,10 +61,13 @@ class OrderRequestsViewModelTest {
     private lateinit var repository: FakeOrderRepository
     private lateinit var preferences: FakeNotificationPreferencesRepository
 
+    private lateinit var tray: FakeOrderNotificationTray
+
     @BeforeEach
     fun setUp() {
         repository = FakeOrderRepository()
         preferences = FakeNotificationPreferencesRepository()
+        tray = FakeOrderNotificationTray()
     }
 
     private fun createViewModel() = OrderRequestsViewModel(
@@ -73,6 +80,8 @@ class OrderRequestsViewModelTest {
         recoverOrderUseCase = RecoverOrderUseCase(repository),
         getNotificationPreferencesUseCase = GetNotificationPreferencesUseCase(preferences),
         observeShowPendingOrdersUseCase = ObserveShowPendingOrdersUseCase(repository),
+        observeOrderToOpenUseCase = ObserveOrderToOpenUseCase(repository),
+        clearOrderToOpenUseCase = ClearOrderToOpenUseCase(repository, tray),
     )
 
     /**
@@ -777,6 +786,49 @@ class OrderRequestsViewModelTest {
         runCurrent()
 
         assertEquals(before, viewModel.uiState.value.scrollToTopKey)
+    }
+
+    @Test
+    fun `a notification for one order opens its detail, also when asked before the screen existed`() = runTest {
+        repository.detailResult = Result.success(TestFixtures.orderDetail())
+        // Cold start: the shell asks before Solicitudes' ViewModel exists.
+        RequestShowPendingOrdersUseCase(repository)("order-1")
+
+        val viewModel = createViewModel()
+        runCurrent()
+
+        assertEquals("order-1", viewModel.uiState.value.detail?.orderId)
+        assertEquals(listOf("order-1"), repository.requestedDetailIds)
+        assertNull(repository.orderToOpen.value)
+        // "Ver solicitud" does not dismiss the notification by itself.
+        assertEquals(listOf("order-1"), tray.cancelledIds)
+    }
+
+    @Test
+    fun `the order from a notification opens once`() = runTest {
+        repository.detailResult = Result.success(TestFixtures.orderDetail())
+        val viewModel = createViewModel()
+        runCurrent()
+
+        RequestShowPendingOrdersUseCase(repository)("order-1")
+        runCurrent()
+        viewModel.onEvent(OrderRequestsUiEvent.DismissDetail)
+        runCurrent()
+
+        assertNull(viewModel.uiState.value.detail)
+        assertEquals(listOf("order-1"), repository.requestedDetailIds)
+    }
+
+    @Test
+    fun `the group summary opens the list without a detail`() = runTest {
+        val viewModel = createViewModel()
+        runCurrent()
+
+        RequestShowPendingOrdersUseCase(repository)(null)
+        runCurrent()
+
+        assertNull(viewModel.uiState.value.detail)
+        assertTrue(repository.requestedDetailIds.isEmpty())
     }
 
     @Test

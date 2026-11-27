@@ -13,3 +13,6 @@ const val EXTRA_DESTINATION = "com.qhathia.mobile.staff.extra.DESTINATION"
 
 /** Open the Solicitudes (order requests) section. */
 const val DESTINATION_ORDER_REQUESTS = "order_requests"
+
+/** With [DESTINATION_ORDER_REQUESTS]: the order whose detail to open over the list. */
+const val EXTRA_ORDER_ID = "com.qhathia.mobile.staff.extra.ORDER_ID"
