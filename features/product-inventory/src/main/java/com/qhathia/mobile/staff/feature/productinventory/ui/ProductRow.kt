@@ -1,5 +1,8 @@
 package com.qhathia.mobile.staff.feature.productinventory.ui
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -136,15 +139,18 @@ internal fun ProductRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Row(
+            // The stock moves under the price when both do not fit, so a price never breaks inside
+            // its figure ("S/ 129.0 / 0") at large text (S17-06).
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
-                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(Dimens.SpaceXs),
+                itemVerticalAlignment = Alignment.Bottom,
             ) {
                 ProductPrice(
                     price = product.price,
                     discountedPrice = product.discountedPrice,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.padding(end = Dimens.SpaceXs),
                 )
                 StockIndicator(stock = product.stock, availability = product.availability)
             }
@@ -273,6 +279,9 @@ private fun ProductPrice(price: Double, discountedPrice: Double?, modifier: Modi
             text = price.toPenPrice(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            softWrap = false,
+            autoSize = priceAutoSize(MaterialTheme.typography.bodyMedium.fontSize),
             modifier = modifier,
         )
         return
@@ -289,11 +298,16 @@ private fun ProductPrice(price: Double, discountedPrice: Double?, modifier: Modi
             fontWeight = FontWeight.Light,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textDecoration = TextDecoration.LineThrough,
+            maxLines = 1,
+            softWrap = false,
         )
         Text(
             text = discountedPrice.toPenPrice(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            softWrap = false,
+            autoSize = priceAutoSize(MaterialTheme.typography.bodyMedium.fontSize),
         )
     }
 }
@@ -352,3 +366,6 @@ private fun ThumbnailStateIcon(icon: ImageVector) {
         )
     }
 }
+
+/** A price on one line, shrinking rather than breaking when even its own line is too narrow. */
+private fun priceAutoSize(max: TextUnit) = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = max)

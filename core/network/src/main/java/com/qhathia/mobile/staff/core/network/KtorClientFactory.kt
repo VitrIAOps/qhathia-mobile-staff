@@ -12,6 +12,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.authProvider
+import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
@@ -118,3 +120,12 @@ private suspend fun HttpResponse.problemErrorCode(json: Json): String? =
 
 /** The 401 that means "the current password is wrong", not "the token expired" (Fase 36). */
 internal const val ERROR_CURRENT_PASSWORD_INCORRECT = "CURRENT_PASSWORD_INCORRECT"
+
+/**
+ * Forgets the bearer pair the [Auth] plugin cached, so the next request loads the session's current
+ * tokens. Ktor reads them once and keeps them until a refresh: without this, the first requests
+ * after a new login still carry the previous session's token (F-47). No-op on a client without it.
+ */
+fun HttpClient.forgetBearerTokens() {
+    authProvider<BearerAuthProvider>()?.clearToken()
+}

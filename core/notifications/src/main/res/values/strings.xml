@@ -35,4 +35,5 @@
         <item quantity="one">%d solicitud por atender</item>
         <item quantity="other">%d solicitudes por atender</item>
     </plurals>
+    <string name="notif_action_view">Ver solicitud</string>
 </resources>

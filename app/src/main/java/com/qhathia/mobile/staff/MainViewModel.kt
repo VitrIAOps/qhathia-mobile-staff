@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -56,6 +57,11 @@ class MainViewModel @Inject constructor(
     /** The section to jump to on the next composition of the shell, or null when there is none. */
     val pendingDestination: StateFlow<String?> = _pendingDestination.asStateFlow()
 
+    private val _pendingOrderId = MutableStateFlow<String?>(null)
+
+    /** With [pendingDestination]: the order whose detail to open, kept and cleared together with it. */
+    val pendingOrderId: StateFlow<String?> = _pendingOrderId.asStateFlow()
+
     /** Whether the biometric gate was passed in this process (or skipped by a password login). */
     private val unlocked = MutableStateFlow(false)
     private var backgroundedAt: Instant? = null
@@ -65,11 +71,12 @@ class MainViewModel @Inject constructor(
      * than an `Intent` so this stays a plain unit-testable ViewModel. A null (an ordinary launcher
      * start) leaves any pending destination alone.
      */
-    fun onDeepLink(destination: String?) {
+    fun onDeepLink(destination: String?, orderId: String? = null) {
         if (destination == null) return
         // The tap and the return to the foreground arrive in either order: lock now if it is due, so
         // the shell still on screen cannot take the destination with it.
         if (backgroundedLongEnough()) unlocked.value = false
+        _pendingOrderId.value = orderId
         _pendingDestination.value = destination
     }
 
@@ -80,6 +87,7 @@ class MainViewModel @Inject constructor(
     fun onPendingDestinationConsumed() {
         if (isLockDue()) return
         _pendingDestination.value = null
+        _pendingOrderId.value = null
     }
 
     /** The merchant passed the biometric prompt. */
@@ -118,18 +126,28 @@ class MainViewModel @Inject constructor(
         return Duration.between(since, clock.instant()) >= RELOCK_AFTER
     }
 
+    /** Declared before the `init` collector below, which may set it during construction. */
+    private var pushJob: Job? = null
+
     private val isAuthenticated = observeSession()
         .map { session -> session != null }
         .distinctUntilChanged()
-        .onEach { authenticated ->
-            if (authenticated) {
-                ensurePushRegistered()
-            } else {
-                pushJob?.cancel()
-                // The next session starts with a password login, which already proves who is there.
-                unlocked.value = true
+
+    init {
+        // Once per sign-in or sign-out, apart from [authState]: that flow restarts whenever the UI
+        // stops and resumes collecting it, and each restart used to register the push token again (F-47).
+        isAuthenticated
+            .onEach { authenticated ->
+                if (authenticated) {
+                    ensurePushRegistered()
+                } else {
+                    pushJob?.cancel()
+                    // The next session starts with a password login, which already proves who is there.
+                    unlocked.value = true
+                }
             }
-        }
+            .launchIn(viewModelScope)
+    }
 
     val authState: StateFlow<AuthState> =
         combine(isAuthenticated, observeBiometricEnabled(), unlocked) { authenticated, biometric, isUnlocked ->
@@ -146,7 +164,6 @@ class MainViewModel @Inject constructor(
                 initialValue = AuthState.Loading,
             )
 
-    private var pushJob: Job? = null
 
     /**
      * Registers the push token for the signed-in session. A failure (typically no network at start)

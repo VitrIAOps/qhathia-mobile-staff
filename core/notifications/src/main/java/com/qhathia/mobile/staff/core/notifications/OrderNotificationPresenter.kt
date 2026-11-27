@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.qhathia.mobile.staff.core.common.navigation.DESTINATION_ORDER_REQUESTS
 import com.qhathia.mobile.staff.core.common.navigation.EXTRA_DESTINATION
+import com.qhathia.mobile.staff.core.common.navigation.EXTRA_ORDER_ID
 import com.qhathia.mobile.staff.core.domain.model.OrderDetail
 import com.qhathia.mobile.staff.core.domain.repository.OrderNotificationTray
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -32,7 +33,8 @@ import javax.inject.Singleton
  * app fetched under its own session, since the push itself carries no personal data.
  *
  * Tapping opens the app on the Solicitudes section via its launch intent plus a destination extra
- * (no direct dependency on `:app`).
+ * (no direct dependency on `:app`); a notification for one order also carries its id, so the app
+ * opens that order's detail, and offers the same as a "Ver solicitud" action.
  *
  * Order notifications share one group with an app-owned summary ("N solicitudes por atender") that
  * opens Solicitudes too; without it Android builds its own summary, which opens nothing. The
@@ -57,7 +59,9 @@ class OrderNotificationPresenter @Inject constructor(
         if (!notificationsAllowed()) return
 
         val (title, body) = contentFor(kind)
-        val notification = orderNotification(orderId)
+        // "Ver solicitud" on what asks for attention; a generic update has no single order to show.
+        val viewAction = kind != OrderPushAction.Kind.GENERIC
+        val notification = orderNotification(orderId, viewAction)
             .setContentTitle(title)
             .setContentText(body)
             .build()
@@ -101,7 +105,7 @@ class OrderNotificationPresenter @Inject constructor(
                 add(res.getQuantityString(R.plurals.notif_new_order_more_products, content.moreLines, content.moreLines))
             }
         }.joinToString("\n")
-        val notification = orderNotification(orderId)
+        val notification = orderNotification(orderId, viewAction = true)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
@@ -117,14 +121,22 @@ class OrderNotificationPresenter @Inject constructor(
      * The common shape of an order notification. `onlyAlertOnce` keeps a rewrite of a notification
      * already in the tray silent, so only the first post sounds.
      */
-    private fun orderNotification(orderId: String?): NotificationCompat.Builder =
-        NotificationCompat.Builder(context, CHANNEL_ID)
+    private fun orderNotification(orderId: String?, viewAction: Boolean): NotificationCompat.Builder {
+        // The tap and "Ver solicitud" open that order's detail (F-55, S17-05).
+        val open = openAppIntent(orderId, orderId)
+        return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_order)
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setGroup(GROUP_KEY)
-            .setContentIntent(openAppIntent(orderId))
+            .setContentIntent(open)
+            .apply {
+                if (viewAction && orderId != null) {
+                    addAction(0, context.getString(R.string.notif_action_view), open)
+                }
+            }
+    }
 
     private fun contentFor(kind: OrderPushAction.Kind): Pair<String, String> = when (kind) {
         OrderPushAction.Kind.NEW_ORDER -> context.getString(R.string.notif_new_order_title) to
@@ -212,13 +224,14 @@ class OrderNotificationPresenter @Inject constructor(
      * [SUMMARY_TAG] for the summary) so that `FLAG_UPDATE_CURRENT` cannot rewrite the extras of
      * notifications already in the tray.
      */
-    private fun openAppIntent(key: String?): PendingIntent {
+    private fun openAppIntent(key: String?, orderId: String? = null): PendingIntent {
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
             ?.apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
                 putExtra(EXTRA_DESTINATION, DESTINATION_ORDER_REQUESTS)
+                if (orderId != null) putExtra(EXTRA_ORDER_ID, orderId)
             }
             ?: Intent()
         return PendingIntent.getActivity(

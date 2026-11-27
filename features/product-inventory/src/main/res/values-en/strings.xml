@@ -14,6 +14,15 @@
     </plurals>
     <string name="inventory_filter">Filters</string>
     <string name="inventory_filter_cd">Filter products</string>
+    <plurals name="inventory_filter_active">
+        <item quantity="one">Filters · %1$d</item>
+        <item quantity="other">Filters · %1$d</item>
+    </plurals>
+    <plurals name="inventory_filter_active_cd">
+        <item quantity="one">Filters, %1$d active</item>
+        <item quantity="other">Filters, %1$d active</item>
+    </plurals>
+    <string name="inventory_filter_clear_cd">Remove filter %1$s</string>
     <string name="inventory_filter_categories">Category</string>
     <string name="inventory_filter_availability">Availability</string>
 

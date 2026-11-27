@@ -120,11 +120,11 @@
 
     <!-- Notificaciones -->
     <string name="notifications_title">Notifications</string>
-    <string name="notifications_group_orders">Orders</string>
+    <string name="notifications_group_orders">Requests</string>
     <string name="notifications_group_tablet">Tablet</string>
     <string name="notifications_group_business">Your business</string>
-    <string name="notifications_new_order">New order</string>
-    <string name="notifications_order_expiring">Order about to expire</string>
+    <string name="notifications_new_order">New request</string>
+    <string name="notifications_order_expiring">Request about to expire</string>
     <!-- %1$d: orderExpiringWarningMinutes from the backend. -->
     <plurals name="notifications_order_expiring_subtitle">
         <item quantity="one">Alert %1$d minute before it expires</item>

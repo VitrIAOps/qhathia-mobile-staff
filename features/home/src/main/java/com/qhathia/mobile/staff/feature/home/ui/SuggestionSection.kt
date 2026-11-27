@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.qhathia.mobile.staff.core.domain.model.MissingProductSuggestion
@@ -43,7 +44,8 @@ import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.home.R
 import com.qhathia.mobile.staff.core.ui.R as CoreUiR
 
-private val ActionButtonHeight = 32.dp
+/** At least the touch minimum, and it grows with its label at large text (S17-06). */
+private val ActionButtonHeight = 48.dp
 private val CardSpacing = 12.dp
 
 /**
@@ -185,7 +187,7 @@ internal fun SuggestionActionButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(ActionButtonHeight)
+            .heightIn(min = ActionButtonHeight)
             .background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(Dimens.SpaceSm))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -194,13 +196,16 @@ internal fun SuggestionActionButton(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSecondary,
-            maxLines = 1,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            modifier = Modifier.padding(horizontal = Dimens.SpaceSm, vertical = Dimens.SpaceXs),
         )
     }
 }
 
 @Preview(name = "Suggestion sections — light", showBackground = true)
 @Preview(name = "Suggestion sections — dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Suggestion sections, font 2.0", showBackground = true, fontScale = 2f, widthDp = 360)
 @Composable
 private fun SuggestionSectionsPreview() {
     QhathiaTheme {

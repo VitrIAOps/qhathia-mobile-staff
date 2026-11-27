@@ -24,8 +24,8 @@
     <string name="statistics_category_all">All</string>
 
     <!-- Resumen tab -->
-    <string name="statistics_kpi_sales">No. of sales</string>
-    <string name="statistics_kpi_ticket">Avg. ticket</string>
+    <string name="statistics_kpi_sales">Sales</string>
+    <string name="statistics_kpi_ticket">Average ticket</string>
     <string name="statistics_kpi_units">Units</string>
 
     <!-- Ranking tab -->

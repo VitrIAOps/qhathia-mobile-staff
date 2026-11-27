@@ -3,6 +3,7 @@ package com.qhathia.mobile.staff.core.domain.usecase
 import com.qhathia.mobile.staff.core.domain.model.LoginError
 import com.qhathia.mobile.staff.core.domain.model.LoginException
 import com.qhathia.mobile.staff.core.testing.FakeAuthRepository
+import com.qhathia.mobile.staff.core.testing.FakeAuthTokenCache
 import com.qhathia.mobile.staff.core.testing.FakeSessionRepository
 import com.qhathia.mobile.staff.core.testing.TestFixtures
 import kotlinx.coroutines.test.runTest
@@ -17,13 +18,15 @@ class LoginUseCaseTest {
 
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var sessionRepository: FakeSessionRepository
+    private lateinit var tokenCache: FakeAuthTokenCache
     private lateinit var useCase: LoginUseCase
 
     @BeforeEach
     fun setUp() {
         authRepository = FakeAuthRepository()
         sessionRepository = FakeSessionRepository()
-        useCase = LoginUseCase(authRepository, sessionRepository)
+        tokenCache = FakeAuthTokenCache()
+        useCase = LoginUseCase(authRepository, sessionRepository, tokenCache)
     }
 
     @Test
@@ -61,4 +64,23 @@ class LoginUseCaseTest {
             assertEquals(0, sessionRepository.saveCallCount)
             assertNull(sessionRepository.currentAccessToken())
         }
+
+    @Test
+    fun login_clearsBearerCache() = runTest {
+        authRepository.loginResult = Result.success(TestFixtures.session())
+
+        useCase("owner@tienda.com", "secret123")
+
+        // F-47: the first requests of the new session must not reuse a token cached before it.
+        assertEquals(1, tokenCache.clearCallCount)
+    }
+
+    @Test
+    fun failedLogin_leavesBearerCacheAlone() = runTest {
+        authRepository.loginResult = Result.failure(LoginException(LoginError.InvalidCredentials))
+
+        useCase("owner@tienda.com", "wrong")
+
+        assertEquals(0, tokenCache.clearCallCount)
+    }
 }

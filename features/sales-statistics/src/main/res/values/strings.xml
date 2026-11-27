@@ -25,8 +25,8 @@
     <string name="statistics_category_all">Todos</string>
 
     <!-- Resumen tab -->
-    <string name="statistics_kpi_sales">Cantidad de ventas</string>
-    <string name="statistics_kpi_ticket">Ticket prom.</string>
+    <string name="statistics_kpi_sales">Ventas</string>
+    <string name="statistics_kpi_ticket">Ticket promedio</string>
     <string name="statistics_kpi_units">Unidades</string>
 
     <!-- Ranking tab -->

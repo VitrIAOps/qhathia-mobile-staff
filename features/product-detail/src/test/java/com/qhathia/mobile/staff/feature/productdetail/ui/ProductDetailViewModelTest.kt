@@ -1523,6 +1523,73 @@ class ProductDetailViewModelTest {
         }
 
     @Test
+    fun `retryAfterDiscountFailure_withRereadFailing_doesNotDeletePhotoAgain`() = runTest {
+        // F-96: the photo went, the discount did not, and the network is gone for the re-read too.
+        threePhotos()
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.PhotoRemoved("m2"))
+        viewModel.applyDiscount("20")
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+        productRepository.productDetailResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+
+        viewModel.onEvent(ProductDetailUiEvent.Save)
+        assertEquals(PartialSave.DISCOUNT, viewModel.uiState.value.partialSave)
+        assertEquals(listOf("update", "deleteImage:m2"), productRepository.writeLog)
+
+        discountRepository.createFailure = null
+        productRepository.writeLog.clear()
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+        }
+        assertTrue(productRepository.writeLog.isEmpty())
+        assertEquals(listOf("m2"), productRepository.deletedImageIds)
+        assertEquals(2, discountRepository.calls.count { it.startsWith("create:") })
+    }
+
+    @Test
+    fun `retryAfterDiscountFailure_doesNotUploadAddedPhotosAgain`() = runTest {
+        threePhotos()
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.PhotosPicked(picked(1)))
+        viewModel.applyDiscount("20")
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+        productRepository.productDetailResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+
+        viewModel.onEvent(ProductDetailUiEvent.Save)
+        assertEquals(PartialSave.DISCOUNT, viewModel.uiState.value.partialSave)
+
+        discountRepository.createFailure = null
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+        }
+        assertEquals(1, productRepository.addedImageBatches.size)
+        assertEquals(1, productRepository.updateCallCount)
+    }
+
+    @Test
+    fun `a photo change after the discount failed sends the new edit`() = runTest {
+        threePhotos()
+        val viewModel = createViewModel()
+        viewModel.onEvent(ProductDetailUiEvent.PhotoRemoved("m2"))
+        viewModel.applyDiscount("20")
+        discountRepository.createFailure = DiscountException(DiscountError.Network)
+        productRepository.productDetailResult = Result.failure(UpdateProductException(UpdateProductError.Network))
+        viewModel.onEvent(ProductDetailUiEvent.Save)
+
+        discountRepository.createFailure = null
+        productRepository.writeLog.clear()
+        viewModel.onEvent(ProductDetailUiEvent.PhotoRemoved("m3"))
+        viewModel.uiEffect.test {
+            viewModel.onEvent(ProductDetailUiEvent.Save)
+            assertEquals(ProductDetailUiEffect.NavigateBackSaved, awaitItem())
+        }
+        // Only the new removal: m2 is not deleted again.
+        assertEquals(listOf("deleteImage:m3"), productRepository.writeLog)
+    }
+
+    @Test
     fun `photos that fail after the update leave a partial save`() = runTest {
         threePhotos()
         productRepository.addImagesResult = Result.failure(UpdateProductException(UpdateProductError.Network))

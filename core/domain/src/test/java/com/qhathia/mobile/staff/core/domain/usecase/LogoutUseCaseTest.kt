@@ -1,6 +1,7 @@
 package com.qhathia.mobile.staff.core.domain.usecase
 
 import com.qhathia.mobile.staff.core.testing.FakeAuthRepository
+import com.qhathia.mobile.staff.core.testing.FakeAuthTokenCache
 import com.qhathia.mobile.staff.core.testing.FakeNotificationTokenRepository
 import com.qhathia.mobile.staff.core.testing.FakePushTokenProvider
 import com.qhathia.mobile.staff.core.testing.FakeSessionRepository
@@ -17,6 +18,7 @@ class LogoutUseCaseTest {
     private lateinit var authRepository: FakeAuthRepository
     private lateinit var notificationTokenRepository: FakeNotificationTokenRepository
     private lateinit var pushTokenProvider: FakePushTokenProvider
+    private lateinit var tokenCache: FakeAuthTokenCache
     private lateinit var useCase: LogoutUseCase
 
     @BeforeEach
@@ -27,13 +29,16 @@ class LogoutUseCaseTest {
         authRepository = FakeAuthRepository()
         notificationTokenRepository = FakeNotificationTokenRepository()
         pushTokenProvider = FakePushTokenProvider(token = "fcm-abc")
+        tokenCache = FakeAuthTokenCache()
         useCase = LogoutUseCase(
             sessionRepository = sessionRepository,
             unregisterPushToken = UnregisterPushTokenUseCase(
                 pushTokenProvider,
                 notificationTokenRepository,
+                PushRegistrationGate(),
             ),
             authRepository = authRepository,
+            authTokenCache = tokenCache,
         )
     }
 
@@ -66,8 +71,10 @@ class LogoutUseCaseTest {
             unregisterPushToken = UnregisterPushTokenUseCase(
                 pushTokenProvider,
                 notificationTokenRepository,
+                PushRegistrationGate(),
             ),
             authRepository = authRepository,
+            authTokenCache = tokenCache,
         )
 
         subject()
@@ -84,5 +91,22 @@ class LogoutUseCaseTest {
         useCase() // must not throw
 
         assertEquals(1, sessionRepository.clearCallCount)
+    }
+
+    @Test
+    fun logout_clearsBearerCache() = runTest {
+        useCase()
+
+        assertEquals(1, tokenCache.clearCallCount)
+    }
+
+    @Test
+    fun logout_withNetworkFailures_stillClearsBearerCache() = runTest {
+        notificationTokenRepository.unregisterResult = Result.failure(IllegalStateException("offline"))
+        authRepository.logoutResult = Result.failure(IllegalStateException("offline"))
+
+        useCase()
+
+        assertEquals(1, tokenCache.clearCallCount)
     }
 }

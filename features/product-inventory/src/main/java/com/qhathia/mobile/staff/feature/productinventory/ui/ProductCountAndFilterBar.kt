@@ -1,5 +1,11 @@
 package com.qhathia.mobile.staff.feature.productinventory.ui
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material3.InputChipDefaults
+import androidx.compose.material3.InputChip
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -71,7 +77,10 @@ internal fun ProductCountAndFilterBar(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Box {
-            FilterPill(onClick = { menuExpanded = true })
+            FilterPill(
+                activeCount = listOfNotNull(selectedCategoryId, selectedAvailability).size,
+                onClick = { menuExpanded = true },
+            )
             DropdownMenu(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
@@ -138,10 +147,22 @@ internal fun ProductCountAndFilterBar(
  */
 @Composable
 private fun FilterPill(
+    activeCount: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
+    // "Filtros · 1": a filtered list no longer looks like missing products (S17-02).
+    val label = if (activeCount > 0) {
+        pluralStringResource(R.plurals.inventory_filter_active, activeCount, activeCount)
+    } else {
+        stringResource(R.string.inventory_filter)
+    }
+    val description = if (activeCount > 0) {
+        pluralStringResource(R.plurals.inventory_filter_active_cd, activeCount, activeCount)
+    } else {
+        stringResource(R.string.inventory_filter_cd)
+    }
     val shape = RoundedCornerShape(Dimens.PillRadius)
     Row(
         modifier = modifier
@@ -151,12 +172,13 @@ private fun FilterPill(
             .background(QhathiaColors.brandAccentSoft)
             .border(1.dp, colors.secondary, shape)
             .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = description }
             .padding(horizontal = Dimens.SpaceMd, vertical = Dimens.SpaceSm),
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(R.string.inventory_filter),
+            text = label,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.3.sp,
@@ -164,7 +186,8 @@ private fun FilterPill(
         )
         Icon(
             imageVector = Icons.Filled.Tune,
-            contentDescription = stringResource(R.string.inventory_filter_cd),
+            // The pill's own description names it and the active count.
+            contentDescription = null,
             tint = colors.onSecondary,
             modifier = Modifier.size(Dimens.IconSm),
         )
@@ -202,5 +225,52 @@ private fun FilterMenuItem(
                 )
             }
         },
+    )
+}
+
+/**
+ * One chip per active filter under the bar, each with a ✕ that clears only that filter, so the
+ * merchant sees what narrows the list without opening the menu (S17-02). Nothing with no filter.
+ * A category id missing from [categories] still counts on the pill but gets no chip.
+ */
+@Composable
+internal fun ActiveFilterChips(
+    categories: ImmutableList<Category>,
+    selectedCategoryId: String?,
+    selectedAvailability: Availability?,
+    onClearCategory: () -> Unit,
+    onClearAvailability: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val categoryName = selectedCategoryId?.let { id -> categories.firstOrNull { it.id == id }?.name }
+    if (categoryName == null && selectedAvailability == null) return
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm),
+    ) {
+        categoryName?.let { ActiveFilterChip(label = it, onClear = onClearCategory) }
+        selectedAvailability?.let {
+            ActiveFilterChip(label = stringResource(it.filterLabelRes()), onClear = onClearAvailability)
+        }
+    }
+}
+
+/** White with a hairline border: the orange belongs to the pill. */
+@Composable
+private fun ActiveFilterChip(label: String, onClear: () -> Unit) {
+    val clearCd = stringResource(R.string.inventory_filter_clear_cd, label)
+    InputChip(
+        selected = false,
+        onClick = onClear,
+        label = { Text(text = label, style = MaterialTheme.typography.bodySmall) },
+        trailingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = null,
+                modifier = Modifier.size(InputChipDefaults.IconSize),
+            )
+        },
+        colors = InputChipDefaults.inputChipColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.semantics { contentDescription = clearCd },
     )
 }

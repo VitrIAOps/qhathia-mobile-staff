@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -29,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import com.qhathia.mobile.staff.core.ui.component.AdaptiveButtonRow
 import com.qhathia.mobile.staff.core.ui.theme.Dimens
 import com.qhathia.mobile.staff.core.ui.theme.QhathiaTheme
 import com.qhathia.mobile.staff.feature.orderrequests.R
@@ -84,13 +84,13 @@ internal fun CustomerContactRow(
             val who = name ?: stringResource(R.string.order_contact_customer)
             val callCd = stringResource(R.string.order_contact_call_cd, who)
             val whatsappCd = stringResource(R.string.order_contact_whatsapp_cd, who)
-            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpaceSm)) {
+            // Side by side when both labels fit, stacked otherwise: at large text "Llam-ar" broke (S17-06).
+            AdaptiveButtonRow(modifier = Modifier.fillMaxWidth()) {
                 ContactButton(
                     text = stringResource(R.string.order_contact_call),
                     description = callCd,
                     icon = { Icon(Icons.Outlined.Call, contentDescription = null, modifier = Modifier.size(18.dp)) },
                     onClick = { context.openSafely(Intent(Intent.ACTION_DIAL, "tel:$cell".toUri())) },
-                    modifier = Modifier.weight(1f),
                 )
                 ContactButton(
                     text = stringResource(R.string.order_contact_whatsapp),
@@ -101,7 +101,6 @@ internal fun CustomerContactRow(
                     onClick = {
                         context.openSafely(Intent(Intent.ACTION_VIEW, "https://wa.me/$PERU_PREFIX$cell".toUri()))
                     },
-                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -143,6 +142,7 @@ private fun Context.openSafely(intent: Intent) {
 
 @Preview(name = "Customer contact — light", showBackground = true)
 @Preview(name = "Customer contact — dark", showBackground = true, uiMode = 0x20)
+@Preview(name = "Customer contact — font 2.0", showBackground = true, fontScale = 2f, widthDp = 300)
 @Composable
 private fun CustomerContactRowPreview() {
     QhathiaTheme {

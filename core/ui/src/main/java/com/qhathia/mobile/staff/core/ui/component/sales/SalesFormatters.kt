@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.core.ui.component.sales
 
+import com.qhathia.mobile.staff.core.common.format.PEN_PREFIX
 import com.qhathia.mobile.staff.core.common.format.toPenAmount
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -7,6 +8,9 @@ import kotlin.math.abs
 
 /** Peruvian soles as the dashboards write them: `S/ 5,770`, grouped, without decimals. */
 fun BigDecimal.toSolesLabel(): String = toPenAmount()
+
+/** The figure of [toSolesLabel] without "S/", for labels too narrow for the prefix: "2,849". */
+fun BigDecimal.toSolesFigure(): String = toPenAmount().removePrefix(PEN_PREFIX)
 
 /** Which way a percentage moved once rounded for display. */
 enum class PercentTrend { UP, DOWN, FLAT }

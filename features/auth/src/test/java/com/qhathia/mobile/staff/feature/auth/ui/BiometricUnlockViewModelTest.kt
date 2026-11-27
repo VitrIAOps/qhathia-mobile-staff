@@ -1,5 +1,7 @@
 package com.qhathia.mobile.staff.feature.auth.ui
 
+import com.qhathia.mobile.staff.core.testing.FakeAuthTokenCache
+import com.qhathia.mobile.staff.core.domain.usecase.PushRegistrationGate
 import app.cash.turbine.test
 import com.qhathia.mobile.staff.core.domain.usecase.LogoutUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveSessionUseCase
@@ -37,8 +39,9 @@ class BiometricUnlockViewModelTest {
         setBiometricEnabledUseCase = SetBiometricEnabledUseCase(prefs),
         logoutUseCase = LogoutUseCase(
             sessionRepository = sessions,
-            unregisterPushToken = UnregisterPushTokenUseCase(FakePushTokenProvider(), FakeNotificationTokenRepository()),
+            unregisterPushToken = UnregisterPushTokenUseCase(FakePushTokenProvider(), FakeNotificationTokenRepository(), PushRegistrationGate()),
             authRepository = FakeAuthRepository(),
+            authTokenCache = FakeAuthTokenCache(),
         ),
     )
 
