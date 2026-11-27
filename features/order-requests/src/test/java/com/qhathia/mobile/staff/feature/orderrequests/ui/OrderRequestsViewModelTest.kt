@@ -1,5 +1,6 @@
 package com.qhathia.mobile.staff.feature.orderrequests.ui
 
+import com.qhathia.mobile.staff.core.testing.FakeOrderNotificationTray
 import com.qhathia.mobile.staff.core.domain.usecase.RequestShowPendingOrdersUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ClearOrderToOpenUseCase
 import com.qhathia.mobile.staff.core.domain.usecase.ObserveOrderToOpenUseCase
@@ -60,10 +61,13 @@ class OrderRequestsViewModelTest {
     private lateinit var repository: FakeOrderRepository
     private lateinit var preferences: FakeNotificationPreferencesRepository
 
+    private lateinit var tray: FakeOrderNotificationTray
+
     @BeforeEach
     fun setUp() {
         repository = FakeOrderRepository()
         preferences = FakeNotificationPreferencesRepository()
+        tray = FakeOrderNotificationTray()
     }
 
     private fun createViewModel() = OrderRequestsViewModel(
@@ -77,7 +81,7 @@ class OrderRequestsViewModelTest {
         getNotificationPreferencesUseCase = GetNotificationPreferencesUseCase(preferences),
         observeShowPendingOrdersUseCase = ObserveShowPendingOrdersUseCase(repository),
         observeOrderToOpenUseCase = ObserveOrderToOpenUseCase(repository),
-        clearOrderToOpenUseCase = ClearOrderToOpenUseCase(repository),
+        clearOrderToOpenUseCase = ClearOrderToOpenUseCase(repository, tray),
     )
 
     /**
@@ -796,6 +800,8 @@ class OrderRequestsViewModelTest {
         assertEquals("order-1", viewModel.uiState.value.detail?.orderId)
         assertEquals(listOf("order-1"), repository.requestedDetailIds)
         assertNull(repository.orderToOpen.value)
+        // "Ver solicitud" does not dismiss the notification by itself.
+        assertEquals(listOf("order-1"), tray.cancelledIds)
     }
 
     @Test
